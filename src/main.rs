@@ -132,12 +132,6 @@ impl ApplicationHandler<MyUserEvent> for State {
         _event: DeviceEvent,
     ) {
     }
-
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        for window in &self.windows {
-            window.request_redraw();
-        }
-    }
 }
 
 fn main() {
