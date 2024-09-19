@@ -2,12 +2,52 @@ use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize, Position};
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::keyboard::KeyCode;
 use winit::window::{Window, WindowId};
 
 struct MyUserEvent;
 
 struct State {
     windows: Vec<Window>,
+    cmd_pressed: bool,
+}
+
+impl State {
+    fn tile_windows_horizontally(&mut self) {
+        let num_windows = self.windows.len();
+
+        for (i, window) in self.windows.iter_mut().enumerate() {
+            let monitor = window.current_monitor().expect("Failed to get monitor");
+            let display_size = monitor.size();
+
+            let window_width = display_size.width / num_windows as u32;
+            let x_position = i as u32 * window_width;
+
+            window.set_outer_position(Position::Physical(PhysicalPosition::new(
+                x_position as i32,
+                0,
+            )));
+            let _ = window.request_inner_size(PhysicalSize::new(window_width, display_size.height));
+        }
+    }
+
+    fn tile_windows_vertically(&mut self) {
+        let num_windows = self.windows.len();
+
+        for (i, window) in self.windows.iter_mut().enumerate() {
+            let monitor = window.current_monitor().expect("Failed to get monitor");
+            let display_size = monitor.size();
+
+            let window_height = display_size.height / num_windows as u32;
+            let y_position = i as u32 * window_height;
+
+            window.set_outer_position(Position::Physical(PhysicalPosition::new(
+                0,
+                y_position as i32,
+            )));
+            let _ = window.request_inner_size(PhysicalSize::new(display_size.width, window_height));
+        }
+    }
 }
 
 impl ApplicationHandler<MyUserEvent> for State {
@@ -26,7 +66,32 @@ impl ApplicationHandler<MyUserEvent> for State {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
             }
-            _ => (),
+            WindowEvent::KeyboardInput {
+                device_id: _,
+                event,
+                is_synthetic: _,
+            } => {
+                println!("Keyboard input event: {:?}", event);
+
+                if event.physical_key == KeyCode::SuperLeft && event.state.is_pressed() {
+                    self.cmd_pressed = true;
+                }
+                if event.physical_key == KeyCode::SuperLeft && !event.state.is_pressed() {
+                    self.cmd_pressed = false;
+                }
+
+                if event.physical_key == KeyCode::Digit0 && event.state.is_pressed() {
+                    if self.cmd_pressed {
+                        self.tile_windows_horizontally();
+                    }
+                }
+                if event.physical_key == KeyCode::Digit9 && event.state.is_pressed() {
+                    if self.cmd_pressed {
+                        self.tile_windows_vertically();
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -51,6 +116,7 @@ fn main() {
 
     let mut windows = Vec::new();
     for i in 0..3 {
+        #[allow(deprecated)]
         let window = event_loop
             .create_window(Window::default_attributes())
             .unwrap();
@@ -63,47 +129,10 @@ fn main() {
         windows.push(window);
     }
 
-    tile_windows_horizontally(&mut windows);
-
-    tile_windows_vertically(&mut windows);
-
-    let mut state = State { windows };
+    let mut state = State {
+        windows,
+        cmd_pressed: false,
+    };
 
     let _ = event_loop.run_app(&mut state);
-}
-
-fn tile_windows_horizontally(windows: &mut Vec<Window>) {
-    let num_windows = windows.len();
-
-    for (i, window) in windows.iter_mut().enumerate() {
-        let monitor = window.current_monitor().expect("Failed to get monitor");
-        let display_size = monitor.size();
-
-        let window_width = display_size.width / num_windows as u32;
-        let x_position = i as u32 * window_width;
-
-        window.set_outer_position(Position::Physical(PhysicalPosition::new(
-            x_position as i32,
-            0,
-        )));
-        let _ = window.request_inner_size(PhysicalSize::new(window_width, display_size.height));
-    }
-}
-
-fn tile_windows_vertically(windows: &mut Vec<Window>) {
-    let num_windows = windows.len();
-
-    for (i, window) in windows.iter_mut().enumerate() {
-        let monitor = window.current_monitor().expect("Failed to get monitor");
-        let display_size = monitor.size();
-
-        let window_height = display_size.height / num_windows as u32;
-        let y_position = i as u32 * window_height;
-
-        window.set_outer_position(Position::Physical(PhysicalPosition::new(
-            0,
-            y_position as i32,
-        )));
-        let _ = window.request_inner_size(PhysicalSize::new(display_size.width, window_height));
-    }
 }
