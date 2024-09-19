@@ -145,6 +145,7 @@ fn main() {
             .create_window(Window::default_attributes())
             .unwrap();
 
+        window.set_title(&format!("Window {}", i + 1));
         window.set_outer_position(Position::Physical(PhysicalPosition::new(
             100 * i as i32,
             100 * i as i32,
