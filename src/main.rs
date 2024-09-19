@@ -65,6 +65,8 @@ fn main() {
 
     tile_windows_horizontally(&mut windows);
 
+    tile_windows_vertically(&mut windows);
+
     let mut state = State { windows };
 
     let _ = event_loop.run_app(&mut state);
@@ -85,5 +87,23 @@ fn tile_windows_horizontally(windows: &mut Vec<Window>) {
             0,
         )));
         let _ = window.request_inner_size(PhysicalSize::new(window_width, display_size.height));
+    }
+}
+
+fn tile_windows_vertically(windows: &mut Vec<Window>) {
+    let num_windows = windows.len();
+
+    for (i, window) in windows.iter_mut().enumerate() {
+        let monitor = window.current_monitor().expect("Failed to get monitor");
+        let display_size = monitor.size();
+
+        let window_height = display_size.height / num_windows as u32;
+        let y_position = i as u32 * window_height;
+
+        window.set_outer_position(Position::Physical(PhysicalPosition::new(
+            0,
+            y_position as i32,
+        )));
+        let _ = window.request_inner_size(PhysicalSize::new(display_size.width, window_height));
     }
 }
