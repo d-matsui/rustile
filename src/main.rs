@@ -9,6 +9,7 @@ struct MyUserEvent;
 
 struct State {
     windows: Vec<Window>,
+    focused_window_index: usize,
     cmd_pressed: bool,
 }
 
@@ -48,12 +49,36 @@ impl State {
             let _ = window.request_inner_size(PhysicalSize::new(display_size.width, window_height));
         }
     }
+
+    fn focus_next_window(&mut self) {
+        if self.windows.is_empty() {
+            return;
+        }
+
+        if self.focused_window_index == self.windows.len() - 1 {
+            self.focused_window_index = 0;
+        } else {
+            self.focused_window_index += 1;
+        }
+        self.windows[self.focused_window_index].focus_window();
+    }
+
+    fn focus_previous_window(&mut self) {
+        if self.windows.is_empty() {
+            return;
+        }
+
+        if self.focused_window_index == 0 {
+            self.focused_window_index = self.windows.len() - 1;
+        } else {
+            self.focused_window_index -= 1;
+        }
+        self.windows[self.focused_window_index].focus_window();
+    }
 }
 
 impl ApplicationHandler<MyUserEvent> for State {
-    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
-        // Your application got resumed.
-    }
+    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
 
     fn window_event(
         &mut self,
@@ -61,7 +86,6 @@ impl ApplicationHandler<MyUserEvent> for State {
         _window_id: WindowId,
         event: WindowEvent,
     ) {
-        // Handle window event.
         match event {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -71,8 +95,7 @@ impl ApplicationHandler<MyUserEvent> for State {
                 event,
                 is_synthetic: _,
             } => {
-                println!("Keyboard input event: {:?}", event);
-
+                // TODO: Custom keybindings
                 if event.physical_key == KeyCode::SuperLeft && event.state.is_pressed() {
                     self.cmd_pressed = true;
                 }
@@ -90,6 +113,13 @@ impl ApplicationHandler<MyUserEvent> for State {
                         self.tile_windows_vertically();
                     }
                 }
+
+                if event.physical_key == KeyCode::KeyJ && event.state.is_pressed() {
+                    self.focus_next_window();
+                }
+                if event.physical_key == KeyCode::KeyK && event.state.is_pressed() {
+                    self.focus_previous_window();
+                }
             }
             _ => {}
         }
@@ -101,7 +131,6 @@ impl ApplicationHandler<MyUserEvent> for State {
         _device_id: DeviceId,
         _event: DeviceEvent,
     ) {
-        // Handle device event.
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
@@ -112,6 +141,7 @@ impl ApplicationHandler<MyUserEvent> for State {
 }
 
 fn main() {
+    // TODO: extend to accept windows created by other applications (deamonize this app?)
     let event_loop = EventLoop::<MyUserEvent>::with_user_event().build().unwrap();
 
     let mut windows = Vec::new();
@@ -131,6 +161,7 @@ fn main() {
 
     let mut state = State {
         windows,
+        focused_window_index: 0,
         cmd_pressed: false,
     };
 
