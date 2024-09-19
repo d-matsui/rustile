@@ -1,5 +1,5 @@
 use winit::application::ApplicationHandler;
-use winit::dpi::{PhysicalPosition, Position};
+use winit::dpi::{PhysicalPosition, PhysicalSize, Position};
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
@@ -8,7 +8,6 @@ struct MyUserEvent;
 
 struct State {
     windows: Vec<Window>,
-    counter: i32,
 }
 
 impl ApplicationHandler<MyUserEvent> for State {
@@ -44,7 +43,6 @@ impl ApplicationHandler<MyUserEvent> for State {
         for window in &self.windows {
             window.request_redraw();
         }
-        self.counter += 1;
     }
 }
 
@@ -65,10 +63,27 @@ fn main() {
         windows.push(window);
     }
 
-    let mut state = State {
-        windows,
-        counter: 0,
-    };
+    tile_windows_horizontally(&mut windows);
+
+    let mut state = State { windows };
 
     let _ = event_loop.run_app(&mut state);
+}
+
+fn tile_windows_horizontally(windows: &mut Vec<Window>) {
+    let num_windows = windows.len();
+
+    for (i, window) in windows.iter_mut().enumerate() {
+        let monitor = window.current_monitor().expect("Failed to get monitor");
+        let display_size = monitor.size();
+
+        let window_width = display_size.width / num_windows as u32;
+        let x_position = i as u32 * window_width;
+
+        window.set_outer_position(Position::Physical(PhysicalPosition::new(
+            x_position as i32,
+            0,
+        )));
+        let _ = window.request_inner_size(PhysicalSize::new(window_width, display_size.height));
+    }
 }
