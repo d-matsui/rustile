@@ -1,4 +1,5 @@
 use winit::application::ApplicationHandler;
+use winit::dpi::{PhysicalPosition, Position};
 use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
@@ -51,10 +52,16 @@ fn main() {
     let event_loop = EventLoop::<MyUserEvent>::with_user_event().build().unwrap();
 
     let mut windows = Vec::new();
-    for _ in 0..3 {
+    for i in 0..3 {
         let window = event_loop
             .create_window(Window::default_attributes())
             .unwrap();
+
+        window.set_outer_position(Position::Physical(PhysicalPosition::new(
+            100 * i as i32,
+            100 * i as i32,
+        )));
+
         windows.push(window);
     }
 
