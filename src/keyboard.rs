@@ -89,3 +89,28 @@ impl KeyboardManager {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keycode_not_found() {
+        let keyboard_manager = KeyboardManager {
+            keycode_map: HashMap::new(),
+        };
+        
+        // Non-existent keysym should return 0
+        assert_eq!(keyboard_manager.get_keycode(0x9999), 0);
+    }
+
+    #[test]
+    fn test_keycode_lookup() {
+        let mut keycode_map = HashMap::new();
+        keycode_map.insert(0x0074, 28); // XK_T -> keycode 28 (example)
+        
+        let keyboard_manager = KeyboardManager { keycode_map };
+        
+        assert_eq!(keyboard_manager.get_keycode(0x0074), 28);
+    }
+}
