@@ -15,31 +15,77 @@ gap_size = 0
 
 [shortcuts]
 # Format: "Modifier+Key" = "command"
-# Available modifiers: Super, Alt, Ctrl, Shift
-# You can combine modifiers like "Ctrl+Alt+t"
+# 
+# Available modifiers:
+#   Primary: Super, Alt, Ctrl, Shift
+#   Alternative names: Win/Windows/Cmd (for Super), Meta (for Alt), Control/Ctl (for Ctrl)
+#   Less common: Mod2/NumLock, Mod3/ScrollLock, Mod5/AltGr
+#   Special: Hyper (combines Super+Alt+Ctrl+Shift)
+#
+# You can combine multiple modifiers like "Ctrl+Alt+t" or "Super+Shift+Alt+F12"
+# Case insensitive: "SUPER+T", "super+t", "Super+t" all work the same
 
-# Basic shortcuts
+# === SUPER KEY SHORTCUTS (Recommended for window manager) ===
 "Super+t" = "xcalc"                    # Launch calculator
 "Super+Return" = "xterm"               # Launch terminal
 "Super+d" = "dmenu_run"                # Launch application launcher
-
-# More terminal options
-"Super+Shift+Return" = "xterm -e bash" # Launch terminal with bash
-
-# Browser shortcuts
 "Super+b" = "firefox"                  # Launch web browser
-"Super+Shift+b" = "firefox --private-window"  # Private browsing
-
-# File manager
-"Super+f" = "thunar"                   # File manager (adjust based on your preference)
-
-# Text editor
+"Super+f" = "thunar"                   # File manager
 "Super+e" = "gedit"                    # Text editor
 
-# System utilities
-"Super+l" = "xlock"                    # Lock screen (if available)
+# Super + Shift combinations
+"Super+Shift+Return" = "xterm -e bash" # Launch terminal with bash
+"Super+Shift+b" = "firefox --private-window"  # Private browsing
+"Super+Shift+q" = "xkill"              # Kill window tool
 
-# Custom applications - modify these based on your system
+# === ALT KEY SHORTCUTS (Traditional Linux shortcuts) ===
+"Alt+F2" = "dmenu_run"                 # Traditional app launcher
+"Alt+F4" = "xkill"                     # Close window (traditional)
+"Alt+Tab" = "window_switcher"          # Window switcher (if implemented)
+
+# === CTRL COMBINATIONS (Be careful - apps use these) ===
+"Ctrl+Alt+t" = "gnome-terminal"        # Common terminal shortcut
+"Ctrl+Alt+Delete" = "xkill"            # System interrupt
+"Ctrl+Alt+l" = "xlock"                 # Lock screen
+
+# === COMPLEX MODIFIER COMBINATIONS ===
+"Ctrl+Shift+Escape" = "htop"          # Task manager
+"Super+Alt+l" = "xlock"                # Alternative lock
+"Super+Ctrl+t" = "xterm -title 'Admin Terminal'"  # Admin terminal
+
+# === FUNCTION KEY SHORTCUTS ===
+"Super+F1" = "xterm -e man rustile"    # Help
+"Super+F2" = "dmenu_run"               # Run dialog
+"Super+F12" = "xkill"                  # Emergency kill
+
+# === ALTERNATIVE MODIFIER NAMES (all equivalent) ===
+# These all do the same thing - use whichever you prefer
+"Cmd+space" = "dmenu_run"              # macOS-style (Cmd = Super)
+"Win+r" = "dmenu_run"                  # Windows-style (Win = Super)
+"Meta+Return" = "xterm"                # Unix-style (Meta = Alt)
+
+# === LESS COMMON MODIFIERS ===
+# NumLock combinations (Mod2)
+"Mod2+F1" = "xterm -e calculator"      # NumLock + F1
+
+# AltGr combinations (Mod5) - useful for international keyboards
+"AltGr+e" = "gedit"                    # European-style
+
+# === HYPER KEY (Super+Alt+Ctrl+Shift) ===
+# The "hyper" modifier combines all four main modifiers
+# Extremely unlikely to conflict with anything
+"Hyper+t" = "xterm -title 'Hyper Terminal'"
+"Hyper+space" = "dmenu_run"
+
+# === CUSTOM APPLICATIONS ===
+# Uncomment and modify these based on your system
 # "Super+m" = "spotify"                # Music player
 # "Super+v" = "code"                   # VS Code
 # "Super+g" = "gimp"                   # Image editor
+# "Super+s" = "slack"                  # Communication
+# "Super+i" = "firefox --new-window https://github.com"  # Quick GitHub
+
+# === SYSTEM CONTROL SHORTCUTS ===
+# "Super+Pause" = "systemctl suspend"   # Suspend system
+# "Super+End" = "systemctl poweroff"    # Power off (be careful!)
+# "Super+Home" = "systemctl reboot"     # Reboot (be careful!)

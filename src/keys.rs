@@ -64,10 +64,24 @@ impl KeyParser {
         for part in parts {
             let part = part.trim();
             match part.to_lowercase().as_str() {
-                "super" | "mod4" | "win" | "windows" => modifiers |= ModMask::M4,
-                "alt" | "mod1" => modifiers |= ModMask::M1,
-                "ctrl" | "control" => modifiers |= ModMask::CONTROL,
+                // Primary modifiers
+                "super" | "mod4" | "win" | "windows" | "cmd" => modifiers |= ModMask::M4,
+                "alt" | "mod1" | "meta" => modifiers |= ModMask::M1,
+                "ctrl" | "control" | "ctl" => modifiers |= ModMask::CONTROL,
                 "shift" => modifiers |= ModMask::SHIFT,
+                
+                // Less common modifiers
+                "mod2" | "numlock" | "num" => modifiers |= ModMask::M2,
+                "mod3" | "scrolllock" | "scroll" => modifiers |= ModMask::M3,
+                "mod5" | "altgr" | "altgraph" => modifiers |= ModMask::M5,
+                
+                // Alternative names for common combinations
+                "hyper" => modifiers |= ModMask::M4 | ModMask::M1 | ModMask::CONTROL | ModMask::SHIFT,
+                "super_l" | "super_r" => modifiers |= ModMask::M4,
+                "alt_l" | "alt_r" => modifiers |= ModMask::M1,
+                "ctrl_l" | "ctrl_r" => modifiers |= ModMask::CONTROL,
+                "shift_l" | "shift_r" => modifiers |= ModMask::SHIFT,
+                
                 _ => {
                     if key_name.is_some() {
                         return Err(anyhow::anyhow!("Multiple keys specified: {}", combo));
@@ -150,5 +164,104 @@ mod tests {
     fn test_unknown_key() {
         let parser = KeyParser::new();
         assert!(parser.parse_combination("unknown_key").is_err());
+    }
+
+    #[test]
+    fn test_mod2_modifier() {
+        let parser = KeyParser::new();
+        let (modifiers, keysym) = parser.parse_combination("Mod2+t").unwrap();
+        assert_eq!(modifiers, ModMask::M2);
+        assert_eq!(keysym, 't' as u32);
+    }
+
+    #[test]
+    fn test_numlock_modifier() {
+        let parser = KeyParser::new();
+        let (modifiers, keysym) = parser.parse_combination("NumLock+Return").unwrap();
+        assert_eq!(modifiers, ModMask::M2);
+        assert_eq!(keysym, 0xff0d);
+    }
+
+    #[test]
+    fn test_altgr_modifier() {
+        let parser = KeyParser::new();
+        let (modifiers, keysym) = parser.parse_combination("AltGr+e").unwrap();
+        assert_eq!(modifiers, ModMask::M5);
+        assert_eq!(keysym, 'e' as u32);
+    }
+
+    #[test]
+    fn test_hyper_modifier() {
+        let parser = KeyParser::new();
+        let (modifiers, keysym) = parser.parse_combination("Hyper+space").unwrap();
+        let expected = ModMask::M4 | ModMask::M1 | ModMask::CONTROL | ModMask::SHIFT;
+        assert_eq!(modifiers, expected);
+        assert_eq!(keysym, 0x0020);
+    }
+
+    #[test]
+    fn test_alternative_modifier_names() {
+        let parser = KeyParser::new();
+        
+        // Test cmd as alias for Super
+        let (modifiers1, _) = parser.parse_combination("Cmd+t").unwrap();
+        let (modifiers2, _) = parser.parse_combination("Super+t").unwrap();
+        assert_eq!(modifiers1, modifiers2);
+        
+        // Test meta as alias for Alt
+        let (modifiers1, _) = parser.parse_combination("Meta+t").unwrap();
+        let (modifiers2, _) = parser.parse_combination("Alt+t").unwrap();
+        assert_eq!(modifiers1, modifiers2);
+        
+        // Test ctl as alias for Ctrl
+        let (modifiers1, _) = parser.parse_combination("Ctl+t").unwrap();
+        let (modifiers2, _) = parser.parse_combination("Ctrl+t").unwrap();
+        assert_eq!(modifiers1, modifiers2);
+    }
+
+    #[test]
+    fn test_left_right_modifiers() {
+        let parser = KeyParser::new();
+        
+        // Left and right should map to same modifier
+        let (mod_l, _) = parser.parse_combination("Super_L+t").unwrap();
+        let (mod_r, _) = parser.parse_combination("Super_R+t").unwrap();
+        let (mod_normal, _) = parser.parse_combination("Super+t").unwrap();
+        
+        assert_eq!(mod_l, ModMask::M4);
+        assert_eq!(mod_r, ModMask::M4);
+        assert_eq!(mod_normal, ModMask::M4);
+    }
+
+    #[test]
+    fn test_complex_modifier_combinations() {
+        let parser = KeyParser::new();
+        
+        // Test triple modifier
+        let (modifiers, keysym) = parser.parse_combination("Ctrl+Alt+Shift+Delete").unwrap();
+        let expected = ModMask::CONTROL | ModMask::M1 | ModMask::SHIFT;
+        assert_eq!(modifiers, expected);
+        assert_eq!(keysym, 0xffff); // Delete key
+        
+        // Test quadruple modifier
+        let (modifiers, keysym) = parser.parse_combination("Super+Ctrl+Alt+Shift+F12").unwrap();
+        let expected = ModMask::M4 | ModMask::CONTROL | ModMask::M1 | ModMask::SHIFT;
+        assert_eq!(modifiers, expected);
+        assert_eq!(keysym, 0xffc9); // F12 key
+    }
+
+    #[test]
+    fn test_case_insensitive_modifiers() {
+        let parser = KeyParser::new();
+        
+        let (mod1, _) = parser.parse_combination("SUPER+t").unwrap();
+        let (mod2, _) = parser.parse_combination("super+t").unwrap();
+        let (mod3, _) = parser.parse_combination("Super+t").unwrap();
+        let (mod4, _) = parser.parse_combination("SuPeR+t").unwrap();
+        
+        assert_eq!(mod1, ModMask::M4);
+        assert_eq!(mod2, ModMask::M4);
+        assert_eq!(mod3, ModMask::M4);
+        assert_eq!(mod4, ModMask::M4);
     }
 }
