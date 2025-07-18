@@ -1,6 +1,6 @@
 //! Integration tests for rustile window manager
 
-use rustile::config::*;
+use rustile::config::Config;
 use rustile::layout::{Layout, LayoutManager};
 
 #[test]
@@ -9,9 +9,10 @@ fn test_library_exports() {
     let _layout = Layout::MasterStack;
     let _layout_manager = LayoutManager::new();
     
-    // Config constants should be accessible
-    assert_eq!(MASTER_RATIO, 0.5);
-    assert_eq!(DEFAULT_DISPLAY, ":10");
+    // Config should be accessible
+    let config = Config::default();
+    assert_eq!(config.master_ratio(), 0.5);
+    assert_eq!(config.default_display(), ":1");
 }
 
 #[test]

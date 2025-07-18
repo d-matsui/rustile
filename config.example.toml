@@ -1,0 +1,45 @@
+# Example configuration file for Rustile window manager
+# Copy this file to ~/.config/rustile/config.toml and customize as needed
+
+[general]
+# Default display for launching applications
+default_display = ":1"
+
+[layout]
+# Master window ratio (0.0 to 1.0)
+# 0.5 means master window takes 50% of screen width
+master_ratio = 0.5
+
+# Gap between windows in pixels (not implemented yet)
+gap_size = 0
+
+[shortcuts]
+# Format: "Modifier+Key" = "command"
+# Available modifiers: Super, Alt, Ctrl, Shift
+# You can combine modifiers like "Ctrl+Alt+t"
+
+# Basic shortcuts
+"Super+t" = "xcalc"                    # Launch calculator
+"Super+Return" = "xterm"               # Launch terminal
+"Super+d" = "dmenu_run"                # Launch application launcher
+
+# More terminal options
+"Super+Shift+Return" = "xterm -e bash" # Launch terminal with bash
+
+# Browser shortcuts
+"Super+b" = "firefox"                  # Launch web browser
+"Super+Shift+b" = "firefox --private-window"  # Private browsing
+
+# File manager
+"Super+f" = "thunar"                   # File manager (adjust based on your preference)
+
+# Text editor
+"Super+e" = "gedit"                    # Text editor
+
+# System utilities
+"Super+l" = "xlock"                    # Lock screen (if available)
+
+# Custom applications - modify these based on your system
+# "Super+m" = "spotify"                # Music player
+# "Super+v" = "code"                   # VS Code
+# "Super+g" = "gimp"                   # Image editor
