@@ -1,10 +1,10 @@
 //! Keyboard handling and shortcut management
 
-use x11rb::connection::Connection;
-use x11rb::protocol::xproto::*;
 use anyhow::Result;
 use std::collections::HashMap;
-use tracing::{info, error};
+use tracing::{error, info};
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::*;
 
 use crate::keys::KeyParser;
 
@@ -31,15 +31,15 @@ impl KeyboardManager {
     pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
         let min_keycode = setup.min_keycode;
         let max_keycode = setup.max_keycode;
-        
+
         // Get keyboard mapping from X server
         let mapping_reply = conn
             .get_keyboard_mapping(min_keycode, max_keycode - min_keycode + 1)?
             .reply()?;
-        
+
         let keysyms_per_keycode = mapping_reply.keysyms_per_keycode as usize;
         let mut keycode_map = HashMap::new();
-        
+
         // Build keycode map
         for (index, chunk) in mapping_reply
             .keysyms
@@ -47,7 +47,7 @@ impl KeyboardManager {
             .enumerate()
         {
             let keycode = min_keycode + index as u8;
-            
+
             // Store first keysym for each keycode (unshifted)
             if let Some(&keysym) = chunk.first() {
                 if keysym != 0 {
@@ -55,19 +55,19 @@ impl KeyboardManager {
                 }
             }
         }
-        
+
         info!(
             "Initialized keyboard manager with {} keycodes",
             keycode_map.len()
         );
-        
+
         Ok(Self {
             keycode_map,
             shortcuts: Vec::new(),
             key_parser: KeyParser::new(),
         })
     }
-    
+
     /// Registers shortcuts from configuration
     pub fn register_shortcuts<C: Connection>(
         &mut self,
@@ -76,7 +76,7 @@ impl KeyboardManager {
         shortcuts_config: &HashMap<String, String>,
     ) -> Result<()> {
         self.shortcuts.clear();
-        
+
         for (key_combo, command) in shortcuts_config {
             match self.register_shortcut(conn, root_window, key_combo, command) {
                 Ok(()) => {
@@ -87,11 +87,11 @@ impl KeyboardManager {
                 }
             }
         }
-        
+
         info!("Registered {} shortcuts", self.shortcuts.len());
         Ok(())
     }
-    
+
     /// Registers a single shortcut
     fn register_shortcut<C: Connection>(
         &mut self,
@@ -102,7 +102,7 @@ impl KeyboardManager {
     ) -> Result<()> {
         let (modifiers, keysym) = self.key_parser.parse_combination(key_combo)?;
         let keycode = self.get_keycode(keysym)?;
-        
+
         // Grab the key combination
         conn.grab_key(
             true,
@@ -112,17 +112,17 @@ impl KeyboardManager {
             GrabMode::ASYNC,
             GrabMode::ASYNC,
         )?;
-        
+
         // Store the shortcut
         self.shortcuts.push(Shortcut {
             modifiers,
             keycode,
             command: command.to_string(),
         });
-        
+
         Ok(())
     }
-    
+
     /// Gets the keycode for a given keysym
     fn get_keycode(&self, keysym: u32) -> Result<u8> {
         self.keycode_map
@@ -130,7 +130,7 @@ impl KeyboardManager {
             .copied()
             .ok_or_else(|| anyhow::anyhow!("Could not find keycode for keysym: {:#x}", keysym))
     }
-    
+
     /// Handles a key press event and returns the command if a shortcut matches
     pub fn handle_key_press(&self, event: &KeyPressEvent) -> Option<&str> {
         for shortcut in &self.shortcuts {
@@ -140,7 +140,7 @@ impl KeyboardManager {
         }
         None
     }
-    
+
     /// Gets all registered shortcuts
     pub fn shortcuts(&self) -> &[Shortcut] {
         &self.shortcuts
@@ -158,28 +158,26 @@ mod tests {
             keycode: 28,
             command: "xterm".to_string(),
         };
-        
+
         assert_eq!(shortcut.modifiers, ModMask::M4);
         assert_eq!(shortcut.keycode, 28);
         assert_eq!(shortcut.command, "xterm");
     }
-    
+
     #[test]
     fn test_key_press_matching() {
-        let shortcuts = vec![
-            Shortcut {
-                modifiers: ModMask::M4,
-                keycode: 28,
-                command: "xterm".to_string(),
-            }
-        ];
-        
+        let shortcuts = vec![Shortcut {
+            modifiers: ModMask::M4,
+            keycode: 28,
+            command: "xterm".to_string(),
+        }];
+
         let km = KeyboardManager {
             keycode_map: HashMap::new(),
             shortcuts,
             key_parser: KeyParser::new(),
         };
-        
+
         // Create a mock key press event
         let event = KeyPressEvent {
             response_type: 0,
@@ -196,16 +194,16 @@ mod tests {
             state: KeyButMask::from(ModMask::M4.bits()),
             same_screen: true,
         };
-        
+
         assert_eq!(km.handle_key_press(&event), Some("xterm"));
-        
+
         // Test non-matching event
         let event2 = KeyPressEvent {
             detail: 29, // Different key
             state: KeyButMask::from(ModMask::M4.bits()),
             ..event
         };
-        
+
         assert_eq!(km.handle_key_press(&event2), None);
     }
 }

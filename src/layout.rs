@@ -121,14 +121,14 @@ mod tests {
     #[test]
     fn test_empty_window_list() {
         let _layout_manager = LayoutManager::new();
-        
+
         // Mock screen dimensions
         let _screen_width = 1280;
         let _screen_height = 720;
-        
+
         // This should not panic with empty windows
         let windows: Vec<Window> = vec![];
-        
+
         // We can't easily test X11 operations without mocking,
         // but we can at least ensure the logic doesn't panic
         assert_eq!(windows.len(), 0);
@@ -139,16 +139,16 @@ mod tests {
         // Test that master window calculations are correct
         let screen_width = 1280_f32;
         let screen_height = 720_f32;
-        
+
         // With one window, it should take full screen
         let expected_single_width = screen_width as u32;
         let expected_single_height = screen_height as u32;
-        
+
         // With multiple windows, master takes master_ratio of width (default 0.5)
         let master_ratio = 0.5_f32;
         let expected_master_width = (screen_width * master_ratio) as u32;
         let expected_master_height = screen_height as u32;
-        
+
         assert_eq!(expected_single_width, 1280);
         assert_eq!(expected_single_height, 720);
         assert_eq!(expected_master_width, 640); // 1280 * 0.5
@@ -160,13 +160,13 @@ mod tests {
         let screen_width = 1280_i16;
         let screen_height = 720_i16;
         let num_windows = 3_i16;
-        
+
         // Stack windows calculations with default master ratio (0.5)
         let master_ratio = 0.5_f32;
         let stack_x = (screen_width as f32 * master_ratio) as i16;
         let stack_width = screen_width - stack_x;
         let stack_height = screen_height / (num_windows - 1);
-        
+
         assert_eq!(stack_x, 640);
         assert_eq!(stack_width, 640);
         assert_eq!(stack_height, 360); // 720 / 2 stack windows
