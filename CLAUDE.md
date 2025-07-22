@@ -61,17 +61,30 @@ fix: address PR review feedback for gap system robustness
 docs: update README with installation instructions
 ```
 
-### Semantic Versioning
+### Automated Semantic Versioning
+
+**This project uses automated semantic versioning with semantic-release!**
 
 Follow [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH):
-- **MAJOR**: Breaking changes to public API
-- **MINOR**: New features, backward compatible
-- **PATCH**: Bug fixes, backward compatible
+- **MAJOR**: Breaking changes to public API (currently bumps MINOR due to pre-1.0)
+- **MINOR**: New features (`feat:` commits)
+- **PATCH**: Bug fixes (`fix:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:` commits)
 
-**Current version tracking:**
-- Version defined in `Cargo.toml`
-- Git tags for releases: `v0.1.0`, `v0.2.0`, etc.
-- Changelog maintained for user-facing changes
+**Automated Version Management:**
+- ✅ **Version Updates**: `Cargo.toml` version automatically updated on release
+- ✅ **Changelog Generation**: `CHANGELOG.md` automatically updated with release notes
+- ✅ **Git Tags**: Release tags (`v0.1.0`, `v0.2.0`, etc.) automatically created
+- ✅ **GitHub Releases**: Automated releases with binaries and release notes
+- ✅ **Commit Analysis**: Conventional commits analyzed to determine version bump
+
+**How it works:**
+1. Push commits to `main` branch with conventional commit messages
+2. GitHub Actions runs semantic-release on every push to main
+3. If releasable commits found: version bumped, changelog updated, release created
+4. Binaries built and attached to GitHub release
+5. `Cargo.toml` and `CHANGELOG.md` committed back to main with `[skip ci]`
+
+**IMPORTANT: Never manually update versions or changelog - it's automated!**
 
 ### Branch Management
 
@@ -240,15 +253,40 @@ DISPLAY=:10 cargo run
 - Profile layout algorithms for large window counts
 - Use appropriate data structures for window tracking
 
-## Release Process
+## Automated Release Process
 
-1. Update version in `Cargo.toml`
-2. Update CHANGELOG.md with new features/fixes
-3. Ensure all tests pass and code is formatted
-4. Create release PR
-5. Tag release: `git tag v0.x.0`
-6. Push tags: `git push --tags`
-7. Create GitHub release with changelog
+**This project uses fully automated releases - no manual intervention required!**
+
+### How Releases Work
+1. **Development**: Work on feature branches, create PRs to `main`
+2. **Merge to Main**: Once PR is merged, GitHub Actions analyzes commits
+3. **Automatic Release**: If releasable commits found, semantic-release:
+   - Determines version bump based on commit types
+   - Updates `Cargo.toml` version automatically
+   - Generates `CHANGELOG.md` entries from commits
+   - Creates git tag and GitHub release
+   - Builds and uploads release binaries
+   - Commits updated files back to main
+
+### Manual Release (Emergency Only)
+If automated release fails, manual steps:
+1. Ensure all tests pass: `cargo test`
+2. Ensure code is formatted: `cargo fmt`
+3. Ensure no clippy warnings: `cargo clippy -- -D warnings`
+4. Push to main - automation will handle the rest
+
+### Release Artifacts
+Each release automatically includes:
+- **Source Code**: Automatic GitHub tarball/zip
+- **Linux x86_64 (glibc)**: `rustile-linux-x86_64` 
+- **Linux x86_64 (musl)**: `rustile-linux-x86_64-musl`
+- **Release Notes**: Auto-generated from conventional commits
+
+### Version Bump Rules
+- `feat:` commits → **MINOR** version bump (new features)
+- `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:` → **PATCH** version bump
+- `feat!:` or `fix!:` (breaking changes) → **MINOR** bump (pre-1.0, later MAJOR)
+- `chore:` commits → **No release** (maintenance only)
 
 ## Troubleshooting
 
@@ -263,6 +301,13 @@ DISPLAY=:10 cargo run
 RUST_LOG=debug cargo run  # Enable debug logging
 RUST_BACKTRACE=1 cargo run  # Show backtraces on panic
 ```
+
+### Release Automation Issues
+- **Release not triggered**: Check conventional commit format in commit messages
+- **Version not updated**: Ensure `cargo-edit` is installed in CI environment
+- **Changelog not generated**: Check that `@semantic-release/changelog` plugin is installed
+- **Binary build fails**: Check X11 dependencies and Rust toolchain setup
+- **Permission denied**: Ensure `GITHUB_TOKEN` has `contents: write` permission
 
 ## Future Development Priorities
 

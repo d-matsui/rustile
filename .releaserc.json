@@ -39,9 +39,15 @@
       }
     ],
     [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
       "@semantic-release/exec",
       {
-        "prepareCmd": "cargo install cargo-edit && cargo set-version ${nextRelease.version}"
+        "prepareCmd": "cargo set-version ${nextRelease.version}"
       }
     ],
     [
