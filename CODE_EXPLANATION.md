@@ -12,7 +12,7 @@ This document explains how every part of the Rustile window manager works, from 
 6. [Keyboard Management (keyboard.rs)](#keyboard-management-keyboardrs)
 7. [Key Parser (keys.rs)](#key-parser-keysrs)
 8. [Library Structure (lib.rs)](#library-structure-librs)
-8. [How Components Interact](#how-components-interact)
+9. [How Components Interact](#how-components-interact)
 9. [Event Flow](#event-flow)
 10. [Testing](#testing)
 
@@ -477,10 +477,20 @@ The keyboard system handles mapping keys and processing shortcuts.
 pub struct KeyboardManager {
     /// Map of keysyms to keycodes
     keycode_map: HashMap<u32, u8>,
+    /// Registered shortcuts
+    shortcuts: Vec<Shortcut>,
+}
+
+/// Represents a keyboard shortcut
+#[derive(Debug, Clone)]
+pub struct Shortcut {
+    pub modifiers: KeyButMask,
+    pub keycode: u8,
+    pub command: String,
 }
 ```
 
-The `keycode_map` translates universal key symbols to physical keys on your keyboard.
+The keyboard manager now stores both the keycode mapping and a list of registered shortcuts with their associated commands.
 
 ### Initialization
 
@@ -511,7 +521,10 @@ pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
     
     info!("Initialized keyboard manager with {} keycodes", keycode_map.len());
     
-    Ok(Self { keycode_map })
+    Ok(Self { 
+        keycode_map,
+        shortcuts: Vec::new(),
+    })
 }
 ```
 
@@ -521,40 +534,262 @@ pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
 3. Build a map: keysym → keycode
 4. Example: 0x0074 ('T') → keycode 28
 
-### Key Grabbing
+### Registering Shortcuts from Config
 
 ```rust
-pub fn grab_key<C: Connection>(
-    &self,
+pub fn register_shortcuts<C: Connection>(
+    &mut self,
     conn: &C,
-    window: Window,
-    modifiers: ModMask,
-    keysym: u32,
+    root: Window,
+    shortcuts: &HashMap<String, String>,
 ) -> Result<()> {
-    let keycode = self.get_keycode(keysym);
-    
-    if keycode == 0 {
-        return Err(anyhow::anyhow!("Could not find keycode for keysym: {:#x}", keysym));
+    for (key_combo, command) in shortcuts {
+        // Parse the key combination (e.g., "Super+t")
+        let (modifiers, keysym) = parse_key_combination(key_combo)?;
+        
+        // Get the physical keycode
+        let keycode = self.get_keycode(keysym);
+        if keycode == 0 {
+            warn!("Could not find keycode for key '{}', skipping", key_combo);
+            continue;
+        }
+        
+        // Convert ModMask to KeyButMask for X11
+        let key_but_mask = KeyButMask::from(modifiers.bits());
+        
+        // Grab the key combination
+        conn.grab_key(
+            true,
+            root,
+            key_but_mask,
+            keycode,
+            GrabMode::ASYNC,
+            GrabMode::ASYNC,
+        )?;
+        
+        // Store the shortcut
+        self.shortcuts.push(Shortcut {
+            modifiers: key_but_mask,
+            keycode,
+            command: command.clone(),
+        });
     }
-    
-    conn.grab_key(
-        true,           // We want the events
-        window,         // On the root window (whole screen)
-        modifiers,      // Super key must be held
-        keycode,        // Physical T key
-        GrabMode::ASYNC // Don't freeze other apps
-    )?;
-    
-    info!("Grabbed key: modifiers={:?}, keysym={:#x}, keycode={}", modifiers, keysym, keycode);
     
     Ok(())
 }
 ```
 
 **What this does:**
-1. Convert keysym (0x0074) to physical keycode (28)
-2. Tell X11: "Send me events when Super+T is pressed"
-3. `GrabMode::ASYNC` means other applications can still function
+1. Iterate through all configured shortcuts
+2. Parse human-readable key combinations (handled by keys.rs)
+3. Convert to physical keycodes
+4. Register each combination with X11
+5. Store shortcuts for later matching
+
+---
+
+## Key Parser (keys.rs)
+
+The key parser module handles converting human-readable key combinations into X11 keysyms and modifiers. This is what makes the configuration system user-friendly by allowing keys like "Super+t" instead of raw hex values.
+
+### Core Function
+
+```rust
+/// Parse a key combination string like "Super+t" or "Ctrl+Alt+Delete"
+pub fn parse_key_combination(combo: &str) -> Result<(ModMask, u32)> {
+    let parts: Vec<&str> = combo.split('+').collect();
+    
+    if parts.is_empty() {
+        return Err(anyhow::anyhow!("Empty key combination"));
+    }
+    
+    let mut modifiers = ModMask::from(0u16);
+    let key_part;
+    
+    // Parse modifiers and key
+    if parts.len() == 1 {
+        // Single key without modifiers
+        key_part = parts[0];
+    } else {
+        // Multiple parts - all but last are modifiers
+        for modifier in &parts[..parts.len() - 1] {
+            match modifier.to_lowercase().as_str() {
+                "super" | "mod4" | "win" | "windows" | "cmd" => modifiers |= ModMask::M4,
+                "alt" | "mod1" | "meta" => modifiers |= ModMask::M1,
+                "ctrl" | "control" | "ctl" => modifiers |= ModMask::CONTROL,
+                "shift" => modifiers |= ModMask::SHIFT,
+                "mod2" | "numlock" | "num" => modifiers |= ModMask::M2,
+                "mod3" | "scrolllock" | "scroll" => modifiers |= ModMask::M3,
+                "mod5" | "altgr" | "altgraph" => modifiers |= ModMask::M5,
+                "hyper" => {
+                    // Hyper = Super+Alt+Ctrl+Shift
+                    modifiers |= ModMask::M4 | ModMask::M1 | 
+                                ModMask::CONTROL | ModMask::SHIFT;
+                }
+                _ => return Err(anyhow::anyhow!("Unknown modifier: {}", modifier)),
+            }
+        }
+        key_part = parts.last().unwrap();
+    }
+    
+    // Convert key name to keysym
+    let keysym = get_keysym_from_name(key_part)?;
+    
+    Ok((modifiers, keysym))
+}
+```
+
+### Modifier Support
+
+The key parser supports comprehensive modifier keys with alternative names for cross-platform familiarity:
+
+**Primary Modifiers:**
+- `Super`, `Mod4`, `Win`, `Windows`, `Cmd` → Super key (Windows/Cmd key)
+- `Alt`, `Mod1`, `Meta` → Alt key
+- `Ctrl`, `Control`, `Ctl` → Control key
+- `Shift` → Shift key
+
+**Less Common Modifiers:**
+- `Mod2`, `NumLock`, `Num` → Num Lock
+- `Mod3`, `ScrollLock`, `Scroll` → Scroll Lock
+- `Mod5`, `AltGr`, `AltGraph` → AltGr (right Alt on international keyboards)
+
+**Special Combinations:**
+- `Hyper` → All four main modifiers combined (Super+Alt+Ctrl+Shift)
+
+### Key Name Mapping
+
+```rust
+fn get_keysym_from_name(name: &str) -> Result<u32> {
+    let normalized = name.to_lowercase();
+    
+    match normalized.as_str() {
+        // Letters (a-z)
+        c if c.len() == 1 && c.chars().next().unwrap().is_ascii_lowercase() => {
+            Ok(c.chars().next().unwrap() as u32)
+        }
+        
+        // Numbers (0-9)
+        c if c.len() == 1 && c.chars().next().unwrap().is_ascii_digit() => {
+            Ok(c.chars().next().unwrap() as u32)
+        }
+        
+        // Special keys
+        "space" => Ok(0x0020),
+        "return" | "enter" => Ok(0xff0d),
+        "tab" => Ok(0xff09),
+        "escape" | "esc" => Ok(0xff1b),
+        "backspace" => Ok(0xff08),
+        "delete" | "del" => Ok(0xffff),
+        
+        // Function keys
+        "f1" => Ok(0xffbe),
+        "f2" => Ok(0xffbf),
+        "f3" => Ok(0xffc0),
+        "f4" => Ok(0xffc1),
+        "f5" => Ok(0xffc2),
+        "f6" => Ok(0xffc3),
+        "f7" => Ok(0xffc4),
+        "f8" => Ok(0xffc5),
+        "f9" => Ok(0xffc6),
+        "f10" => Ok(0xffc7),
+        "f11" => Ok(0xffc8),
+        "f12" => Ok(0xffc9),
+        
+        // Arrow keys
+        "up" => Ok(0xff52),
+        "down" => Ok(0xff54),
+        "left" => Ok(0xff51),
+        "right" => Ok(0xff53),
+        
+        _ => Err(anyhow::anyhow!("Unknown key name: {}", name)),
+    }
+}
+```
+
+### Example Usage
+
+```rust
+// Simple key
+parse_key_combination("t") → (ModMask::empty(), 0x0074)
+
+// Single modifier
+parse_key_combination("Super+t") → (ModMask::M4, 0x0074)
+
+// Multiple modifiers  
+parse_key_combination("Ctrl+Alt+Delete") → (ModMask::CONTROL | ModMask::M1, 0xffff)
+
+// Alternative names
+parse_key_combination("Cmd+space") → (ModMask::M4, 0x0020)  // Same as Super+space
+parse_key_combination("Win+Return") → (ModMask::M4, 0xff0d)  // Same as Super+Return
+
+// Complex combination
+parse_key_combination("Hyper+F12") → (ModMask::M4 | ModMask::M1 | ModMask::CONTROL | ModMask::SHIFT, 0xffc9)
+```
+
+### Case Insensitivity
+
+All parsing is case-insensitive for user convenience:
+
+```rust
+"SUPER+T" == "super+t" == "Super+T" == "SuPeR+t"
+```
+
+### Error Handling
+
+The parser provides helpful error messages:
+
+```rust
+parse_key_combination("") → Error: "Empty key combination"
+parse_key_combination("Unknown+t") → Error: "Unknown modifier: unknown"  
+parse_key_combination("Super+xyz") → Error: "Unknown key name: xyz"
+```
+
+### Integration with Keyboard Manager
+
+The key parser is used by the keyboard manager during shortcut registration:
+
+```rust
+pub fn register_shortcuts<C: Connection>(
+    &mut self,
+    conn: &C,
+    root: Window,
+    shortcuts: &HashMap<String, String>,
+) -> Result<()> {
+    for (key_combo, command) in shortcuts {
+        // Parse the human-readable key combination
+        match parse_key_combination(key_combo) {
+            Ok((modifiers, keysym)) => {
+                // Convert to keycode and register with X11
+                let keycode = self.get_keycode(keysym);
+                if keycode != 0 {
+                    self.register_shortcut(conn, root, modifiers, keycode, command)?;
+                }
+            }
+            Err(e) => warn!("Failed to parse key combination '{}': {}", key_combo, e),
+        }
+    }
+    Ok(())
+}
+```
+
+This allows users to write configuration like:
+
+```toml
+[shortcuts]
+"Super+Return" = "xterm"
+"Ctrl+Alt+t" = "gnome-terminal" 
+"Shift+Alt+1" = "firefox"
+"Win+space" = "dmenu_run"  # Alternative name for Super
+```
+
+### Benefits
+
+1. **User-Friendly**: Natural key combinations instead of hex codes
+2. **Cross-Platform**: Alternative modifier names (Cmd, Win, Meta)
+3. **Flexible**: Case-insensitive, multiple naming options
+4. **Robust**: Comprehensive error handling and validation
+5. **Extensible**: Easy to add new key names and modifiers
 
 ---
 
@@ -568,6 +803,7 @@ pub fn grab_key<C: Connection>(
 
 pub mod config;
 pub mod keyboard;
+pub mod keys;
 pub mod layout;
 pub mod window_manager;
 ```
@@ -587,14 +823,16 @@ Here's how all the pieces work together:
    ├── Initialize logging
    ├── Connect to X11
    └── Create WindowManager
+       ├── Load configuration from TOML
+       │   └── Try ~/.config/rustile/config.toml
        ├── Create KeyboardManager
        │   └── Load keyboard mappings from X11
        ├── Create LayoutManager
        │   └── Set default layout (MasterStack)
        ├── Register as window manager
        │   └── Tell X11 we control window placement
-       └── Grab keyboard shortcuts
-           └── Register Super+T combination
+       └── Register shortcuts from config
+           └── Parse and grab all configured key combinations
 
 2. Start event loop
    └── Wait for X11 events forever
@@ -605,8 +843,9 @@ Here's how all the pieces work together:
 ```
 X11 Event → WindowManager.handle_event()
 ├── KeyPress → handle_key_press()
-│   ├── Check if it's our shortcut (Super+T)
-│   └── Launch application if match
+│   ├── KeyboardManager checks against registered shortcuts
+│   ├── Find matching shortcut by keycode and modifiers
+│   └── Execute associated command if match
 ├── MapRequest → handle_map_request()
 │   ├── Make window visible
 │   ├── Add to window list
@@ -680,21 +919,23 @@ X11 moves/resizes remaining windows
 User sees remaining windows fill the space
 ```
 
-### Pressing Super+T
+### Pressing a Configured Shortcut
 
 ```
-User presses Super+T
+User presses Shift+Alt+1 (configured for gnome-terminal)
     ↓
 X11 sends KeyPress event to window manager
     ↓
 WindowManager.handle_key_press()
-    ├── Check if Super key is held
-    ├── Check if T key was pressed
-    └── If match: Command::new("xcalc").spawn()
-        ↓
-New xcalc process starts
     ↓
-xcalc creates window → MapRequest event
+KeyboardManager.handle_key_press()
+    ├── Find shortcut matching keycode + modifiers
+    ├── Return command: "gnome-terminal"
+    └── WindowManager executes: Command::new("gnome-terminal").spawn()
+        ↓
+New gnome-terminal process starts
+    ↓
+gnome-terminal creates window → MapRequest event
     ↓
 (Follow "Opening a Window" flow above)
 ```
@@ -710,9 +951,9 @@ The project includes comprehensive tests to ensure reliability:
 Located in each module file (`#[cfg(test)]` sections):
 
 **Config Tests**:
-- Validate MASTER_RATIO is between 0-1
-- Check DEFAULT_DISPLAY format
-- Verify keysym values
+- Test configuration loading from TOML
+- Validate default values
+- Test accessor methods
 
 **Layout Tests**:
 - Test layout manager creation
@@ -721,13 +962,16 @@ Located in each module file (`#[cfg(test)]` sections):
 
 **Keyboard Tests**:
 - Test keycode lookup
+- Test shortcut matching
 - Handle missing keys
 
-### Integration Tests
-
-Located in `tests/integration_test.rs`:
-- Verify library exports work correctly
-- Test component creation
+**Keys Tests** (22 tests total):
+- Parse simple keys and modifiers
+- Test alternative modifier names (Win, Cmd, Meta)
+- Case-insensitive parsing
+- Complex modifier combinations
+- Special keys (Return, space, F-keys)
+- Error handling for unknown keys
 
 ### Manual Testing
 
@@ -771,10 +1015,15 @@ The code is designed to be:
 - **Extensible**: Easy to add new features
 - **Safe**: Rust's type system prevents common bugs
 
-This foundation makes it easy to add features like:
+Recent improvements:
+- ✅ Configuration file support (TOML)
+- ✅ Human-readable key combinations
+- ✅ Support for all X11 modifiers
+- ✅ Cross-platform modifier naming
+
+Future features to add:
 - Multiple layouts
-- Configuration files
-- More keyboard shortcuts
+- Window navigation shortcuts
 - Multi-monitor support
 - Window decorations
 - Status bars
