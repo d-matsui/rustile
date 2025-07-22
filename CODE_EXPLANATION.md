@@ -10,7 +10,8 @@ This document explains how every part of the Rustile window manager works, from 
 4. [Window Manager Core (window_manager.rs)](#window-manager-core-window_managerrs)
 5. [Layout System (layout.rs)](#layout-system-layoutrs)
 6. [Keyboard Management (keyboard.rs)](#keyboard-management-keyboardrs)
-7. [Library Structure (lib.rs)](#library-structure-librs)
+7. [Key Parser (keys.rs)](#key-parser-keysrs)
+8. [Library Structure (lib.rs)](#library-structure-librs)
 8. [How Components Interact](#how-components-interact)
 9. [Event Flow](#event-flow)
 10. [Testing](#testing)
@@ -90,48 +91,68 @@ fn main() -> Result<()> {
 
 ## Configuration (config.rs)
 
+Rustile now uses a dynamic configuration system that loads settings from TOML files.
+
 ```rust
-//! Configuration constants and settings for the window manager
+//! Configuration loading and management for the window manager
 
-use x11rb::protocol::xproto::ModMask;
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-/// Master window ratio (0.0 to 1.0)
-pub const MASTER_RATIO: f32 = 0.5;
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Config {
+    pub shortcuts: HashMap<String, String>,
+    pub layout: LayoutConfig,
+    pub general: GeneralConfig,
+}
 
-/// Default modifier key for shortcuts (Super/Windows key)
-pub const MOD_KEY: ModMask = ModMask::M4;
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LayoutConfig {
+    pub master_ratio: f32,
+    pub gap_size: u32,
+}
 
-/// Default display for launching applications
-pub const DEFAULT_DISPLAY: &str = ":1";
-
-/// X11 keysym for 'T' key
-pub const XK_T: u32 = 0x0074;
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct GeneralConfig {
+    pub default_display: String,
+}
 ```
 
-**Configuration Explained:**
+**Configuration System:**
 
-1. **MASTER_RATIO (0.5)**:
-   - Controls how much of the screen width the master window takes
-   - 0.5 = 50% of screen width
-   - Range: 0.0 to 1.0
+1. **Loading Order**:
+   - First tries: `~/.config/rustile/config.toml`
+   - Falls back to default values if not found
 
-2. **MOD_KEY (ModMask::M4)**:
-   - The modifier key used for shortcuts
-   - M4 = Super/Windows key on most keyboards
-   - Other options: M1 (Alt), M2 (Num Lock), M3 (Scroll Lock)
+2. **Configuration Structure**:
+   - **shortcuts**: Maps key combinations to commands
+     - Example: `"Super+t" = "xterm"`
+   - **layout**: Window layout settings
+     - `master_ratio`: 0.0-1.0 (default 0.5)
+     - `gap_size`: Pixels between windows (future feature)
+   - **general**: General settings
+     - `default_display`: X11 display for launching apps
 
-3. **DEFAULT_DISPLAY (":1")**:
-   - Which X11 display to launch applications on
-   - ":0" = primary display, ":1" = secondary (used for testing)
+3. **Example Config File**:
+```toml
+[general]
+default_display = ":1"
 
-4. **XK_T (0x0074)**:
-   - The X11 keysym (key symbol) for the 'T' key
-   - X11 uses hexadecimal numbers to represent keys
+[layout]
+master_ratio = 0.5
+gap_size = 0
 
-**Why constants?**
-- Easy to modify behavior without searching through code
-- Type safety (Rust compiler checks the values)
-- Centralized configuration
+[shortcuts]
+"Shift+Alt+1" = "gnome-terminal"
+"Shift+Alt+2" = "code"
+"Super+Return" = "xterm"
+```
+
+**Benefits of TOML Configuration:**
+- User-friendly format
+- No recompilation needed for changes
+- Supports complex key combinations
+- Easy to share configurations
 
 ---
 
@@ -154,6 +175,8 @@ pub struct WindowManager<C: Connection> {
     layout_manager: LayoutManager,
     /// Keyboard manager for shortcuts
     keyboard_manager: KeyboardManager,
+    /// Configuration
+    config: Config,
 }
 ```
 
@@ -168,12 +191,16 @@ pub struct WindowManager<C: Connection> {
 
 ```rust
 pub fn new(conn: C, screen_num: usize) -> Result<Self> {
+    // Load configuration
+    let config = Config::load()?;
+    info!("Loaded configuration with {} shortcuts", config.shortcuts().len());
+
     let setup = conn.setup();
     let screen = &setup.roots[screen_num];
     let root = screen.root;
 
     // Initialize keyboard manager
-    let keyboard_manager = KeyboardManager::new(&conn, setup)?;
+    let mut keyboard_manager = KeyboardManager::new(&conn, setup)?;
 
     // Register as window manager
     let event_mask = EventMask::SUBSTRUCTURE_REDIRECT | EventMask::SUBSTRUCTURE_NOTIFY;
@@ -186,9 +213,8 @@ pub fn new(conn: C, screen_num: usize) -> Result<Self> {
     
     info!("Successfully became the window manager");
 
-    // Set up keyboard shortcuts
-    keyboard_manager.grab_key(&conn, root, MOD_KEY, XK_T)?;
-    info!("Registered keyboard shortcuts");
+    // Register keyboard shortcuts from config
+    keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
     Ok(Self {
         conn,
@@ -196,6 +222,7 @@ pub fn new(conn: C, screen_num: usize) -> Result<Self> {
         windows: Vec::new(),
         layout_manager: LayoutManager::new(),
         keyboard_manager,
+        config,
     })
 }
 ```
@@ -240,11 +267,27 @@ pub fn run(mut self) -> Result<()> {
 #### Key Press Handler
 ```rust
 fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
-    if event.state.contains(MOD_KEY) && event.detail == self.keyboard_manager.get_keycode(XK_T) {
-        info!("Mod+T pressed, launching xcalc");
-        Command::new("xcalc")
-            .env("DISPLAY", DEFAULT_DISPLAY)
-            .spawn()?;
+    if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
+        info!("Shortcut pressed, executing: {}", command);
+        
+        // Parse command (simple implementation, could be improved)
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if let Some(program) = parts.first() {
+            let mut cmd = Command::new(program);
+            
+            // Add arguments if any
+            if parts.len() > 1 {
+                cmd.args(&parts[1..]);
+            }
+            
+            // Set display environment
+            cmd.env("DISPLAY", self.config.default_display());
+            
+            match cmd.spawn() {
+                Ok(_) => info!("Successfully launched: {}", command),
+                Err(e) => error!("Failed to launch {}: {}", command, e),
+            }
+        }
     }
     Ok(())
 }
@@ -267,7 +310,7 @@ fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
     // Add to managed windows
     self.windows.push(window);
     
-    // Apply layout
+    // Apply layout with configured master ratio
     self.apply_layout()?;
     
     Ok(())

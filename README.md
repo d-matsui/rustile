@@ -95,13 +95,41 @@ DISPLAY=:10 xterm
 DISPLAY=:10 firefox
 ```
 
-### Keyboard Shortcuts
+### Configuration
 
-| Key Combination | Action |
-|----------------|---------|
-| `Mod4 + T` | Launch xcalc (test application) |
+Rustile now uses a TOML configuration file for easy customization. Copy the example configuration to get started:
 
-*Note: Mod4 is typically the Super/Windows key*
+```bash
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+```
+
+Edit `~/.config/rustile/config.toml` to customize:
+- Keyboard shortcuts with human-readable key combinations
+- Master window ratio
+- Default display for launching applications
+
+#### Keyboard Shortcuts
+
+Define shortcuts in the `[shortcuts]` section using this format:
+```toml
+"Modifier+Key" = "command"
+```
+
+Supported modifiers:
+- **Primary**: `Super` (Win/Cmd), `Alt` (Meta), `Ctrl`, `Shift`
+- **Less common**: `NumLock`, `ScrollLock`, `AltGr`
+- **Special**: `Hyper` (Super+Alt+Ctrl+Shift)
+
+Example shortcuts:
+```toml
+[shortcuts]
+"Shift+Alt+1" = "gnome-terminal"
+"Shift+Alt+2" = "code"
+"Shift+Alt+3" = "chrome"
+"Super+Return" = "xterm"
+"Ctrl+Alt+t" = "gnome-terminal"
+```
 
 ### Window Management
 
@@ -112,22 +140,15 @@ Rustile automatically manages your windows using a master-stack layout:
 - Windows are automatically resized when added or removed
 - Closing a window triggers automatic re-tiling
 
-## Configuration
+#### Layout Configuration
 
-Currently, Rustile uses compile-time configuration. Key settings can be found in `src/config.rs`:
+Configure the master-stack layout in your `config.toml`:
 
-```rust
-// Master window ratio (0.0 to 1.0)
-pub const MASTER_RATIO: f32 = 0.5;
-
-// Default modifier key for shortcuts
-pub const MOD_KEY: ModMask = ModMask::M4;  // Super/Windows key
-
-// Default display for launching applications
-pub const DEFAULT_DISPLAY: &str = ":10";
+```toml
+[layout]
+master_ratio = 0.5  # Master window takes 50% of screen width
+gap_size = 0        # Gap between windows in pixels (future feature)
 ```
-
-To change these settings, modify the values and rebuild the project.
 
 ## Architecture
 
@@ -137,10 +158,11 @@ Rustile follows a modular architecture for maintainability and extensibility:
 src/
 ├── main.rs           # Entry point
 ├── lib.rs            # Library root
-├── config.rs         # Configuration constants
+├── config.rs         # Configuration loading and management
 ├── window_manager.rs # Core window manager logic
 ├── layout.rs         # Window layout algorithms
-└── keyboard.rs       # Keyboard handling
+├── keyboard.rs       # Keyboard handling
+└── keys.rs           # Key combination parser
 ```
 
 ### Key Components
@@ -178,9 +200,11 @@ cargo fmt --check
 
 #### Adding Keyboard Shortcuts
 
-1. Define the keysym constant in `src/config.rs`
-2. Register the key grab in `WindowManager::new()`
-3. Handle the key press in `WindowManager::handle_key_press()`
+1. Add the shortcut to your `~/.config/rustile/config.toml`:
+   ```toml
+   "Super+b" = "firefox"
+   ```
+2. Reload rustile to apply the new configuration
 
 ### Project Structure
 
@@ -211,7 +235,7 @@ This error occurs when trying to run Rustile while another window manager is act
 
 ## Roadmap
 
-- [ ] Configuration file support (TOML/YAML)
+- [x] Configuration file support (TOML)
 - [ ] Multiple layout algorithms (horizontal split, grid, fibonacci)
 - [ ] Workspace/virtual desktop support
 - [ ] Window focus indication and borders
