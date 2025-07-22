@@ -44,7 +44,7 @@ impl KeyParser {
 
         // Function keys
         for i in 1..=12 {
-            key_names.insert(format!("F{}", i), 0xffbe + i - 1);
+            key_names.insert(format!("F{i}"), 0xffbe + i - 1);
         }
 
         Self { key_names }
