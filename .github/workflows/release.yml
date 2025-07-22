@@ -2,8 +2,7 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -11,43 +10,35 @@ env:
 permissions:
   contents: write
   packages: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  build-and-release:
-    name: Build and Release
-    runs-on: ${{ matrix.os }}
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-24.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     
-    strategy:
-      matrix:
-        include:
-        - os: ubuntu-24.04
-          target: x86_64-unknown-linux-gnu
-          artifact_name: rustile
-          asset_name: rustile-linux-x86_64
-        - os: ubuntu-24.04
-          target: x86_64-unknown-linux-musl
-          artifact_name: rustile
-          asset_name: rustile-linux-x86_64-musl
+    outputs:
+      new-release-published: ${{ steps.semantic.outputs.new-release-published }}
+      new-release-version: ${{ steps.semantic.outputs.new-release-version }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        targets: ${{ matrix.target }}
+        targets: x86_64-unknown-linux-gnu,x86_64-unknown-linux-musl
         
-    - name: Install X11 dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-24.04'
+    - name: Install X11 dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libx11-dev libxcb1-dev pkg-config
-        
-    - name: Install musl tools (for musl target)
-      if: matrix.target == 'x86_64-unknown-linux-musl'
-      run: |
-        sudo apt-get install -y musl-tools
+        sudo apt-get install -y libx11-dev libxcb1-dev pkg-config musl-tools
         
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -56,22 +47,45 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.target }}-cargo-
+          ${{ runner.os }}-cargo-release-
           
-    - name: Build release binary
-      run: cargo build --release --target ${{ matrix.target }}
-      
-    - name: Strip binary (Linux)
-      if: matrix.os == 'ubuntu-24.04'
-      run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-      
-    - name: Create Release and Upload Assets
-      uses: softprops/action-gh-release@v1
+    - name: Build release binaries
+      run: |
+        cargo build --release --target x86_64-unknown-linux-gnu
+        cargo build --release --target x86_64-unknown-linux-musl
+        
+    - name: Strip binaries
+      run: |
+        strip target/x86_64-unknown-linux-gnu/release/rustile
+        strip target/x86_64-unknown-linux-musl/release/rustile
+        
+    - name: Setup Node.js for semantic-release
+      uses: actions/setup-node@v4
       with:
-        files: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-        generate_release_notes: true
-        prerelease: false
+        node-version: '20'
+        
+    - name: Install semantic-release
+      run: |
+        npm install -g semantic-release@22
+        npm install -g @semantic-release/changelog
+        npm install -g @semantic-release/exec
+        npm install -g @semantic-release/git
+        npm install -g @semantic-release/github
+        npm install -g @semantic-release/commit-analyzer
+        npm install -g @semantic-release/release-notes-generator
+        npm install -g conventional-changelog-conventionalcommits
+        
+    - name: Run semantic release
+      id: semantic
+      run: semantic-release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Summary
+      if: steps.semantic.outputs.new-release-published == 'true'
+      run: |
+        echo "🚀 New release published: v${{ steps.semantic.outputs.new-release-version }}"
+        echo "📦 Binaries built and uploaded to GitHub release"
+        echo "🔄 Cargo.toml updated automatically"

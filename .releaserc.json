@@ -1,0 +1,64 @@
+{
+  "branches": ["main"],
+  "repositoryUrl": "https://github.com/d-matsui/rustile",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {"type": "feat", "release": "minor"},
+          {"type": "fix", "release": "patch"},
+          {"type": "perf", "release": "patch"},
+          {"type": "docs", "release": "patch"},
+          {"type": "style", "release": "patch"},
+          {"type": "refactor", "release": "patch"},
+          {"type": "test", "release": "patch"},
+          {"type": "ci", "release": "patch"},
+          {"type": "chore", "release": false},
+          {"breaking": true, "release": "minor"}
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            {"type": "feat", "section": "🚀 Features"},
+            {"type": "fix", "section": "🐛 Bug Fixes"},
+            {"type": "perf", "section": "⚡ Performance"},
+            {"type": "docs", "section": "📖 Documentation"},
+            {"type": "style", "section": "💎 Style"},
+            {"type": "refactor", "section": "♻️ Refactor"},
+            {"type": "test", "section": "🧪 Tests"},
+            {"type": "ci", "section": "🔧 CI/CD"}
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "cargo install cargo-edit && cargo set-version ${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {"path": "target/x86_64-unknown-linux-gnu/release/rustile", "name": "rustile-linux-x86_64", "label": "Linux x86_64 (glibc)"},
+          {"path": "target/x86_64-unknown-linux-musl/release/rustile", "name": "rustile-linux-x86_64-musl", "label": "Linux x86_64 (musl)"}
+        ]
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["Cargo.toml", "Cargo.lock", "CHANGELOG.md"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}

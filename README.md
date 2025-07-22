@@ -212,6 +212,99 @@ cargo fmt --check
 - **Error Handling**: Uses `anyhow` for ergonomic error handling
 - **X11 Communication**: Uses `x11rb` for safe X11 protocol implementation
 
+## Releases and Versioning
+
+Rustile uses **automated semantic versioning** with continuous releases. Every PR merged to main automatically creates a new release based on the commit messages.
+
+### Semantic Versioning (v0.x.x Development Phase)
+
+We follow [Semantic Versioning](https://semver.org/) with special rules for the development phase:
+
+- **v0.x.y**: Development releases (current phase)
+- **v1.0.0**: First stable release (future)
+
+#### Version Bumping Rules
+
+| Commit Type | Version Change | Example |
+|-------------|---------------|---------|
+| `feat:` | Minor bump | 0.1.0 → 0.2.0 |
+| `fix:` | Patch bump | 0.1.0 → 0.1.1 |
+| `perf:` | Patch bump | 0.1.0 → 0.1.2 |
+| `docs:` | Patch bump | 0.1.0 → 0.1.3 |
+| `feat!:` | Minor bump* | 0.1.0 → 0.2.0 |
+
+*Breaking changes stay in v0.x during development phase
+
+### Commit Message Format
+
+Use conventional commits for automatic versioning:
+
+```bash
+# New features (minor version bump)
+feat: add multi-monitor support
+feat: implement floating windows
+
+# Bug fixes (patch version bump)  
+fix: resolve keyboard mapping issue
+fix: prevent memory leak in layout manager
+
+# Breaking changes (minor bump during v0.x)
+feat!: change configuration file format
+fix!: update keyboard shortcut API
+
+# Other types (patch version bump)
+perf: optimize window tiling algorithm
+docs: update installation instructions
+style: improve code formatting
+refactor: restructure layout module
+test: add integration tests
+ci: update GitHub Actions workflow
+
+# No release
+chore: update dependencies
+chore: clean up code comments
+```
+
+### Automatic Release Process
+
+1. **Develop**: Create feature branch with conventional commits
+2. **PR**: Create pull request to main branch
+3. **Review**: Code review and CI checks pass
+4. **Merge**: PR merged to main
+5. **Auto-Release**: 
+   - Analyzes commit messages since last release
+   - Determines appropriate version bump
+   - Updates `Cargo.toml` automatically
+   - Builds multi-platform binaries
+   - Creates GitHub release with changelog
+   - Uploads binaries as release assets
+
+### Manual Release Control
+
+Skip automatic release by adding `[skip ci]` to commit message:
+
+```bash
+git commit -m "chore: update README [skip ci]"
+```
+
+### Download Releases
+
+Pre-built binaries are available for every release:
+
+- **Linux x86_64 (glibc)**: For most Linux distributions
+- **Linux x86_64 (musl)**: For Alpine Linux and static linking
+
+Download from: [GitHub Releases](https://github.com/d-matsui/rustile/releases)
+
+### Development Roadmap
+
+- **v0.1.x**: Core tiling functionality and configuration
+- **v0.2.x**: Multi-monitor support and window navigation
+- **v0.3.x**: Floating windows and advanced layouts
+- **v0.4.x**: Workspace management and window rules
+- **v0.5.x**: Status bar integration and themes
+- **v1.0.0**: Stable API and production-ready release
+
 ## Troubleshooting
 
 ### "Another window manager is already running"
