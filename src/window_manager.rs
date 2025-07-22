@@ -149,6 +149,17 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Mapping window: {:?}", window);
 
+        // Set initial border attributes before mapping
+        let border_aux = ChangeWindowAttributesAux::new()
+            .border_pixel(self.config.unfocused_border_color());
+        
+        self.conn.change_window_attributes(window, &border_aux)?;
+        
+        let config_aux = ConfigureWindowAux::new()
+            .border_width(self.config.border_width());
+        
+        self.conn.configure_window(window, &config_aux)?;
+
         // Map the window
         self.conn.map_window(window)?;
 
@@ -259,6 +270,7 @@ impl<C: Connection> WindowManager<C> {
             screen,
             &self.windows,
             self.config.master_ratio(),
+            self.config.gap(),
         )?;
 
         Ok(())

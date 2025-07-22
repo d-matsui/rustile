@@ -10,8 +10,8 @@ default_display = ":1"
 # 0.5 means master window takes 50% of screen width
 master_ratio = 0.5
 
-# Gap between windows in pixels (not implemented yet)
-gap_size = 10
+# Gap between windows in pixels
+gap = 10
 
 # Window border settings
 border_width = 5               # Border width in pixels

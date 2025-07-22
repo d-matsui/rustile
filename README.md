@@ -164,7 +164,7 @@ Configure the master-stack layout in your `config.toml`:
 ```toml
 [layout]
 master_ratio = 0.5  # Master window takes 50% of screen width
-gap_size = 0        # Gap between windows in pixels (future feature)
+gap = 10            # Gap between windows in pixels
 ```
 
 ## Testing

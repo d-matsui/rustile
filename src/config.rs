@@ -22,7 +22,7 @@ pub struct LayoutConfig {
     /// Master window ratio (0.0 to 1.0)
     pub master_ratio: f32,
     /// Gap between windows in pixels
-    pub gap_size: u32,
+    pub gap: u32,
     /// Border width in pixels
     pub border_width: u32,
     /// Focused window border color (hex format, e.g., 0xFF0000 for red)
@@ -59,7 +59,7 @@ impl Default for LayoutConfig {
     fn default() -> Self {
         Self {
             master_ratio: 0.5,
-            gap_size: 0,
+            gap: 0,
             border_width: 2,
             focused_border_color: 0xFF0000,   // Red
             unfocused_border_color: 0x808080, // Gray
@@ -171,6 +171,11 @@ impl Config {
     /// Gets the unfocused window border color
     pub fn unfocused_border_color(&self) -> u32 {
         self.layout.unfocused_border_color
+    }
+
+    /// Gets the gap between windows
+    pub fn gap(&self) -> u32 {
+        self.layout.gap
     }
 }
 

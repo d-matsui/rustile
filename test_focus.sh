@@ -36,5 +36,8 @@ echo "  Alt+j - Focus next window"
 echo "  Alt+k - Focus previous window" 
 echo "  Shift+Alt+m - Swap with master"
 echo ""
+echo "Notice: Windows now have gaps between them!"
+echo "Edit ~/.config/rustile/config.toml to change gap size"
+echo ""
 echo "Press Enter to cleanup..."
 read
