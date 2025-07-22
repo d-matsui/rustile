@@ -4,16 +4,238 @@ use anyhow::Result;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
+/// Represents a split direction in BSP layout
+#[derive(Debug, Clone, Copy)]
+pub enum SplitDirection {
+    Horizontal,
+    Vertical,
+}
+
+/// Represents a node in the BSP tree
+#[derive(Debug, Clone)]
+pub enum BspNode {
+    /// A split with two child nodes
+    Split {
+        direction: SplitDirection,
+        ratio: f32,
+        left: Box<BspNode>,
+        right: Box<BspNode>,
+    },
+    /// A leaf containing a window
+    Leaf(Window),
+}
+
+/// BSP tree for managing window splits
+#[derive(Debug, Clone)]
+pub struct BspTree {
+    root: Option<BspNode>,
+    split_count: usize, // To alternate split directions
+}
+
+/// Rectangle for BSP layout calculations
+#[derive(Debug, Clone, Copy)]
+struct BspRect {
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+}
+
 /// Represents different tiling layouts
 #[derive(Debug, Clone, Copy)]
 pub enum Layout {
     /// Master-stack layout: one master window on the left, stack on the right
     MasterStack,
+    /// Binary Space Partitioning layout: recursive splitting of space
+    Bsp,
 }
 
 /// Window layout manager
 pub struct LayoutManager {
     current_layout: Layout,
+    bsp_tree: BspTree,
+}
+
+impl Default for BspTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl BspTree {
+    pub fn new() -> Self {
+        Self {
+            root: None,
+            split_count: 0,
+        }
+    }
+
+    /// Adds a window to the BSP tree using the simplest algorithm
+    pub fn add_window(&mut self, window: Window, focused_window: Option<Window>) {
+        if self.root.is_none() {
+            // First window - becomes root
+            self.root = Some(BspNode::Leaf(window));
+            return;
+        }
+
+        // Find where to insert the window (split the focused window or last leaf)
+        let target_window = focused_window.unwrap_or(window);
+        let split_count = self.split_count; // Capture split_count to avoid borrowing issues
+
+        if let Some(ref mut root_node) = self.root {
+            Self::insert_window_into_node_static(root_node, window, target_window, split_count);
+        }
+        self.split_count += 1;
+    }
+
+    /// Recursively find the target window and split it (static version)
+    fn insert_window_into_node_static(
+        node: &mut BspNode,
+        new_window: Window,
+        target_window: Window,
+        split_count: usize,
+    ) -> bool {
+        match node {
+            BspNode::Leaf(existing_window) => {
+                if *existing_window == target_window {
+                    // Found target - split this leaf
+                    let direction = if split_count % 2 == 0 {
+                        SplitDirection::Vertical
+                    } else {
+                        SplitDirection::Horizontal
+                    };
+
+                    let old_leaf = BspNode::Leaf(*existing_window);
+                    let new_leaf = BspNode::Leaf(new_window);
+
+                    *node = BspNode::Split {
+                        direction,
+                        ratio: 0.5,
+                        left: Box::new(old_leaf),
+                        right: Box::new(new_leaf),
+                    };
+                    return true;
+                }
+                false
+            }
+            BspNode::Split { left, right, .. } => {
+                // Try left subtree first
+                if Self::contains_window_static(left, target_window) {
+                    Self::insert_window_into_node_static(
+                        left,
+                        new_window,
+                        target_window,
+                        split_count,
+                    )
+                } else if Self::contains_window_static(right, target_window) {
+                    Self::insert_window_into_node_static(
+                        right,
+                        new_window,
+                        target_window,
+                        split_count,
+                    )
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    /// Check if a subtree contains a specific window
+    #[allow(dead_code)]
+    fn contains_window(&self, node: &BspNode, target_window: Window) -> bool {
+        Self::contains_window_static(node, target_window)
+    }
+
+    /// Static version of contains_window to avoid borrow issues
+    fn contains_window_static(node: &BspNode, target_window: Window) -> bool {
+        match node {
+            BspNode::Leaf(window) => *window == target_window,
+            BspNode::Split { left, right, .. } => {
+                Self::contains_window_static(left, target_window)
+                    || Self::contains_window_static(right, target_window)
+            }
+        }
+    }
+
+    /// Remove a window from the BSP tree
+    pub fn remove_window(&mut self, window: Window) {
+        if let Some(root_node) = self.root.take() {
+            if let Some(replacement) = Self::remove_window_from_node_static(root_node, window) {
+                self.root = Some(replacement);
+            } else {
+                // Window was the only one, clear the tree
+                self.root = None;
+            }
+        }
+    }
+
+    /// Remove a window from a node, returning the replacement node (or None if should be removed)
+    fn remove_window_from_node_static(node: BspNode, target_window: Window) -> Option<BspNode> {
+        match node {
+            BspNode::Leaf(window) => {
+                if window == target_window {
+                    // Remove this leaf
+                    None
+                } else {
+                    // Keep this leaf
+                    Some(BspNode::Leaf(window))
+                }
+            }
+            BspNode::Split {
+                direction: _,
+                ratio: _,
+                mut left,
+                mut right,
+            } => {
+                // Check if we need to remove from left or right subtree
+                let left_contains = Self::contains_window_static(&left, target_window);
+                let right_contains = Self::contains_window_static(&right, target_window);
+
+                if left_contains {
+                    if let Some(new_left_node) =
+                        Self::remove_window_from_node_static(*left, target_window)
+                    {
+                        left = Box::new(new_left_node);
+                        // Keep the split with updated left child
+                        Some(BspNode::Split {
+                            direction: SplitDirection::Vertical, // We'll track this properly later
+                            ratio: 0.5,
+                            left,
+                            right,
+                        })
+                    } else {
+                        // Left subtree is empty, replace this split with right subtree
+                        Some(*right)
+                    }
+                } else if right_contains {
+                    if let Some(new_right_node) =
+                        Self::remove_window_from_node_static(*right, target_window)
+                    {
+                        right = Box::new(new_right_node);
+                        // Keep the split with updated right child
+                        Some(BspNode::Split {
+                            direction: SplitDirection::Vertical, // We'll track this properly later
+                            ratio: 0.5,
+                            left,
+                            right,
+                        })
+                    } else {
+                        // Right subtree is empty, replace this split with left subtree
+                        Some(*left)
+                    }
+                } else {
+                    // Window not found in this subtree, keep the node unchanged
+                    Some(BspNode::Split {
+                        direction: SplitDirection::Vertical,
+                        ratio: 0.5,
+                        left,
+                        right,
+                    })
+                }
+            }
+        }
+    }
 }
 
 impl LayoutManager {
@@ -21,7 +243,18 @@ impl LayoutManager {
     pub fn new() -> Self {
         Self {
             current_layout: Layout::MasterStack,
+            bsp_tree: BspTree::new(),
         }
+    }
+
+    /// Switch to BSP layout
+    pub fn set_layout(&mut self, layout: Layout) {
+        self.current_layout = layout;
+    }
+
+    /// Get the current layout
+    pub fn current_layout(&self) -> Layout {
+        self.current_layout
     }
 }
 
@@ -34,16 +267,159 @@ impl Default for LayoutManager {
 impl LayoutManager {
     /// Applies the current layout to the given windows
     pub fn apply_layout(
-        &self,
+        &mut self,
         conn: &impl Connection,
         screen: &Screen,
         windows: &[Window],
+        focused_window: Option<Window>,
         master_ratio: f32,
         gap: u32,
     ) -> Result<()> {
+        tracing::info!(
+            "Applying layout: {:?} with {} windows",
+            self.current_layout,
+            windows.len()
+        );
         match self.current_layout {
-            Layout::MasterStack => self.tile_master_stack(conn, screen, windows, master_ratio, gap),
+            Layout::MasterStack => {
+                tracing::debug!("Using MasterStack layout");
+                self.tile_master_stack(conn, screen, windows, master_ratio, gap)
+            }
+            Layout::Bsp => {
+                tracing::debug!("Using BSP layout");
+                // Rebuild BSP tree from current windows
+                self.rebuild_bsp_tree(windows, focused_window);
+                self.tile_bsp(conn, screen, gap)
+            }
         }
+    }
+
+    /// Rebuild BSP tree from window list (simple approach for now)
+    fn rebuild_bsp_tree(&mut self, windows: &[Window], focused_window: Option<Window>) {
+        tracing::debug!(
+            "Rebuilding BSP tree with {} windows, focused: {:?}",
+            windows.len(),
+            focused_window
+        );
+        self.bsp_tree = BspTree::new();
+        for (index, &window) in windows.iter().enumerate() {
+            if index == 0 {
+                // First window becomes root
+                tracing::debug!("BSP: Adding first window {} as root", window);
+                self.bsp_tree.add_window(window, None);
+            } else {
+                // For BSP, we want to split the most recently added window (not focused)
+                // This creates the typical yabai behavior
+                let target = Some(windows[index - 1]);
+                tracing::debug!("BSP: Adding window {} targeting {:?}", window, target);
+                self.bsp_tree.add_window(window, target);
+            }
+        }
+        // Debug print the tree structure
+        if let Some(ref root) = self.bsp_tree.root {
+            tracing::debug!("BSP tree structure: {:?}", root);
+        } else {
+            tracing::debug!("BSP tree is empty");
+        }
+    }
+
+    /// Apply BSP tiling layout
+    fn tile_bsp(&self, conn: &impl Connection, screen: &Screen, gap: u32) -> Result<()> {
+        if let Some(ref root) = self.bsp_tree.root {
+            let screen_rect = BspRect {
+                x: gap as i32,
+                y: gap as i32,
+                width: (screen.width_in_pixels as i32 - 2 * gap as i32).max(100),
+                height: (screen.height_in_pixels as i32 - 2 * gap as i32).max(100),
+            };
+            tracing::debug!(
+                "BSP: Applying layout to screen {}x{} with gap {}",
+                screen.width_in_pixels,
+                screen.height_in_pixels,
+                gap
+            );
+            Self::apply_bsp_recursive(conn, root, screen_rect, gap)?;
+        } else {
+            tracing::debug!("BSP: No root node, skipping layout");
+        }
+        Ok(())
+    }
+
+    /// Recursively apply BSP layout to nodes
+    fn apply_bsp_recursive(
+        conn: &impl Connection,
+        node: &BspNode,
+        rect: BspRect,
+        gap: u32,
+    ) -> Result<()> {
+        match node {
+            BspNode::Leaf(window) => {
+                // Configure the window to fill the rect
+                tracing::debug!(
+                    "BSP: Positioning window {} at ({}, {}) with size {}x{}",
+                    window,
+                    rect.x,
+                    rect.y,
+                    rect.width,
+                    rect.height
+                );
+                let config = ConfigureWindowAux::new()
+                    .x(rect.x)
+                    .y(rect.y)
+                    .width(rect.width.max(1) as u32)
+                    .height(rect.height.max(1) as u32);
+                conn.configure_window(*window, &config)?;
+            }
+            BspNode::Split {
+                direction,
+                ratio,
+                left,
+                right,
+            } => {
+                let gap_i32 = gap as i32;
+                let (left_rect, right_rect) = match direction {
+                    SplitDirection::Vertical => {
+                        // Split left/right
+                        let split_pos = (rect.width as f32 * ratio) as i32;
+                        let left_rect = BspRect {
+                            x: rect.x,
+                            y: rect.y,
+                            width: split_pos.max(50),
+                            height: rect.height,
+                        };
+                        let right_rect = BspRect {
+                            x: rect.x + split_pos + gap_i32,
+                            y: rect.y,
+                            width: (rect.width - split_pos - gap_i32).max(50),
+                            height: rect.height,
+                        };
+                        (left_rect, right_rect)
+                    }
+                    SplitDirection::Horizontal => {
+                        // Split top/bottom
+                        let split_pos = (rect.height as f32 * ratio) as i32;
+                        let left_rect = BspRect {
+                            x: rect.x,
+                            y: rect.y,
+                            width: rect.width,
+                            height: split_pos.max(50),
+                        };
+                        let right_rect = BspRect {
+                            x: rect.x,
+                            y: rect.y + split_pos + gap_i32,
+                            width: rect.width,
+                            height: (rect.height - split_pos - gap_i32).max(50),
+                        };
+                        (left_rect, right_rect)
+                    }
+                };
+
+                // Recursively apply layout to children
+                Self::apply_bsp_recursive(conn, left, left_rect, gap)?;
+                Self::apply_bsp_recursive(conn, right, right_rect, gap)?
+            }
+        }
+        Ok(())
     }
 
     /// Implements master-stack tiling layout
@@ -140,7 +516,212 @@ mod tests {
         let layout_manager = LayoutManager::default();
         match layout_manager.current_layout {
             Layout::MasterStack => (),
+            Layout::Bsp => panic!("Default should be MasterStack"),
         }
+    }
+
+    #[test]
+    fn test_bsp_tree_creation() {
+        let bsp_tree = BspTree::new();
+        assert!(bsp_tree.root.is_none());
+        assert_eq!(bsp_tree.split_count, 0);
+    }
+
+    #[test]
+    fn test_bsp_tree_default() {
+        let bsp_tree = BspTree::default();
+        assert!(bsp_tree.root.is_none());
+        assert_eq!(bsp_tree.split_count, 0);
+    }
+
+    #[test]
+    fn test_bsp_single_window() {
+        let mut bsp_tree = BspTree::new();
+        let window = 1; // Mock window ID
+
+        bsp_tree.add_window(window, None);
+
+        assert!(bsp_tree.root.is_some());
+        if let Some(BspNode::Leaf(w)) = &bsp_tree.root {
+            assert_eq!(*w, window);
+        } else {
+            panic!("Root should be a leaf with the window");
+        }
+    }
+
+    #[test]
+    fn test_bsp_two_windows_vertical_split() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+
+        bsp_tree.add_window(window1, None);
+        bsp_tree.add_window(window2, Some(window1));
+
+        // Should create a vertical split (first split)
+        if let Some(BspNode::Split {
+            direction,
+            ratio,
+            left,
+            right,
+        }) = &bsp_tree.root
+        {
+            assert!(matches!(direction, SplitDirection::Vertical));
+            assert!((ratio - 0.5).abs() < f32::EPSILON);
+
+            // Left should be window1, right should be window2
+            if let (BspNode::Leaf(w1), BspNode::Leaf(w2)) = (left.as_ref(), right.as_ref()) {
+                assert_eq!(*w1, window1);
+                assert_eq!(*w2, window2);
+            } else {
+                panic!("Both children should be leaves");
+            }
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_bsp_three_windows_alternating_splits() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+        let window3 = 3;
+
+        bsp_tree.add_window(window1, None);
+        bsp_tree.add_window(window2, Some(window1)); // Should split window1 vertically
+        bsp_tree.add_window(window3, Some(window2)); // Should split window2 horizontally
+
+        // Root should be a vertical split
+        if let Some(BspNode::Split {
+            direction: root_dir,
+            left,
+            right,
+            ..
+        }) = &bsp_tree.root
+        {
+            assert!(matches!(root_dir, SplitDirection::Vertical));
+
+            // Left child should be window1 (leaf)
+            if let BspNode::Leaf(w1) = left.as_ref() {
+                assert_eq!(*w1, window1);
+            } else {
+                panic!("Left child should be window1");
+            }
+
+            // Right child should be a horizontal split containing window2 and window3
+            if let BspNode::Split {
+                direction: right_dir,
+                left: right_left,
+                right: right_right,
+                ..
+            } = right.as_ref()
+            {
+                assert!(matches!(right_dir, SplitDirection::Horizontal));
+
+                if let (BspNode::Leaf(w2), BspNode::Leaf(w3)) =
+                    (right_left.as_ref(), right_right.as_ref())
+                {
+                    assert_eq!(*w2, window2);
+                    assert_eq!(*w3, window3);
+                } else {
+                    panic!("Right split children should be window2 and window3");
+                }
+            } else {
+                panic!("Right child should be a horizontal split");
+            }
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_bsp_window_removal() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+
+        // Add two windows
+        bsp_tree.add_window(window1, None);
+        bsp_tree.add_window(window2, Some(window1));
+
+        // Remove window2 - should collapse back to just window1
+        bsp_tree.remove_window(window2);
+
+        if let Some(BspNode::Leaf(w)) = &bsp_tree.root {
+            assert_eq!(*w, window1);
+        } else {
+            panic!("After removing one window, root should be a leaf with window1");
+        }
+
+        // Remove the last window - tree should be empty
+        bsp_tree.remove_window(window1);
+        assert!(bsp_tree.root.is_none());
+    }
+
+    #[test]
+    fn test_bsp_contains_window() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+        let window3 = 999; // Not in tree
+
+        bsp_tree.add_window(window1, None);
+        bsp_tree.add_window(window2, Some(window1));
+
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            window1
+        ));
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            window2
+        ));
+        assert!(!BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            window3
+        ));
+    }
+
+    #[test]
+    fn test_layout_manager_set_bsp() {
+        let mut layout_manager = LayoutManager::new();
+        assert!(matches!(
+            layout_manager.current_layout(),
+            Layout::MasterStack
+        ));
+
+        layout_manager.set_layout(Layout::Bsp);
+        assert!(matches!(layout_manager.current_layout(), Layout::Bsp));
+    }
+
+    #[test]
+    fn test_bsp_rebuild_debug() {
+        let mut layout_manager = LayoutManager::new();
+        layout_manager.set_layout(Layout::Bsp);
+
+        // Simulate window list
+        let windows = vec![1, 2, 3];
+
+        // Test rebuild
+        layout_manager.rebuild_bsp_tree(&windows, Some(2));
+
+        // Check if tree was built
+        assert!(layout_manager.bsp_tree.root.is_some());
+
+        // Print tree structure for debugging
+        if let Some(ref root) = layout_manager.bsp_tree.root {
+            println!("BSP tree structure: {:?}", root);
+        }
+
+        // Test individual window additions
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None);
+        println!("After adding window 1: {:?}", bsp_tree.root);
+        bsp_tree.add_window(2, Some(1));
+        println!("After adding window 2: {:?}", bsp_tree.root);
+        bsp_tree.add_window(3, Some(2));
+        println!("After adding window 3: {:?}", bsp_tree.root);
     }
 
     #[test]
