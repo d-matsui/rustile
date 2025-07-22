@@ -130,6 +130,30 @@ impl Config {
             ));
         }
 
+        // Validate gap size
+        if self.layout.gap > 500 {
+            return Err(anyhow::anyhow!(
+                "gap is too large (max 500 pixels), got: {}",
+                self.layout.gap
+            ));
+        }
+
+        // Validate border width
+        if self.layout.border_width > 50 {
+            return Err(anyhow::anyhow!(
+                "border_width is too large (max 50 pixels), got: {}",
+                self.layout.border_width
+            ));
+        }
+
+        // Validate gap + border combination
+        if self.layout.gap + self.layout.border_width > 600 {
+            return Err(anyhow::anyhow!(
+                "gap ({}) + border_width ({}) is too large (max combined 600px)",
+                self.layout.gap, self.layout.border_width
+            ));
+        }
+
         // Validate shortcuts
         for (key_combo, command) in &self.shortcuts {
             if key_combo.is_empty() {
@@ -209,10 +233,41 @@ mod tests {
     }
 
     #[test]
+    fn test_gap_validation() {
+        let mut config = Config::default();
+
+        // Valid gap should pass
+        config.layout.gap = 10;
+        assert!(config.validate().is_ok());
+
+        // Large gap should fail
+        config.layout.gap = 600;
+        assert!(config.validate().is_err());
+
+        // Valid border width should pass
+        config.layout.gap = 0;
+        config.layout.border_width = 5;
+        assert!(config.validate().is_ok());
+
+        // Large border width should fail
+        config.layout.border_width = 100;
+        assert!(config.validate().is_err());
+
+        // Gap + border combination too large should fail
+        config.layout.gap = 400;
+        config.layout.border_width = 250;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
     fn test_config_accessors() {
         let config = Config::default();
         assert_eq!(config.master_ratio(), 0.5);
         assert_eq!(config.default_display(), ":1");
+        assert_eq!(config.gap(), 0);
+        assert_eq!(config.border_width(), 2);
+        assert_eq!(config.focused_border_color(), 0xFF0000);
+        assert_eq!(config.unfocused_border_color(), 0x808080);
         assert!(!config.shortcuts().is_empty());
     }
 }
