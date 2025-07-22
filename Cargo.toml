@@ -2,6 +2,13 @@
 name = "rustile"
 version = "0.1.0"
 edition = "2024"
+authors = ["d-matsui"]
+description = "A lightweight tiling window manager written in Rust"
+repository = "https://github.com/d-matsui/rustile"
+license = "MIT"
+keywords = ["window-manager", "tiling", "x11", "linux", "desktop"]
+categories = ["gui"]
+readme = "README.md"
 
 [dependencies]
 x11rb = "0.13.0"
