@@ -21,21 +21,10 @@ A lightweight tiling window manager written in Rust, designed to be simple, effi
 
 - Rust 1.70 or later
 - X11 development libraries
-- Git
 
 #### On Debian/Ubuntu:
 ```bash
 sudo apt-get install build-essential libx11-dev libxcb1-dev
-```
-
-#### On Fedora:
-```bash
-sudo dnf install gcc libX11-devel libxcb-devel
-```
-
-#### On Arch Linux:
-```bash
-sudo pacman -S base-devel libx11 libxcb
 ```
 
 ### Building from Source
@@ -96,14 +85,14 @@ For testing without replacing your current window manager:
 
 ```bash
 # Start a nested X server
-Xephyr :1 -screen 1280x720
+Xephyr :10 -screen 1280x720
 
 # In another terminal, run rustile
-DISPLAY=:1 rustile
+DISPLAY=:10 rustile
 
 # Launch applications in the nested server
-DISPLAY=:1 xterm
-DISPLAY=:1 firefox
+DISPLAY=:10 xterm
+DISPLAY=:10 firefox
 ```
 
 ### Keyboard Shortcuts
@@ -250,13 +239,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Built with [x11rb](https://github.com/psychon/x11rb) - Rust X11 bindings
-- Inspired by minimalist tiling window managers like dwm and i3
+- Inspired by tiling window managers like [xpywm](https://github.com/h-ohsaki/xpywm) and [yabai](https://github.com/koekeishiya/yabai)
 - Thanks to the Rust community for excellent documentation and tools
-
-## Resources
-
-- [X11 Protocol Documentation](https://www.x.org/releases/X11R7.7/doc/)
-- [Extended Window Manager Hints (EWMH)](https://specifications.freedesktop.org/wm-spec/latest/)
-- [Inter-Client Communication Conventions Manual (ICCCM)](https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html)
-- [Rust X11 Window Manager Examples](https://github.com/psychon/x11rb/tree/master/examples)
