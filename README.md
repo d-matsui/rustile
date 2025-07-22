@@ -384,8 +384,16 @@ Download from: [GitHub Releases](https://github.com/d-matsui/rustile/releases)
 
 This error occurs when trying to run Rustile while another window manager is active. Make sure to:
 - Log out of your current desktop session
-- Stop any running window manager
+- Stop any running window manager  
 - Use Xephyr for testing alongside your current WM
+
+### Configuration Issues
+
+If you encounter configuration problems:
+- Check the log output for validation errors: `RUST_LOG=info rustile`
+- Verify your TOML syntax is correct
+- Ensure all values are within the documented limits (see Configuration section)
+- Reset to defaults by removing `~/.config/rustile/config.toml`
 
 ### Windows not tiling properly
 
