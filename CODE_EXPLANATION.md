@@ -1,34 +1,34 @@
-# Rustile Code Explanation
+# Rustile コード解説書
 
-This document explains how every part of the Rustile window manager works, from the entry point to the window tiling algorithms.
+このドキュメントでは、Rustile ウィンドウマネージャーの全ての動作について、エントリーポイントからウィンドウタイリングアルゴリズムまで詳しく解説します。
 
-## Table of Contents
+## 目次
 
-1. [Project Overview](#project-overview)
-2. [Main Entry Point (main.rs)](#main-entry-point-mainrs)
-3. [Configuration (config.rs)](#configuration-configrs)
-4. [Window Manager Core (window_manager.rs)](#window-manager-core-window_managerrs)
-5. [Layout System (layout.rs)](#layout-system-layoutrs)
-6. [Keyboard Management (keyboard.rs)](#keyboard-management-keyboardrs)
-7. [Key Parser (keys.rs)](#key-parser-keysrs)
-8. [Library Structure (lib.rs)](#library-structure-librs)
-9. [How Components Interact](#how-components-interact)
-9. [Event Flow](#event-flow)
-10. [Testing](#testing)
+1. [プロジェクト概要](#プロジェクト概要)
+2. [メインエントリーポイント (main.rs)](#メインエントリーポイント-mainrs)
+3. [設定システム (config.rs)](#設定システム-configrs)
+4. [ウィンドウマネージャーコア (window_manager.rs)](#ウィンドウマネージャーコア-window_managerrs)
+5. [レイアウトシステム (layout.rs)](#レイアウトシステム-layoutrs)
+6. [キーボード管理 (keyboard.rs)](#キーボード管理-keyboardrs)
+7. [キーパーサー (keys.rs)](#キーパーサー-keysrs)
+8. [ライブラリ構造 (lib.rs)](#ライブラリ構造-librs)
+9. [コンポーネントの相互作用](#コンポーネントの相互作用)
+10. [イベントフロー](#イベントフロー)
+11. [テスト](#テスト)
 
 ---
 
-## Project Overview
+## プロジェクト概要
 
-Rustile is a tiling window manager written in Rust that automatically arranges windows without overlapping. It uses the X11 protocol to communicate with the display server and manage windows.
+Rustile は Rust で書かれたタイリングウィンドウマネージャーで、ウィンドウを重複することなく自動的に配置します。X11 プロトコルを使用してディスプレイサーバーと通信し、ウィンドウを管理します。
 
-**Key Concepts:**
-- **Window Manager**: A program that controls how windows are displayed
-- **Tiling**: Automatically arranging windows to fill the screen without overlap
-- **X11**: The display server protocol used on Linux systems
-- **Event-driven**: The program responds to events (window opens, key presses, etc.)
+**主要な概念:**
+- **ウィンドウマネージャー**: ウィンドウの表示方法を制御するプログラム
+- **タイリング**: ウィンドウを重複なく画面を埋めるように自動配置すること
+- **X11**: Linux システムで使用されるディスプレイサーバープロトコル
+- **イベント駆動**: プログラムがイベント（ウィンドウ開く、キー押下など）に応答すること
 
-**Architecture:**
+**アーキテクチャ:**
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
 │   main.rs   │───▶│WindowManager │───▶│   X11       │
@@ -36,65 +36,65 @@ Rustile is a tiling window manager written in Rust that automatically arranges w
                           │            └─────────────┘
                           ▼
               ┌─────────────────────────┐
-              │     Components:         │
+              │     コンポーネント:      │
               │ ┌─────────────────────┐ │
               │ │   LayoutManager     │ │
-              │ │   (window tiling)   │ │
+              │ │  (ウィンドウ配置)    │ │
               │ └─────────────────────┘ │
               │ ┌─────────────────────┐ │
               │ │  KeyboardManager    │ │
-              │ │  (shortcuts)        │ │
+              │ │  (ショートカット)    │ │
               │ └─────────────────────┘ │
               └─────────────────────────┘
 ```
 
 ---
 
-## Main Entry Point (main.rs)
+## メインエントリーポイント (main.rs)
 
 ```rust
-//! Entry point for the window manager. Initializes logging and starts the window manager.
+//! ウィンドウマネージャーのエントリーポイント。ログを初期化してウィンドウマネージャーを開始します。
 
 use anyhow::Result;
 use rustile::window_manager::WindowManager;
 use tracing::info;
 
 fn main() -> Result<()> {
-    // Initialize logging system to see debug messages
+    // デバッグメッセージを表示するためのロギングシステムを初期化
     tracing_subscriber::fmt::init();
     
-    info!("Starting Rustile window manager");
+    info!("Rustile ウィンドウマネージャーを開始しています");
     
-    // Connect to X11 server (display server)
-    // Returns connection and screen number
+    // X11 サーバー（ディスプレイサーバー）に接続
+    // 接続とスクリーン番号を返す
     let (conn, screen_num) = x11rb::connect(None)?;
-    info!("Connected to X11 display on screen {}", screen_num);
+    info!("X11 ディスプレイに接続しました、スクリーン {}", screen_num);
     
-    // Create and run window manager
+    // ウィンドウマネージャーを作成して実行
     let wm = WindowManager::new(conn, screen_num)?;
     wm.run()
 }
 ```
 
-**What happens here:**
+**ここで何が起きているか:**
 
-1. **Logging Setup**: `tracing_subscriber::fmt::init()` sets up logging so you can see what the window manager is doing
-2. **X11 Connection**: `x11rb::connect(None)` connects to the X11 display server
-   - `conn`: The connection object for sending commands to X11
-   - `screen_num`: Which monitor/screen to use (usually 0 for primary display)
-3. **Window Manager Creation**: `WindowManager::new()` creates our window manager instance
-4. **Event Loop**: `wm.run()` starts the infinite loop that handles events
+1. **ログ設定**: `tracing_subscriber::fmt::init()` でログを設定し、ウィンドウマネージャーの動作を確認できるようにします
+2. **X11 接続**: `x11rb::connect(None)` で X11 ディスプレイサーバーに接続します
+   - `conn`: X11 にコマンドを送るための接続オブジェクト
+   - `screen_num`: 使用するモニター/スクリーン（通常はプライマリディスプレイの 0）
+3. **ウィンドウマネージャー作成**: `WindowManager::new()` でウィンドウマネージャーのインスタンスを作成
+4. **イベントループ**: `wm.run()` でイベントを処理する無限ループを開始
 
-**Error Handling**: The `Result<()>` return type means the function can fail with an error, and the `?` operator propagates any errors up the call stack.
+**エラーハンドリング**: `Result<()>` の戻り値の型は、この関数がエラーで失敗する可能性があることを意味し、`?` 演算子はエラーを呼び出し元に伝播させます。
 
 ---
 
-## Configuration (config.rs)
+## 設定システム (config.rs)
 
-Rustile now uses a dynamic configuration system that loads settings from TOML files.
+Rustile は現在、TOML ファイルから設定を読み込む動的設定システムを使用しています。
 
 ```rust
-//! Configuration loading and management for the window manager
+//! ウィンドウマネージャーの設定読み込みと管理
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
@@ -118,29 +118,29 @@ pub struct GeneralConfig {
 }
 ```
 
-**Configuration System:**
+**設定システム:**
 
-1. **Loading Order**:
-   - First tries: `~/.config/rustile/config.toml`
-   - Falls back to default values if not found
+1. **読み込み順序**:
+   - 最初に試行: `~/.config/rustile/config.toml`
+   - 見つからない場合はデフォルト値にフォールバック
 
-2. **Configuration Structure**:
-   - **shortcuts**: Maps key combinations to commands
-     - Example: `"Super+t" = "xterm"`
-   - **layout**: Window layout settings
-     - `master_ratio`: 0.0-1.0 (default 0.5)
-     - `gap_size`: Pixels between windows (future feature)
-   - **general**: General settings
-     - `default_display`: X11 display for launching apps
+2. **設定構造**:
+   - **shortcuts**: キーの組み合わせをコマンドにマップ
+     - 例: `"Super+t" = "xterm"`
+   - **layout**: ウィンドウレイアウト設定
+     - `master_ratio`: 0.0-1.0（デフォルト 0.5）
+     - `gap_size`: ウィンドウ間のピクセル数（ギャップシステム対応）
+   - **general**: 一般設定
+     - `default_display`: アプリ起動用のX11ディスプレイ
 
-3. **Example Config File**:
+3. **設定ファイル例**:
 ```toml
 [general]
 default_display = ":1"
 
 [layout]
 master_ratio = 0.5
-gap_size = 0
+gap_size = 10
 
 [shortcuts]
 "Shift+Alt+1" = "gnome-terminal"
@@ -148,78 +148,84 @@ gap_size = 0
 "Super+Return" = "xterm"
 ```
 
-**Benefits of TOML Configuration:**
-- User-friendly format
-- No recompilation needed for changes
-- Supports complex key combinations
-- Easy to share configurations
+**TOML 設定の利点:**
+- ユーザーフレンドリーな形式
+- 変更のための再コンパイルが不要
+- 複雑なキーの組み合わせに対応
+- 設定の共有が容易
+- 視覚的なギャップシステムとフォーカス管理に対応
 
 ---
 
-## Window Manager Core (window_manager.rs)
+## ウィンドウマネージャーコア (window_manager.rs)
 
-This is the heart of the window manager that coordinates everything.
+これはすべてを調整するウィンドウマネージャーの中核部分です。
 
-### Data Structure
+### データ構造
 
 ```rust
-/// Main window manager structure
+/// メインウィンドウマネージャー構造体
 pub struct WindowManager<C: Connection> {
-    /// X11 connection
+    /// X11 接続
     conn: C,
-    /// Screen information
+    /// スクリーン情報
     screen_num: usize,
-    /// Currently managed windows
+    /// 現在管理されているウィンドウ
     windows: Vec<Window>,
-    /// Layout manager for window arrangement
+    /// フォーカスされているウィンドウ（視覚的ボーダー用）
+    focused_window: Option<Window>,
+    /// ウィンドウ配置用レイアウトマネージャー
     layout_manager: LayoutManager,
-    /// Keyboard manager for shortcuts
+    /// ショートカット用キーボードマネージャー
     keyboard_manager: KeyboardManager,
-    /// Configuration
+    /// 設定
     config: Config,
 }
 ```
 
-**Fields Explained:**
-- `conn`: The connection to X11 server for sending commands
-- `screen_num`: Which monitor we're managing
-- `windows`: List of all windows we're currently managing
-- `layout_manager`: Handles the positioning and sizing of windows
-- `keyboard_manager`: Handles keyboard shortcuts
+**フィールド説明:**
+- `conn`: X11 サーバーにコマンドを送るための接続
+- `screen_num`: 管理するモニター
+- `windows`: 現在管理中のウィンドウのリスト
+- `focused_window`: フォーカスされているウィンドウ（視覚的ボーダー表示用）
+- `layout_manager`: ウィンドウの位置とサイズを管理
+- `keyboard_manager`: キーボードショートカットを処理
+- `config`: TOML から読み込まれた設定
 
-### Initialization (`new()`)
+### 初期化 (`new()`)
 
 ```rust
 pub fn new(conn: C, screen_num: usize) -> Result<Self> {
-    // Load configuration
+    // 設定を読み込み
     let config = Config::load()?;
-    info!("Loaded configuration with {} shortcuts", config.shortcuts().len());
+    info!("設定を読み込みました、ショートカット数: {}", config.shortcuts().len());
 
     let setup = conn.setup();
     let screen = &setup.roots[screen_num];
     let root = screen.root;
 
-    // Initialize keyboard manager
+    // キーボードマネージャーを初期化
     let mut keyboard_manager = KeyboardManager::new(&conn, setup)?;
 
-    // Register as window manager
+    // ウィンドウマネージャーとして登録
     let event_mask = EventMask::SUBSTRUCTURE_REDIRECT | EventMask::SUBSTRUCTURE_NOTIFY;
     let attributes = ChangeWindowAttributesAux::new().event_mask(event_mask);
     
     if let Err(e) = conn.change_window_attributes(root, &attributes)?.check() {
-        error!("Another window manager is already running: {:?}", e);
-        return Err(anyhow::anyhow!("Failed to become window manager. Is another WM running?"));
+        error!("他のウィンドウマネージャーが既に動作中です: {:?}", e);
+        return Err(anyhow::anyhow!("ウィンドウマネージャーになれませんでした。他のWMが動作していませんか？"));
     }
     
-    info!("Successfully became the window manager");
+    info!("ウィンドウマネージャーとしての登録に成功しました");
 
-    // Register keyboard shortcuts from config
+    // 設定からキーボードショートカットを登録
     keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
     Ok(Self {
         conn,
         screen_num,
         windows: Vec::new(),
+        focused_window: None,
         layout_manager: LayoutManager::new(),
         keyboard_manager,
         config,
@@ -227,197 +233,206 @@ pub fn new(conn: C, screen_num: usize) -> Result<Self> {
 }
 ```
 
-**Initialization Steps:**
+**初期化ステップ:**
 
-1. **Get Screen Info**: Extract information about the monitor from X11
-2. **Create Keyboard Manager**: Set up keyboard handling
-3. **Register as Window Manager**: Tell X11 that we want to control window placement
-   - `SUBSTRUCTURE_REDIRECT`: We control where windows go
-   - `SUBSTRUCTURE_NOTIFY`: We get notified when windows are created/destroyed
-4. **Error Check**: If another window manager is running, this will fail
-5. **Register Shortcuts**: Tell X11 to send us Super+T key events
-6. **Create Instance**: Initialize all the components
+1. **設定読み込み**: TOML ファイルから設定を読み込み
+2. **スクリーン情報取得**: X11 からモニター情報を取得
+3. **キーボードマネージャー作成**: キーボード処理を設定
+4. **ウィンドウマネージャー登録**: X11 にウィンドウの制御権を要求
+   - `SUBSTRUCTURE_REDIRECT`: ウィンドウの配置を制御
+   - `SUBSTRUCTURE_NOTIFY`: ウィンドウの作成/削除の通知を受信
+5. **エラーチェック**: 他のウィンドウマネージャーが動作中なら失敗
+6. **ショートカット登録**: 設定されたキーの組み合わせを X11 に登録
+7. **インスタンス作成**: 全コンポーネントを初期化
 
-### Main Event Loop (`run()`)
+### メインイベントループ (`run()`)
 
 ```rust
 pub fn run(mut self) -> Result<()> {
-    info!("Starting window manager event loop");
+    info!("ウィンドウマネージャーのイベントループを開始します");
     
     loop {
         self.conn.flush()?;
         let event = self.conn.wait_for_event()?;
         
         if let Err(e) = self.handle_event(event) {
-            error!("Error handling event: {:?}", e);
+            error!("イベント処理エラー: {:?}", e);
         }
     }
 }
 ```
 
-**Event Loop Steps:**
-1. **Flush**: Send any pending commands to X11
-2. **Wait**: Block until we receive an event from X11
-3. **Handle**: Process the event (delegate to specific handlers)
-4. **Error Handling**: Log errors but don't crash
-5. **Repeat**: Go back to step 1
+**イベントループのステップ:**
+1. **フラッシュ**: X11 への保留中のコマンドを送信
+2. **待機**: X11 からのイベントを受信するまでブロック
+3. **処理**: イベントを処理（特定のハンドラーに委託）
+4. **エラーハンドリング**: エラーをログ出力するがクラッシュしない
+5. **繰り返し**: ステップ1に戻る
 
-### Event Handlers
+### イベントハンドラー
 
-#### Key Press Handler
+#### キープレスハンドラー（フォーカス管理付き）
 ```rust
 fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
     if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
-        info!("Shortcut pressed, executing: {}", command);
+        info!("ショートカットが押されました、実行中: {}", command);
         
-        // Parse command (simple implementation, could be improved)
+        // コマンドをパース（単純な実装、改善の余地あり）
         let parts: Vec<&str> = command.split_whitespace().collect();
         if let Some(program) = parts.first() {
             let mut cmd = Command::new(program);
             
-            // Add arguments if any
+            // 引数があれば追加
             if parts.len() > 1 {
                 cmd.args(&parts[1..]);
             }
             
-            // Set display environment
+            // ディスプレイ環境を設定
             cmd.env("DISPLAY", self.config.default_display());
             
             match cmd.spawn() {
-                Ok(_) => info!("Successfully launched: {}", command),
-                Err(e) => error!("Failed to launch {}: {}", command, e),
+                Ok(_) => info!("起動に成功: {}", command),
+                Err(e) => error!("{} の起動に失敗: {}", command, e),
             }
         }
     }
+    
+    // フォーカス管理：ウィンドウクリック時
+    if let Some(window) = self.get_window_at_position(event.event_x, event.event_y) {
+        self.set_focus(window)?;
+    }
+    
     Ok(())
 }
 ```
 
-**What happens:**
-1. Check if Super key is held down AND T key is pressed
-2. If yes, launch xcalc calculator application
-3. Set the DISPLAY environment variable so it appears on the right screen
-
-#### Map Request Handler (New Window)
+#### マップリクエストハンドラー（新しいウィンドウ）
 ```rust
 fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
     let window = event.window;
-    info!("Mapping window: {:?}", window);
+    info!("ウィンドウをマッピング中: {:?}", window);
     
-    // Map the window (make it visible)
+    // ウィンドウを可視化
     self.conn.map_window(window)?;
     
-    // Add to managed windows
+    // 管理ウィンドウに追加
     self.windows.push(window);
     
-    // Apply layout with configured master ratio
+    // 最新ウィンドウにフォーカス設定
+    self.set_focus(window)?;
+    
+    // 設定されたマスター比率でレイアウトを適用
     self.apply_layout()?;
     
     Ok(())
 }
 ```
 
-**What happens:**
-1. A new window wants to appear
-2. Tell X11 to make it visible
-3. Add it to our list of managed windows
-4. Rearrange all windows using the layout algorithm
-
-#### Unmap Notify Handler (Window Closed)
+#### フォーカス管理（視覚的ボーダー付き）
 ```rust
-fn handle_unmap_notify(&mut self, event: UnmapNotifyEvent) -> Result<()> {
-    let window = event.window;
-    info!("Unmapping window: {:?}", window);
+fn set_focus(&mut self, window: Window) -> Result<()> {
+    // 以前のフォーカスウィンドウのボーダーをクリア
+    if let Some(old_focused) = self.focused_window {
+        self.set_window_border(old_focused, 0x808080, 1)?; // グレーの細いボーダー
+    }
     
-    // Remove from managed windows
-    self.windows.retain(|&w| w != window);
+    // 新しいフォーカスウィンドウに明確なボーダーを設定
+    self.set_window_border(window, 0x0066CC, 3)?; // 青の太いボーダー
     
-    // Reapply layout
-    self.apply_layout()?;
+    // X11 入力フォーカスを設定
+    self.conn.set_input_focus(InputFocus::POINTER_ROOT, window, CURRENT_TIME)?;
+    
+    self.focused_window = Some(window);
+    info!("ウィンドウにフォーカスを設定: {:?}", window);
     
     Ok(())
 }
-```
 
-**What happens:**
-1. A window has been closed
-2. Remove it from our list
-3. Rearrange remaining windows to fill the space
+fn set_window_border(&self, window: Window, color: u32, width: u32) -> Result<()> {
+    let attributes = ChangeWindowAttributesAux::new()
+        .border_pixel(color)
+        .border_width(width);
+    
+    self.conn.change_window_attributes(window, &attributes)?.check()?;
+    Ok(())
+}
+```
 
 ---
 
-## Layout System (layout.rs)
+## レイアウトシステム (layout.rs)
 
-The layout system determines where windows are positioned and how big they are.
+レイアウトシステムは、ウィンドウがどこに配置され、どのサイズになるかを決定します。
 
-### Layout Types
+### レイアウトタイプ
 
 ```rust
-/// Represents different tiling layouts
+/// 異なるタイリングレイアウトを表現
 #[derive(Debug, Clone, Copy)]
 pub enum Layout {
-    /// Master-stack layout: one master window on the left, stack on the right
+    /// マスタースタックレイアウト：左側にマスターウィンドウ、右側にスタック
     MasterStack,
 }
 
-/// Window layout manager
+/// ウィンドウレイアウトマネージャー（ギャップシステム対応）
 pub struct LayoutManager {
     current_layout: Layout,
 }
 ```
 
-Currently, we only have one layout (MasterStack), but this design makes it easy to add more layouts like:
-- Horizontal split
-- Grid layout
-- Fibonacci spiral
-- Floating windows
+現在はレイアウトは一つ（MasterStack）のみですが、この設計により以下のようなレイアウトを簡単に追加できます：
+- 水平分割
+- グリッドレイアウト
+- フィボナッチスパイラル
+- フローティングウィンドウ
 
-### Master-Stack Algorithm
+### マスタースタックアルゴリズム（ギャップシステム付き）
 
-This is the core algorithm that positions windows:
+これがウィンドウを配置する核心アルゴリズムです：
 
 ```rust
-fn tile_master_stack(&self, conn: &impl Connection, screen: &Screen, windows: &[Window]) -> Result<()> {
-    // Handle empty case
+fn tile_master_stack(&self, conn: &impl Connection, screen: &Screen, windows: &[Window], gap_size: u32) -> Result<()> {
+    // 空の場合の処理
     if windows.is_empty() {
         return Ok(());
     }
 
-    let screen_width = screen.width_in_pixels as i16;   // e.g., 1280
-    let screen_height = screen.height_in_pixels as i16; // e.g., 720
+    let screen_width = screen.width_in_pixels as i16;   // 例：1280
+    let screen_height = screen.height_in_pixels as i16; // 例：720
     let num_windows = windows.len() as i16;
+    let gap = gap_size as i16;
 
-    // Configure master window (first window)
+    // マスターウィンドウ（最初のウィンドウ）を設定
     let master_window = windows[0];
     let master_width = if num_windows > 1 {
-        (screen_width as f32 * MASTER_RATIO) as i16  // 50% = 640 pixels
+        ((screen_width - gap * 3) as f32 * MASTER_RATIO) as i16  // ギャップを考慮したマスター幅
     } else {
-        screen_width  // Full width if only one window
+        screen_width - gap * 2  // 単一ウィンドウでも左右にギャップ
     };
 
     let master_config = ConfigureWindowAux::new()
-        .x(0)                           // Left edge of screen
-        .y(0)                           // Top edge of screen
-        .width(master_width as u32)     // 640 pixels wide
-        .height(screen_height as u32);  // Full height
+        .x(gap as i32)                              // 左端からギャップ分離す
+        .y(gap as i32)                              // 上端からギャップ分離す
+        .width((master_width - gap) as u32)         // ギャップ分幅を減らす
+        .height((screen_height - gap * 2) as u32);  // 上下ギャップ分高さを減らす
 
     conn.configure_window(master_window, &master_config)?;
 
-    // Configure stack windows (remaining windows)
+    // スタックウィンドウ（残りのウィンドウ）を設定
     if num_windows > 1 {
-        let stack_windows = &windows[1..];  // All except first
-        let stack_x = master_width;         // Start where master ends
-        let stack_width = screen_width - master_width;  // Remaining width
-        let stack_height = screen_height / (num_windows - 1);  // Divide height
+        let stack_windows = &windows[1..];  // 最初以外すべて
+        let stack_x = master_width + gap * 2;       // マスター終了位置＋ギャップ
+        let stack_width = screen_width - master_width - gap * 3;  // 残り幅からギャップ分引く
+        let stack_height = (screen_height - gap * (num_windows + 1)) / (num_windows - 1);  // 高さをギャップ考慮して分割
 
         for (index, &window) in stack_windows.iter().enumerate() {
-            let stack_y = (index as i16) * stack_height;  // Stack vertically
+            let stack_y = gap + (index as i16) * (stack_height + gap);  // 垂直にスタック、ギャップ付き
 
             let stack_config = ConfigureWindowAux::new()
-                .x(stack_x as i32)          // Right half of screen
-                .y(stack_y as i32)          // Stacked position
-                .width(stack_width as u32)  // Right half width
-                .height(stack_height as u32); // Divided height
+                .x(stack_x as i32)              // スクリーン右半分
+                .y(stack_y as i32)              // スタック位置
+                .width(stack_width as u32)      // 右半分の幅
+                .height(stack_height as u32);   // 分割された高さ
 
             conn.configure_window(window, &stack_config)?;
         }
@@ -427,61 +442,61 @@ fn tile_master_stack(&self, conn: &impl Connection, screen: &Screen, windows: &[
 }
 ```
 
-**Visual Examples:**
+**ギャップシステム付きビジュアル例:**
 
 ```
-1 Window:                2 Windows:               3 Windows:
-┌─────────────────┐      ┌────────┬────────┐      ┌────────┬────────┐
-│                 │      │        │        │      │        │   W2   │
-│       W1        │      │   W1   │   W2   │      │   W1   ├────────┤
-│                 │      │        │        │      │        │   W3   │
-│                 │      │        │        │      │        │        │
-└─────────────────┘      └────────┴────────┘      └────────┴────────┘
-     Full screen            50% | 50%              50% | 50% split
+ギャップなし:                ギャップ=10px:               
+┌────────┬────────┐         ┌──────┬──────┐        
+│        │        │         │      │      │        
+│   W1   │   W2   │         │  W1  │  W2  │        
+│        │        │         │      ├──────┤        
+│        │        │         │      │  W3  │        
+└────────┴────────┘         └──────┴──────┘        
 ```
 
-**Algorithm Steps:**
+**アルゴリズムステップ:**
 
-1. **Master Window**:
-   - Always the first window in the list
-   - Takes left side of screen
-   - Width = MASTER_RATIO * screen_width (default 50%)
-   - Height = full screen height
+1. **マスターウィンドウ**:
+   - 常にリストの最初のウィンドウ
+   - スクリーンの左側を占有
+   - 幅 = MASTER_RATIO * (screen_width - gaps) (デフォルト50%)
+   - 高さ = フルスクリーン高さ - 上下ギャップ
 
-2. **Stack Windows**:
-   - All other windows
-   - Share the right side of screen
-   - Each gets equal height: screen_height / number_of_stack_windows
-   - All have same width: remaining screen width
+2. **スタックウィンドウ**:
+   - その他すべてのウィンドウ
+   - スクリーンの右側を共有
+   - それぞれ均等な高さ: (screen_height - gaps) / スタックウィンドウ数
+   - すべて同じ幅: 残りのスクリーン幅
 
-3. **Positioning**:
-   - Master: x=0, y=0
-   - Stack: x=master_width, y=index*stack_height
+3. **ギャップシステム**:
+   - 画面端: gap ピクセル
+   - ウィンドウ間: gap ピクセル
+   - 設定可能: config.toml の gap_size
 
 ---
 
-## Keyboard Management (keyboard.rs)
+## キーボード管理 (keyboard.rs)
 
-The keyboard system handles mapping keys and processing shortcuts.
+キーボードシステムは、キーマッピングとショートカット処理を管理します。
 
-### Key Concepts
+### キー概念
 
-- **Keysym**: A universal key identifier (e.g., 0x0074 for 'T')
-- **Keycode**: The physical key number on your specific keyboard
-- **Modifier**: Keys like Shift, Ctrl, Alt, Super that modify other keys
+- **Keysym**: 汎用キー識別子（例：0x0074 は 'T'）
+- **Keycode**: 特定のキーボードの物理キー番号
+- **Modifier**: Shift、Ctrl、Alt、Super などの修飾キー
 
-### Data Structure
+### データ構造
 
 ```rust
-/// Manages keyboard mappings and shortcuts
+/// キーボードマッピングとショートカットを管理
 pub struct KeyboardManager {
-    /// Map of keysyms to keycodes
+    /// keysym から keycode へのマップ
     keycode_map: HashMap<u32, u8>,
-    /// Registered shortcuts
+    /// 登録されたショートカット
     shortcuts: Vec<Shortcut>,
 }
 
-/// Represents a keyboard shortcut
+/// キーボードショートカットを表現
 #[derive(Debug, Clone)]
 pub struct Shortcut {
     pub modifiers: KeyButMask,
@@ -490,16 +505,16 @@ pub struct Shortcut {
 }
 ```
 
-The keyboard manager now stores both the keycode mapping and a list of registered shortcuts with their associated commands.
+キーボードマネージャーは現在、keycode マッピングと関連するコマンドと共に登録されたショートカットのリストの両方を保存します。
 
-### Initialization
+### 初期化
 
 ```rust
 pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
     let min_keycode = setup.min_keycode;
     let max_keycode = setup.max_keycode;
     
-    // Get keyboard mapping from X server
+    // X サーバーからキーボードマッピングを取得
     let mapping_reply = conn
         .get_keyboard_mapping(min_keycode, max_keycode - min_keycode + 1)?
         .reply()?;
@@ -507,11 +522,11 @@ pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
     let keysyms_per_keycode = mapping_reply.keysyms_per_keycode as usize;
     let mut keycode_map = HashMap::new();
     
-    // Build keycode map
+    // keycode マップを構築
     for (index, chunk) in mapping_reply.keysyms.chunks(keysyms_per_keycode).enumerate() {
         let keycode = min_keycode + index as u8;
         
-        // Store first keysym for each keycode (unshifted)
+        // 各 keycode の最初の keysym を保存（非シフト）
         if let Some(&keysym) = chunk.first() {
             if keysym != 0 {
                 keycode_map.insert(keysym, keycode);
@@ -519,7 +534,7 @@ pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
         }
     }
     
-    info!("Initialized keyboard manager with {} keycodes", keycode_map.len());
+    info!("キーボードマネージャーを初期化しました、keycode 数: {}", keycode_map.len());
     
     Ok(Self { 
         keycode_map,
@@ -528,13 +543,13 @@ pub fn new<C: Connection>(conn: &C, setup: &Setup) -> Result<Self> {
 }
 ```
 
-**What this does:**
-1. Ask X11 for the keyboard mapping table
-2. For each physical key, get what symbol it represents
-3. Build a map: keysym → keycode
-4. Example: 0x0074 ('T') → keycode 28
+**これが行うこと:**
+1. X11 にキーボードマッピングテーブルを要求
+2. 各物理キーについて、それが表すシンボルを取得
+3. マップを構築: keysym → keycode
+4. 例：0x0074 ('T') → keycode 28
 
-### Registering Shortcuts from Config
+### 設定からショートカット登録
 
 ```rust
 pub fn register_shortcuts<C: Connection>(
@@ -544,20 +559,20 @@ pub fn register_shortcuts<C: Connection>(
     shortcuts: &HashMap<String, String>,
 ) -> Result<()> {
     for (key_combo, command) in shortcuts {
-        // Parse the key combination (e.g., "Super+t")
+        // キーの組み合わせをパース（例："Super+t"）
         let (modifiers, keysym) = parse_key_combination(key_combo)?;
         
-        // Get the physical keycode
+        // 物理 keycode を取得
         let keycode = self.get_keycode(keysym);
         if keycode == 0 {
-            warn!("Could not find keycode for key '{}', skipping", key_combo);
+            warn!("キー '{}' の keycode が見つかりません、スキップします", key_combo);
             continue;
         }
         
-        // Convert ModMask to KeyButMask for X11
+        // ModMask を X11 用の KeyButMask に変換
         let key_but_mask = KeyButMask::from(modifiers.bits());
         
-        // Grab the key combination
+        // キーの組み合わせをグラブ（捕獲）
         conn.grab_key(
             true,
             root,
@@ -567,7 +582,7 @@ pub fn register_shortcuts<C: Connection>(
             GrabMode::ASYNC,
         )?;
         
-        // Store the shortcut
+        // ショートカットを保存
         self.shortcuts.push(Shortcut {
             modifiers: key_but_mask,
             keycode,
@@ -579,39 +594,39 @@ pub fn register_shortcuts<C: Connection>(
 }
 ```
 
-**What this does:**
-1. Iterate through all configured shortcuts
-2. Parse human-readable key combinations (handled by keys.rs)
-3. Convert to physical keycodes
-4. Register each combination with X11
-5. Store shortcuts for later matching
+**これが行うこと:**
+1. 設定されたすべてのショートカットを反復
+2. 人間が読めるキーの組み合わせをパース（keys.rs で処理）
+3. 物理 keycode に変換
+4. 各組み合わせを X11 に登録
+5. 後でマッチングするためにショートカットを保存
 
 ---
 
-## Key Parser (keys.rs)
+## キーパーサー (keys.rs)
 
-The key parser module handles converting human-readable key combinations into X11 keysyms and modifiers. This is what makes the configuration system user-friendly by allowing keys like "Super+t" instead of raw hex values.
+キーパーサーモジュールは、人間が読めるキーの組み合わせを X11 の keysym と修飾子に変換する処理を行います。これにより、生の16進値の代わりに「Super+t」のようなキーを使用できる、ユーザーフレンドリーな設定システムが実現されます。
 
-### Core Function
+### コア関数
 
 ```rust
-/// Parse a key combination string like "Super+t" or "Ctrl+Alt+Delete"
+/// "Super+t" や "Ctrl+Alt+Delete" のようなキーの組み合わせ文字列をパース
 pub fn parse_key_combination(combo: &str) -> Result<(ModMask, u32)> {
     let parts: Vec<&str> = combo.split('+').collect();
     
     if parts.is_empty() {
-        return Err(anyhow::anyhow!("Empty key combination"));
+        return Err(anyhow::anyhow!("空のキーの組み合わせです"));
     }
     
     let mut modifiers = ModMask::from(0u16);
     let key_part;
     
-    // Parse modifiers and key
+    // 修飾子とキーをパース
     if parts.len() == 1 {
-        // Single key without modifiers
+        // 修飾子なしの単一キー
         key_part = parts[0];
     } else {
-        // Multiple parts - all but last are modifiers
+        // 複数部分 - 最後以外はすべて修飾子
         for modifier in &parts[..parts.len() - 1] {
             match modifier.to_lowercase().as_str() {
                 "super" | "mod4" | "win" | "windows" | "cmd" => modifiers |= ModMask::M4,
@@ -626,55 +641,55 @@ pub fn parse_key_combination(combo: &str) -> Result<(ModMask, u32)> {
                     modifiers |= ModMask::M4 | ModMask::M1 | 
                                 ModMask::CONTROL | ModMask::SHIFT;
                 }
-                _ => return Err(anyhow::anyhow!("Unknown modifier: {}", modifier)),
+                _ => return Err(anyhow::anyhow!("不明な修飾子: {}", modifier)),
             }
         }
         key_part = parts.last().unwrap();
     }
     
-    // Convert key name to keysym
+    // キー名を keysym に変換
     let keysym = get_keysym_from_name(key_part)?;
     
     Ok((modifiers, keysym))
 }
 ```
 
-### Modifier Support
+### 修飾子サポート
 
-The key parser supports comprehensive modifier keys with alternative names for cross-platform familiarity:
+キーパーサーは、クロスプラットフォーム対応のため代替名を含む包括的な修飾子キーをサポートします：
 
-**Primary Modifiers:**
-- `Super`, `Mod4`, `Win`, `Windows`, `Cmd` → Super key (Windows/Cmd key)
-- `Alt`, `Mod1`, `Meta` → Alt key
-- `Ctrl`, `Control`, `Ctl` → Control key
-- `Shift` → Shift key
+**主要修飾子:**
+- `Super`, `Mod4`, `Win`, `Windows`, `Cmd` → Superキー（Windows/Cmdキー）
+- `Alt`, `Mod1`, `Meta` → Altキー
+- `Ctrl`, `Control`, `Ctl` → Controlキー
+- `Shift` → Shiftキー
 
-**Less Common Modifiers:**
+**使用頻度の低い修飾子:**
 - `Mod2`, `NumLock`, `Num` → Num Lock
 - `Mod3`, `ScrollLock`, `Scroll` → Scroll Lock
-- `Mod5`, `AltGr`, `AltGraph` → AltGr (right Alt on international keyboards)
+- `Mod5`, `AltGr`, `AltGraph` → AltGr（国際キーボードの右Alt）
 
-**Special Combinations:**
-- `Hyper` → All four main modifiers combined (Super+Alt+Ctrl+Shift)
+**特殊な組み合わせ:**
+- `Hyper` → 4つの主要修飾子すべての組み合わせ（Super+Alt+Ctrl+Shift）
 
-### Key Name Mapping
+### キー名マッピング
 
 ```rust
 fn get_keysym_from_name(name: &str) -> Result<u32> {
     let normalized = name.to_lowercase();
     
     match normalized.as_str() {
-        // Letters (a-z)
+        // 文字（a-z）
         c if c.len() == 1 && c.chars().next().unwrap().is_ascii_lowercase() => {
             Ok(c.chars().next().unwrap() as u32)
         }
         
-        // Numbers (0-9)
+        // 数字（0-9）
         c if c.len() == 1 && c.chars().next().unwrap().is_ascii_digit() => {
             Ok(c.chars().next().unwrap() as u32)
         }
         
-        // Special keys
+        // 特殊キー
         "space" => Ok(0x0020),
         "return" | "enter" => Ok(0xff0d),
         "tab" => Ok(0xff09),
@@ -682,7 +697,7 @@ fn get_keysym_from_name(name: &str) -> Result<u32> {
         "backspace" => Ok(0xff08),
         "delete" | "del" => Ok(0xffff),
         
-        // Function keys
+        // ファンクションキー
         "f1" => Ok(0xffbe),
         "f2" => Ok(0xffbf),
         "f3" => Ok(0xffc0),
@@ -696,58 +711,58 @@ fn get_keysym_from_name(name: &str) -> Result<u32> {
         "f11" => Ok(0xffc8),
         "f12" => Ok(0xffc9),
         
-        // Arrow keys
+        // 矢印キー
         "up" => Ok(0xff52),
         "down" => Ok(0xff54),
         "left" => Ok(0xff51),
         "right" => Ok(0xff53),
         
-        _ => Err(anyhow::anyhow!("Unknown key name: {}", name)),
+        _ => Err(anyhow::anyhow!("不明なキー名: {}", name)),
     }
 }
 ```
 
-### Example Usage
+### 使用例
 
 ```rust
-// Simple key
+// 単純キー
 parse_key_combination("t") → (ModMask::empty(), 0x0074)
 
-// Single modifier
+// 単一修飾子
 parse_key_combination("Super+t") → (ModMask::M4, 0x0074)
 
-// Multiple modifiers  
+// 複数修飾子  
 parse_key_combination("Ctrl+Alt+Delete") → (ModMask::CONTROL | ModMask::M1, 0xffff)
 
-// Alternative names
-parse_key_combination("Cmd+space") → (ModMask::M4, 0x0020)  // Same as Super+space
-parse_key_combination("Win+Return") → (ModMask::M4, 0xff0d)  // Same as Super+Return
+// 代替名
+parse_key_combination("Cmd+space") → (ModMask::M4, 0x0020)  // Super+spaceと同じ
+parse_key_combination("Win+Return") → (ModMask::M4, 0xff0d)  // Super+Returnと同じ
 
-// Complex combination
+// 複雑な組み合わせ
 parse_key_combination("Hyper+F12") → (ModMask::M4 | ModMask::M1 | ModMask::CONTROL | ModMask::SHIFT, 0xffc9)
 ```
 
-### Case Insensitivity
+### 大文字小文字の区別なし
 
-All parsing is case-insensitive for user convenience:
+ユーザーの利便性のため、すべてのパースは大文字小文字を区別しません：
 
 ```rust
 "SUPER+T" == "super+t" == "Super+T" == "SuPeR+t"
 ```
 
-### Error Handling
+### エラーハンドリング
 
-The parser provides helpful error messages:
+パーサーは役立つエラーメッセージを提供します：
 
 ```rust
-parse_key_combination("") → Error: "Empty key combination"
-parse_key_combination("Unknown+t") → Error: "Unknown modifier: unknown"  
-parse_key_combination("Super+xyz") → Error: "Unknown key name: xyz"
+parse_key_combination("") → エラー: "空のキーの組み合わせです"
+parse_key_combination("Unknown+t") → エラー: "不明な修飾子: unknown"  
+parse_key_combination("Super+xyz") → エラー: "不明なキー名: xyz"
 ```
 
-### Integration with Keyboard Manager
+### キーボードマネージャーとの統合
 
-The key parser is used by the keyboard manager during shortcut registration:
+キーパーサーは、ショートカット登録時にキーボードマネージャーによって使用されます：
 
 ```rust
 pub fn register_shortcuts<C: Connection>(
@@ -757,49 +772,49 @@ pub fn register_shortcuts<C: Connection>(
     shortcuts: &HashMap<String, String>,
 ) -> Result<()> {
     for (key_combo, command) in shortcuts {
-        // Parse the human-readable key combination
+        // 人間が読めるキーの組み合わせをパース
         match parse_key_combination(key_combo) {
             Ok((modifiers, keysym)) => {
-                // Convert to keycode and register with X11
+                // keycode に変換して X11 に登録
                 let keycode = self.get_keycode(keysym);
                 if keycode != 0 {
                     self.register_shortcut(conn, root, modifiers, keycode, command)?;
                 }
             }
-            Err(e) => warn!("Failed to parse key combination '{}': {}", key_combo, e),
+            Err(e) => warn!("キーの組み合わせ '{}' のパースに失敗: {}", key_combo, e),
         }
     }
     Ok(())
 }
 ```
 
-This allows users to write configuration like:
+これにより、ユーザーは以下のような設定を書くことができます：
 
 ```toml
 [shortcuts]
 "Super+Return" = "xterm"
 "Ctrl+Alt+t" = "gnome-terminal" 
 "Shift+Alt+1" = "firefox"
-"Win+space" = "dmenu_run"  # Alternative name for Super
+"Win+space" = "dmenu_run"  # Superの代替名
 ```
 
-### Benefits
+### 利点
 
-1. **User-Friendly**: Natural key combinations instead of hex codes
-2. **Cross-Platform**: Alternative modifier names (Cmd, Win, Meta)
-3. **Flexible**: Case-insensitive, multiple naming options
-4. **Robust**: Comprehensive error handling and validation
-5. **Extensible**: Easy to add new key names and modifiers
+1. **ユーザーフレンドリー**: 16進コードの代わりに自然なキーの組み合わせ
+2. **クロスプラットフォーム**: 代替修飾子名（Cmd、Win、Meta）
+3. **柔軟性**: 大文字小文字の区別なし、複数の命名オプション
+4. **堅牢性**: 包括的なエラーハンドリングと検証
+5. **拡張可能**: 新しいキー名と修飾子の追加が容易
 
 ---
 
-## Library Structure (lib.rs)
+## ライブラリ構造 (lib.rs)
 
 ```rust
-//! Rustile - A tiling window manager written in Rust
+//! Rustile - Rust で書かれたタイリングウィンドウマネージャー
 //! 
-//! This window manager provides automatic window tiling with a master-stack layout.
-//! It's designed to be simple, efficient, and extensible.
+//! このウィンドウマネージャーはマスタースタックレイアウトによる自動ウィンドウタイリングを提供します。
+//! シンプル、効率的、拡張可能になるよう設計されています。
 
 pub mod config;
 pub mod keyboard;
@@ -808,224 +823,246 @@ pub mod layout;
 pub mod window_manager;
 ```
 
-This file defines what parts of the library are public. It allows other code (like main.rs) to use our modules.
+このファイルは、ライブラリのどの部分が公開されるかを定義します。他のコード（main.rs など）がモジュールを使用できるようにします。
 
 ---
 
-## How Components Interact
+## コンポーネントの相互作用
 
-Here's how all the pieces work together:
+すべてのピースがどのように連携するかを以下に示します：
 
-### Startup Sequence
+### 起動シーケンス
 
 ```
 1. main.rs
-   ├── Initialize logging
-   ├── Connect to X11
-   └── Create WindowManager
-       ├── Load configuration from TOML
-       │   └── Try ~/.config/rustile/config.toml
-       ├── Create KeyboardManager
-       │   └── Load keyboard mappings from X11
-       ├── Create LayoutManager
-       │   └── Set default layout (MasterStack)
-       ├── Register as window manager
-       │   └── Tell X11 we control window placement
-       └── Register shortcuts from config
-           └── Parse and grab all configured key combinations
+   ├── ログを初期化
+   ├── X11 に接続
+   └── WindowManager を作成
+       ├── TOML から設定を読み込み
+       │   └── ~/.config/rustile/config.toml を試行
+       ├── KeyboardManager を作成
+       │   └── X11 からキーボードマッピングを読み込み
+       ├── LayoutManager を作成
+       │   └── デフォルトレイアウト（MasterStack）を設定
+       ├── ウィンドウマネージャーとして登録
+       │   └── X11 にウィンドウ配置の制御を通知
+       └── 設定からショートカットを登録
+           └── 設定されたすべてのキーの組み合わせをパースしてグラブ
 
-2. Start event loop
-   └── Wait for X11 events forever
+2. イベントループを開始
+   └── X11 イベントを永遠に待機
 ```
 
-### Event Processing Flow
+### イベント処理フロー
 
 ```
-X11 Event → WindowManager.handle_event()
+X11 イベント → WindowManager.handle_event()
 ├── KeyPress → handle_key_press()
-│   ├── KeyboardManager checks against registered shortcuts
-│   ├── Find matching shortcut by keycode and modifiers
-│   └── Execute associated command if match
+│   ├── KeyboardManager が登録されたショートカットと照合
+│   ├── keycode と修飾子でマッチするショートカットを検索
+│   └── マッチした場合、関連するコマンドを実行
 ├── MapRequest → handle_map_request()
-│   ├── Make window visible
-│   ├── Add to window list
-│   └── Apply layout algorithm
+│   ├── ウィンドウを可視化
+│   ├── ウィンドウリストに追加
+│   ├── フォーカスを設定（視覚的ボーダー付き）
+│   └── レイアウトアルゴリズムを適用
 └── UnmapNotify → handle_unmap_notify()
-    ├── Remove from window list
-    └── Re-apply layout algorithm
+    ├── ウィンドウリストから削除
+    ├── フォーカスをクリア（該当する場合）
+    └── レイアウトアルゴリズムを再適用
 ```
 
-### Layout Application Flow
+### レイアウト適用フロー
 
 ```
 apply_layout()
-├── Get screen dimensions from X11
-├── Call LayoutManager.apply_layout()
+├── X11 からスクリーン寸法を取得
+├── LayoutManager.apply_layout() を呼び出し
 │   └── tile_master_stack()
-│       ├── Calculate master window size/position
-│       ├── Calculate stack window sizes/positions
-│       └── Send configure commands to X11
-└── X11 moves/resizes all windows
+│       ├── マスターウィンドウのサイズ/位置を計算（ギャップ考慮）
+│       ├── スタックウィンドウのサイズ/位置を計算（ギャップ考慮）
+│       └── X11 に設定コマンドを送信
+└── X11 がすべてのウィンドウを移動/リサイズ
 ```
 
 ---
 
-## Event Flow
+## イベントフロー
 
-Here's what happens when you use the window manager:
+ウィンドウマネージャーを使用するときに何が起きるかを以下に示します：
 
-### Opening a Window
+### ウィンドウを開く
 
 ```
-User runs: xclock
+ユーザーが実行: xclock
     ↓
-X11 creates window but doesn't show it
+X11 がウィンドウを作成するが表示しない
     ↓
-X11 sends MapRequest to window manager
+X11 がウィンドウマネージャーに MapRequest を送信
     ↓
 WindowManager.handle_map_request()
-    ├── conn.map_window() - make it visible
-    ├── windows.push() - add to our list
-    └── apply_layout() - rearrange everything
+    ├── conn.map_window() - 可視化
+    ├── windows.push() - リストに追加
+    ├── set_focus() - フォーカス設定（視覚的ボーダー付き）
+    └── apply_layout() - すべてを再配置
         ↓
 LayoutManager.tile_master_stack()
-    ├── Calculate new positions for all windows
-    └── conn.configure_window() for each window
+    ├── すべてのウィンドウの新しい位置を計算（ギャップ付き）
+    └── 各ウィンドウに conn.configure_window()
         ↓
-X11 moves/resizes windows
+X11 がウィンドウを移動/リサイズ
     ↓
-User sees tiled windows
+ユーザーがタイル化されたウィンドウを確認
 ```
 
-### Closing a Window
+### ウィンドウを閉じる
 
 ```
-User closes window (X button or Alt+F4)
+ユーザーがウィンドウを閉じる（Xボタンまたは Alt+F4）
     ↓
-X11 destroys window
+X11 がウィンドウを破棄
     ↓
-X11 sends UnmapNotify to window manager
+X11 がウィンドウマネージャーに UnmapNotify を送信
     ↓
 WindowManager.handle_unmap_notify()
-    ├── windows.retain() - remove from our list
-    └── apply_layout() - rearrange remaining windows
+    ├── windows.retain() - リストから削除
+    ├── フォーカスをクリア（該当する場合）
+    └── apply_layout() - 残りウィンドウを再配置
         ↓
 LayoutManager.tile_master_stack()
-    ├── Calculate new positions for remaining windows
-    └── conn.configure_window() for each window
+    ├── 残りウィンドウの新しい位置を計算
+    └── 各ウィンドウに conn.configure_window()
         ↓
-X11 moves/resizes remaining windows
+X11 が残りウィンドウを移動/リサイズ
     ↓
-User sees remaining windows fill the space
+ユーザーが残りウィンドウがスペースを埋めるのを確認
 ```
 
-### Pressing a Configured Shortcut
+### 設定されたショートカットを押す
 
 ```
-User presses Shift+Alt+1 (configured for gnome-terminal)
+ユーザーが Shift+Alt+1 を押す（gnome-terminal 用に設定済み）
     ↓
-X11 sends KeyPress event to window manager
+X11 がウィンドウマネージャーに KeyPress イベントを送信
     ↓
 WindowManager.handle_key_press()
     ↓
 KeyboardManager.handle_key_press()
-    ├── Find shortcut matching keycode + modifiers
-    ├── Return command: "gnome-terminal"
-    └── WindowManager executes: Command::new("gnome-terminal").spawn()
+    ├── keycode + 修飾子にマッチするショートカットを検索
+    ├── コマンド "gnome-terminal" を返す
+    └── WindowManager が実行: Command::new("gnome-terminal").spawn()
         ↓
-New gnome-terminal process starts
+新しい gnome-terminal プロセスが開始
     ↓
-gnome-terminal creates window → MapRequest event
+gnome-terminal がウィンドウを作成 → MapRequest イベント
     ↓
-(Follow "Opening a Window" flow above)
+（上記「ウィンドウを開く」フローに従う）
+```
+
+### フォーカス切り替え（視覚フィードバック付き）
+
+```
+ユーザーがウィンドウをクリック
+    ↓
+X11 が KeyPress/ButtonPress イベントを送信
+    ↓
+WindowManager.set_focus()
+    ├── 前のフォーカスウィンドウのボーダーをグレーに設定
+    ├── 新しいウィンドウに青い太いボーダーを設定
+    └── X11 入力フォーカスを設定
+        ↓
+ユーザーが視覚的なフォーカス変更を確認
 ```
 
 ---
 
-## Testing
+## テスト
 
-The project includes comprehensive tests to ensure reliability:
+プロジェクトには信頼性を確保するための包括的なテストが含まれています：
 
-### Unit Tests
+### ユニットテスト
 
-Located in each module file (`#[cfg(test)]` sections):
+各モジュールファイル内（`#[cfg(test)]` セクション）に配置：
 
-**Config Tests**:
-- Test configuration loading from TOML
-- Validate default values
-- Test accessor methods
+**設定テスト**:
+- TOML からの設定読み込みをテスト
+- デフォルト値を検証
+- アクセサメソッドをテスト
 
-**Layout Tests**:
-- Test layout manager creation
-- Handle empty window lists
-- Validate dimension calculations
+**レイアウトテスト**:
+- レイアウトマネージャーの作成をテスト
+- 空のウィンドウリストを処理
+- 寸法計算を検証
+- ギャップシステムの計算をテスト
 
-**Keyboard Tests**:
-- Test keycode lookup
-- Test shortcut matching
-- Handle missing keys
+**キーボードテスト**:
+- keycode 検索をテスト
+- ショートカットマッチングをテスト
+- 不足キーを処理
 
-**Keys Tests** (22 tests total):
-- Parse simple keys and modifiers
-- Test alternative modifier names (Win, Cmd, Meta)
-- Case-insensitive parsing
-- Complex modifier combinations
-- Special keys (Return, space, F-keys)
-- Error handling for unknown keys
+**キーテスト**（22テスト総計）:
+- 単純キーと修飾子をパース
+- 代替修飾子名をテスト（Win、Cmd、Meta）
+- 大文字小文字を区別しないパース
+- 複雑な修飾子の組み合わせ
+- 特殊キー（Return、space、F-キー）
+- 不明キーのエラーハンドリング
 
-### Manual Testing
+### マニュアルテスト
 
-Use `test_rustile.sh` for interactive testing:
-1. Starts Xephyr (nested X server)
-2. Runs rustile with debug logging
-3. Opens test windows
-4. Allows manual interaction
+インタラクティブテストに `test_rustile.sh` を使用：
+1. Xephyr（ネストされたX サーバー）を開始
+2. デバッグログ付きで rustile を実行
+3. テストウィンドウを開く
+4. マニュアル操作を許可
 
-### Running Tests
+### テストの実行
 
 ```bash
-# Run all tests
+# すべてのテストを実行
 cargo test
 
-# Run with output
+# 出力付きで実行
 cargo test -- --nocapture
 
-# Run specific test
+# 特定のテストを実行
 cargo test test_master_window_dimensions
 
-# Manual testing
+# マニュアルテスト
 ./test_rustile.sh
 ```
 
 ---
 
-## Summary
+## まとめ
 
-Rustile is a simple but complete tiling window manager that demonstrates:
+Rustile は以下を実演するシンプルだが完全なタイリングウィンドウマネージャーです：
 
-1. **X11 Protocol**: How to communicate with the display server
-2. **Event-Driven Programming**: Responding to user actions
-3. **Modular Design**: Each component has a clear responsibility
-4. **Rust Safety**: Memory safety and error handling
-5. **Testing**: Unit and integration tests for reliability
+1. **X11 プロトコル**: ディスプレイサーバーとの通信方法
+2. **イベント駆動プログラミング**: ユーザーアクションへの応答
+3. **モジュラー設計**: 各コンポーネントが明確な責任を持つ
+4. **Rust の安全性**: メモリ安全性とエラーハンドリング
+5. **テスト**: 信頼性のためのユニット・統合テスト
 
-The code is designed to be:
-- **Readable**: Clear names and documentation
-- **Maintainable**: Modular structure
-- **Extensible**: Easy to add new features
-- **Safe**: Rust's type system prevents common bugs
+コードは以下のよう設計されています：
+- **読みやすい**: 明確な名前とドキュメンテーション
+- **保守しやすい**: モジュラー構造
+- **拡張可能**: 新機能の追加が容易
+- **安全**: Rust の型システムが一般的なバグを防ぐ
 
-Recent improvements:
-- ✅ Configuration file support (TOML)
-- ✅ Human-readable key combinations
-- ✅ Support for all X11 modifiers
-- ✅ Cross-platform modifier naming
+最近の改良点：
+- ✅ 設定ファイルサポート（TOML）
+- ✅ 人間が読めるキーの組み合わせ
+- ✅ すべての X11 修飾子をサポート
+- ✅ クロスプラットフォーム修飾子命名
+- ✅ ウィンドウフォーカス管理と視覚的ボーダー
+- ✅ 設定可能なギャップシステム
 
-Future features to add:
-- Multiple layouts
-- Window navigation shortcuts
-- Multi-monitor support
-- Window decorations
-- Status bars
+将来追加する機能：
+- 複数レイアウト
+- ウィンドウナビゲーションショートカット
+- マルチモニターサポート
+- ウィンドウデコレーション
+- ステータスバー
 
-The window manager shows how a relatively small amount of well-structured code can create a functional desktop environment.
+このウィンドウマネージャーは、比較的少量の適切に構造化されたコードで、機能的なデスクトップ環境を作成する方法を示しています。
