@@ -1,0 +1,33 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-merge:
+    name: Auto-merge Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Install X11 dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev libxcb1-dev pkg-config
+        
+    - name: Run tests
+      run: cargo test --verbose
+      
+    - name: Auto-merge minor/patch updates
+      if: contains(github.event.pull_request.title, 'bump') && !contains(github.event.pull_request.title, 'major')
+      uses: pascalgn/merge-action@v0.15.6
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        merge_method: squash
