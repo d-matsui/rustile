@@ -1,6 +1,5 @@
 //! Window layout algorithms for the tiling window manager
 
-use crate::config::MASTER_RATIO;
 use anyhow::Result;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
@@ -39,9 +38,10 @@ impl LayoutManager {
         conn: &impl Connection,
         screen: &Screen,
         windows: &[Window],
+        master_ratio: f32,
     ) -> Result<()> {
         match self.current_layout {
-            Layout::MasterStack => self.tile_master_stack(conn, screen, windows),
+            Layout::MasterStack => self.tile_master_stack(conn, screen, windows, master_ratio),
         }
     }
 
@@ -49,13 +49,14 @@ impl LayoutManager {
     ///
     /// Layout behavior:
     /// - Single window: Full screen
-    /// - Multiple windows: First window takes left half (master),
+    /// - Multiple windows: First window takes configurable ratio (master),
     ///   remaining windows stack vertically on the right
     fn tile_master_stack(
         &self,
         conn: &impl Connection,
         screen: &Screen,
         windows: &[Window],
+        master_ratio: f32,
     ) -> Result<()> {
         if windows.is_empty() {
             return Ok(());
@@ -68,7 +69,7 @@ impl LayoutManager {
         // Configure master window
         let master_window = windows[0];
         let master_width = if num_windows > 1 {
-            (screen_width as f32 * MASTER_RATIO) as i16
+            (screen_width as f32 * master_ratio) as i16
         } else {
             screen_width
         };
@@ -143,8 +144,9 @@ mod tests {
         let expected_single_width = screen_width as u32;
         let expected_single_height = screen_height as u32;
         
-        // With multiple windows, master takes MASTER_RATIO of width
-        let expected_master_width = (screen_width * MASTER_RATIO) as u32;
+        // With multiple windows, master takes master_ratio of width (default 0.5)
+        let master_ratio = 0.5_f32;
+        let expected_master_width = (screen_width * master_ratio) as u32;
         let expected_master_height = screen_height as u32;
         
         assert_eq!(expected_single_width, 1280);
@@ -159,8 +161,9 @@ mod tests {
         let screen_height = 720_i16;
         let num_windows = 3_i16;
         
-        // Stack windows calculations
-        let stack_x = (screen_width as f32 * MASTER_RATIO) as i16;
+        // Stack windows calculations with default master ratio (0.5)
+        let master_ratio = 0.5_f32;
+        let stack_x = (screen_width as f32 * master_ratio) as i16;
         let stack_width = screen_width - stack_x;
         let stack_height = screen_height / (num_windows - 1);
         

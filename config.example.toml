@@ -1,0 +1,44 @@
+# Example configuration file for Rustile window manager
+# Copy this file to ~/.config/rustile/config.toml and customize as needed
+
+[general]
+# Default display for launching applications
+default_display = ":1"
+
+[layout]
+# Master window ratio (0.0 to 1.0)
+# 0.5 means master window takes 50% of screen width
+master_ratio = 0.5
+
+# Gap between windows in pixels (not implemented yet)
+gap_size = 0
+
+[shortcuts]
+# Format: "Modifier+Key" = "command"
+# 
+# Available modifiers:
+#   Primary: Super, Alt, Ctrl, Shift
+#   Alternative names: Win/Windows/Cmd (for Super), Meta (for Alt), Control/Ctl (for Ctrl)
+#   Less common: Mod2/NumLock, Mod3/ScrollLock, Mod5/AltGr
+#   Special: Hyper (combines Super+Alt+Ctrl+Shift)
+#
+# You can combine multiple modifiers like "Ctrl+Alt+t" or "Super+Shift+Alt+F12"
+# Case insensitive: "SUPER+T", "super+t", "Super+t" all work the same
+
+"Shift+Alt+1" = "gnome-terminal"
+"Shift+Alt+2" = "code"
+"Shift+Alt+3" = "chrome"
+
+# "Alt+j" = "focus-next"
+# "Alt+k" = "focus-prev"
+
+# "Ctrl+Alt+j" = "switch-bottom"
+# "Ctrl+Alt+k" = "switch-top"
+# "Ctrl+Alt+h" = "switch-left"
+# "Ctrl+Alt+l" = "switch-right"
+
+# "Shift+Alt+l" = "next-display"
+# "Shift+Alt+h" = "prev-display"
+
+# "Super+f" = "full-screen"
+# "Alt+space" = "app-launcher"

@@ -7,7 +7,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
-use crate::config::{DEFAULT_DISPLAY, MOD_KEY, XK_T};
+use crate::config::Config;
 use crate::keyboard::KeyboardManager;
 use crate::layout::LayoutManager;
 
@@ -23,17 +23,23 @@ pub struct WindowManager<C: Connection> {
     layout_manager: LayoutManager,
     /// Keyboard manager for shortcuts
     keyboard_manager: KeyboardManager,
+    /// Configuration
+    config: Config,
 }
 
 impl<C: Connection> WindowManager<C> {
     /// Creates a new window manager instance
     pub fn new(conn: C, screen_num: usize) -> Result<Self> {
+        // Load configuration
+        let config = Config::load()?;
+        info!("Loaded configuration with {} shortcuts", config.shortcuts().len());
+
         let setup = conn.setup();
         let screen = &setup.roots[screen_num];
         let root = screen.root;
 
         // Initialize keyboard manager
-        let keyboard_manager = KeyboardManager::new(&conn, setup)?;
+        let mut keyboard_manager = KeyboardManager::new(&conn, setup)?;
 
         // Register as window manager
         let event_mask = EventMask::SUBSTRUCTURE_REDIRECT | EventMask::SUBSTRUCTURE_NOTIFY;
@@ -48,9 +54,8 @@ impl<C: Connection> WindowManager<C> {
 
         info!("Successfully became the window manager");
 
-        // Set up keyboard shortcuts
-        keyboard_manager.grab_key(&conn, root, MOD_KEY, XK_T)?;
-        info!("Registered keyboard shortcuts");
+        // Register keyboard shortcuts from config
+        keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
         Ok(Self {
             conn,
@@ -58,6 +63,7 @@ impl<C: Connection> WindowManager<C> {
             windows: Vec::new(),
             layout_manager: LayoutManager::new(),
             keyboard_manager,
+            config,
         })
     }
 
@@ -92,12 +98,27 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles key press events
     fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
-        if event.state.contains(MOD_KEY) && event.detail == self.keyboard_manager.get_keycode(XK_T)
-        {
-            info!("Mod+T pressed, launching xcalc");
-            Command::new("xcalc")
-                .env("DISPLAY", DEFAULT_DISPLAY)
-                .spawn()?;
+        if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
+            info!("Shortcut pressed, executing: {}", command);
+            
+            // Parse command (simple implementation, could be improved)
+            let parts: Vec<&str> = command.split_whitespace().collect();
+            if let Some(program) = parts.first() {
+                let mut cmd = Command::new(program);
+                
+                // Add arguments if any
+                if parts.len() > 1 {
+                    cmd.args(&parts[1..]);
+                }
+                
+                // Set display environment
+                cmd.env("DISPLAY", self.config.default_display());
+                
+                match cmd.spawn() {
+                    Ok(_) => info!("Successfully launched: {}", command),
+                    Err(e) => error!("Failed to launch {}: {}", command, e),
+                }
+            }
         }
         Ok(())
     }
@@ -164,8 +185,12 @@ impl<C: Connection> WindowManager<C> {
         let setup = self.conn.setup();
         let screen = &setup.roots[self.screen_num];
 
-        self.layout_manager
-            .apply_layout(&self.conn, screen, &self.windows)?;
+        self.layout_manager.apply_layout(
+            &self.conn,
+            screen,
+            &self.windows,
+            self.config.master_ratio(),
+        )?;
 
         Ok(())
     }

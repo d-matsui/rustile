@@ -5,5 +5,6 @@
 
 pub mod config;
 pub mod keyboard;
+pub mod keys;
 pub mod layout;
 pub mod window_manager;
