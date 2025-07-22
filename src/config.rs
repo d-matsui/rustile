@@ -23,6 +23,12 @@ pub struct LayoutConfig {
     pub master_ratio: f32,
     /// Gap between windows in pixels
     pub gap_size: u32,
+    /// Border width in pixels
+    pub border_width: u32,
+    /// Focused window border color (hex format, e.g., 0xFF0000 for red)
+    pub focused_border_color: u32,
+    /// Unfocused window border color (hex format, e.g., 0x808080 for gray)
+    pub unfocused_border_color: u32,
 }
 
 /// General application configuration
@@ -54,6 +60,9 @@ impl Default for LayoutConfig {
         Self {
             master_ratio: 0.5,
             gap_size: 0,
+            border_width: 2,
+            focused_border_color: 0xFF0000,   // Red
+            unfocused_border_color: 0x808080, // Gray
         }
     }
 }
@@ -147,6 +156,21 @@ impl Config {
     /// Gets all configured shortcuts
     pub fn shortcuts(&self) -> &HashMap<String, String> {
         &self.shortcuts
+    }
+
+    /// Gets the border width for windows
+    pub fn border_width(&self) -> u32 {
+        self.layout.border_width
+    }
+
+    /// Gets the focused window border color
+    pub fn focused_border_color(&self) -> u32 {
+        self.layout.focused_border_color
+    }
+
+    /// Gets the unfocused window border color
+    pub fn unfocused_border_color(&self) -> u32 {
+        self.layout.unfocused_border_color
     }
 }
 

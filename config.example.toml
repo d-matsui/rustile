@@ -11,7 +11,12 @@ default_display = ":1"
 master_ratio = 0.5
 
 # Gap between windows in pixels (not implemented yet)
-gap_size = 0
+gap_size = 10
+
+# Window border settings
+border_width = 5               # Border width in pixels
+focused_border_color = 0xFF0000   # Red color for focused window (hex format)
+unfocused_border_color = 0x808080 # Gray color for unfocused windows (hex format)
 
 [shortcuts]
 # Format: "Modifier+Key" = "command"
@@ -25,20 +30,12 @@ gap_size = 0
 # You can combine multiple modifiers like "Ctrl+Alt+t" or "Super+Shift+Alt+F12"
 # Case insensitive: "SUPER+T", "super+t", "Super+t" all work the same
 
+# Application shortcuts
 "Shift+Alt+1" = "gnome-terminal"
 "Shift+Alt+2" = "code"
 "Shift+Alt+3" = "chrome"
 
-# "Alt+j" = "focus-next"
-# "Alt+k" = "focus-prev"
-
-# "Ctrl+Alt+j" = "switch-bottom"
-# "Ctrl+Alt+k" = "switch-top"
-# "Ctrl+Alt+h" = "switch-left"
-# "Ctrl+Alt+l" = "switch-right"
-
-# "Shift+Alt+l" = "next-display"
-# "Shift+Alt+h" = "prev-display"
-
-# "Super+f" = "full-screen"
-# "Alt+space" = "app-launcher"
+# Window focus and navigation shortcuts  
+"Alt+j" = "focus_next"        # Focus next window
+"Alt+k" = "focus_prev"        # Focus previous window
+"Shift+Alt+m" = "swap_with_master"  # Swap focused window with master

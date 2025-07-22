@@ -10,6 +10,7 @@ A lightweight tiling window manager written in Rust, designed to be simple, effi
 
 - **Automatic Tiling**: Windows are automatically arranged in a tiling layout
 - **Master-Stack Layout**: Primary window on the left, additional windows stack on the right
+- **Window Focus Management**: Visual focus indication with keyboard navigation
 - **Keyboard-Driven**: Control your windows without touching the mouse
 - **Lightweight**: Minimal resource usage and fast performance
 - **Extensible**: Modular architecture makes it easy to add new features
@@ -95,6 +96,11 @@ DISPLAY=:10 xterm
 DISPLAY=:10 firefox
 ```
 
+**Quick Testing**: Use the included test script:
+```bash
+./test_focus.sh
+```
+
 ### Configuration
 
 Rustile now uses a TOML configuration file for easy customization. Copy the example configuration to get started:
@@ -124,11 +130,15 @@ Supported modifiers:
 Example shortcuts:
 ```toml
 [shortcuts]
+# Application shortcuts
 "Shift+Alt+1" = "gnome-terminal"
 "Shift+Alt+2" = "code"
 "Shift+Alt+3" = "chrome"
-"Super+Return" = "xterm"
-"Ctrl+Alt+t" = "gnome-terminal"
+
+# Window focus and navigation shortcuts  
+"Alt+j" = "focus_next"        # Focus next window
+"Alt+k" = "focus_prev"        # Focus previous window
+"Shift+Alt+m" = "swap_with_master"  # Swap focused window with master
 ```
 
 ### Window Management
@@ -140,6 +150,13 @@ Rustile automatically manages your windows using a master-stack layout:
 - Windows are automatically resized when added or removed
 - Closing a window triggers automatic re-tiling
 
+#### Focus Management
+
+- **Visual Indication**: Focused window has a red border, unfocused windows have gray borders
+- **Keyboard Navigation**: Use `Alt+j/k` to cycle through windows
+- **Window Swapping**: `Shift+Alt+m` swaps the focused window with master
+- **Auto Focus**: New windows automatically receive focus
+
 #### Layout Configuration
 
 Configure the master-stack layout in your `config.toml`:
@@ -148,6 +165,38 @@ Configure the master-stack layout in your `config.toml`:
 [layout]
 master_ratio = 0.5  # Master window takes 50% of screen width
 gap_size = 0        # Gap between windows in pixels (future feature)
+```
+
+## Testing
+
+### Automated Testing
+
+Use the included test script for quick testing:
+
+```bash
+./test_focus.sh
+```
+
+This script will:
+1. Build Rustile in release mode
+2. Start Xephyr nested X server
+3. Launch Rustile in the test environment
+4. Open multiple test applications
+5. Display testing instructions
+
+### Manual Testing
+
+```bash
+# Build the project
+cargo build --release
+
+# Run tests
+cargo test
+
+# Test with Xephyr
+Xephyr :10 -screen 1280x720 &
+DISPLAY=:10 ./target/release/rustile &
+DISPLAY=:10 xterm &
 ```
 
 ## Architecture
@@ -170,6 +219,7 @@ src/
 - **WindowManager**: Main struct that manages X11 connection and window state
 - **LayoutManager**: Handles window arrangement algorithms
 - **KeyboardManager**: Manages keyboard shortcuts and key mappings
+- **Focus System**: Tracks focused windows with visual indication
 
 ## Development
 
@@ -205,6 +255,12 @@ cargo fmt --check
    "Super+b" = "firefox"
    ```
 2. Reload rustile to apply the new configuration
+
+#### Adding Window Management Commands
+
+1. Add the command handler in `WindowManager::handle_key_press()`
+2. Implement the command method (e.g., `focus_next()`)
+3. Update the example configuration
 
 ### Project Structure
 
@@ -326,13 +382,20 @@ This error occurs when trying to run Rustile while another window manager is act
 - Check if another application has grabbed the same key combination
 - Review the debug logs for keyboard event information
 
+### Focus indicators not visible
+
+- Ensure windows support border modifications
+- Check if the application overrides window decorations
+- Try with simple applications like `xterm` first
+
 ## Roadmap
 
 - [x] Configuration file support (TOML)
+- [x] Window focus management with visual indication
+- [x] Keyboard-driven window navigation
 - [ ] Multiple layout algorithms (horizontal split, grid, fibonacci)
 - [ ] Workspace/virtual desktop support
-- [ ] Window focus indication and borders
-- [ ] More keyboard shortcuts (window navigation, layout switching)
+- [ ] More keyboard shortcuts (layout switching)
 - [ ] Floating window support
 - [ ] Multi-monitor support
 - [ ] Status bar integration
@@ -349,6 +412,7 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 3. Update documentation as needed
 4. Ensure `cargo clippy` and `cargo fmt` pass
 5. Keep commits focused and descriptive
+6. Use conventional commit messages for automatic versioning
 
 ## License
 
