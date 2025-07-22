@@ -74,11 +74,12 @@ impl LayoutManager {
         let master_width = if num_windows > 1 {
             // Multiple windows: master takes ratio of available space, ensure minimum 100px
             let available_width = screen_width - 3 * gap_i16;
-            if available_width > 150 {  // Need at least 150px total (100px master + 50px stack)
+            if available_width > 150 {
+                // Need at least 150px total (100px master + 50px stack)
                 ((available_width as f32 * master_ratio) as i16).max(100)
             } else {
                 // Fallback: reduce gaps to fit windows
-                ((screen_width / 2) as i16).max(100)
+                (screen_width / 2).max(100)
             }
         } else {
             // Single window: full width minus gaps, minimum 100px
@@ -88,8 +89,8 @@ impl LayoutManager {
         let master_config = ConfigureWindowAux::new()
             .x(gap_i16 as i32)
             .y(gap_i16 as i32)
-            .width(master_width.max(100) as u32)  // Minimum 100px width
-            .height((screen_height - 2 * gap_i16).max(100) as u32);  // Minimum 100px height
+            .width(master_width.max(100) as u32) // Minimum 100px width
+            .height((screen_height - 2 * gap_i16).max(100) as u32); // Minimum 100px height
 
         conn.configure_window(master_window, &master_config)?;
 
@@ -97,21 +98,21 @@ impl LayoutManager {
         if num_windows > 1 {
             let stack_windows = &windows[1..];
             let num_stack = stack_windows.len() as i16;
-            let stack_x = gap_i16 + master_width + gap_i16;  // Add gap between master and stack
-            let stack_width = (screen_width - stack_x - gap_i16).max(50);  // Minimum usable width
-            
+            let stack_x = gap_i16 + master_width + gap_i16; // Add gap between master and stack
+            let stack_width = (screen_width - stack_x - gap_i16).max(50); // Minimum usable width
+
             // Ensure we have enough space for stack windows with minimum height
-            let min_total_height = num_stack * 50 + (num_stack - 1) * gap_i16;  // 50px min per window
+            let min_total_height = num_stack * 50 + (num_stack - 1) * gap_i16; // 50px min per window
             let available_height = screen_height - 2 * gap_i16;
-            
+
             let total_stack_height = if available_height >= min_total_height {
                 available_height - (num_stack - 1) * gap_i16
             } else {
                 // Fallback: reduce gaps if necessary to fit windows
                 (available_height - num_stack * 50).max(num_stack * 50)
             };
-            
-            let stack_height = (total_stack_height / num_stack).max(50);  // Minimum 50px height
+
+            let stack_height = (total_stack_height / num_stack).max(50); // Minimum 50px height
 
             for (index, &window) in stack_windows.iter().enumerate() {
                 let stack_y = gap_i16 + (index as i16) * (stack_height + gap_i16);
@@ -199,7 +200,7 @@ mod tests {
     #[test]
     fn test_gap_calculations() {
         let screen_width = 1280_i16;
-        let screen_height = 720_i16;
+        let _screen_height = 720_i16;
         let gap = 10_u32;
         let gap_i16 = gap as i16;
         let master_ratio = 0.5_f32;
@@ -227,12 +228,12 @@ mod tests {
         // Test that minimum sizes are enforced
         let min_master_width = 100_i16;
         let min_stack_width = 50_i16;
-        let min_height = 50_i16;
+        let _min_height = 50_i16;
 
         // Very small screen should still provide minimum sizes
         let small_screen_width = 200_i16;
         let large_gap = 50_i16;
-        
+
         let calculated_width = (small_screen_width - 2 * large_gap).max(min_master_width);
         assert_eq!(calculated_width, min_master_width); // Should fallback to minimum
 
@@ -244,7 +245,7 @@ mod tests {
     fn test_gap_edge_cases() {
         // Test large gap scenarios
         let screen_width = 800_i16;
-        let screen_height = 600_i16;
+        let _screen_height = 600_i16;
         let large_gap = 200_u32;
         let gap_i16 = large_gap as i16;
 

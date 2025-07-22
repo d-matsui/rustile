@@ -3,10 +3,10 @@
 use anyhow::Result;
 use std::process::Command;
 use tracing::{debug, error, info};
+use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
-use x11rb::CURRENT_TIME;
 
 use crate::config::Config;
 use crate::keyboard::KeyboardManager;
@@ -115,7 +115,7 @@ impl<C: Connection> WindowManager<C> {
             info!("Shortcut pressed, executing: {}", command);
 
             // Handle window management commands
-            match command.as_ref() {
+            match command {
                 "focus_next" => return self.focus_next(),
                 "focus_prev" => return self.focus_prev(),
                 "swap_with_master" => return self.swap_with_master(),
@@ -150,14 +150,13 @@ impl<C: Connection> WindowManager<C> {
         info!("Mapping window: {:?}", window);
 
         // Set initial border attributes before mapping
-        let border_aux = ChangeWindowAttributesAux::new()
-            .border_pixel(self.config.unfocused_border_color());
-        
+        let border_aux =
+            ChangeWindowAttributesAux::new().border_pixel(self.config.unfocused_border_color());
+
         self.conn.change_window_attributes(window, &border_aux)?;
-        
-        let config_aux = ConfigureWindowAux::new()
-            .border_width(self.config.border_width());
-        
+
+        let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
+
         self.conn.configure_window(window, &config_aux)?;
 
         // Map the window
@@ -165,7 +164,7 @@ impl<C: Connection> WindowManager<C> {
 
         // Add to managed windows
         self.windows.push(window);
-        
+
         // Set focus to new window
         self.set_focus(window)?;
 
@@ -183,7 +182,7 @@ impl<C: Connection> WindowManager<C> {
         // Remove from managed windows
         self.windows.retain(|&w| w != window);
         self.window_stack.retain(|&w| w != window);
-        
+
         // Update focus if focused window was unmapped
         if self.focused_window == Some(window) {
             self.focused_window = self.window_stack.first().copied();
@@ -218,7 +217,7 @@ impl<C: Connection> WindowManager<C> {
         // Remove from managed windows
         self.windows.retain(|&w| w != window);
         self.window_stack.retain(|&w| w != window);
-        
+
         // Update focus if focused window was destroyed
         if self.focused_window == Some(window) {
             self.focused_window = self.window_stack.first().copied();
@@ -251,12 +250,12 @@ impl<C: Connection> WindowManager<C> {
     fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
         let window = event.event;
         debug!("Mouse entered window: {:?}", window);
-        
+
         // Optionally enable focus-follows-mouse
         if self.windows.contains(&window) {
             self.set_focus(window)?;
         }
-        
+
         Ok(())
     }
 
@@ -283,18 +282,19 @@ impl<C: Connection> WindowManager<C> {
         }
 
         // Set X11 input focus
-        self.conn.set_input_focus(InputFocus::POINTER_ROOT, window, CURRENT_TIME)?;
-        
+        self.conn
+            .set_input_focus(InputFocus::POINTER_ROOT, window, CURRENT_TIME)?;
+
         // Update focus state
         self.focused_window = Some(window);
-        
+
         // Update window stack (MRU order)
         self.window_stack.retain(|&w| w != window);
         self.window_stack.insert(0, window);
-        
+
         // Update window borders
         self.update_window_borders()?;
-        
+
         debug!("Focus set to window: {:?}", window);
         Ok(())
     }
@@ -303,20 +303,18 @@ impl<C: Connection> WindowManager<C> {
     fn update_window_borders(&self) -> Result<()> {
         for &window in &self.windows {
             let is_focused = self.focused_window == Some(window);
-            let border_color = if is_focused { 
+            let border_color = if is_focused {
                 self.config.focused_border_color()
-            } else { 
+            } else {
                 self.config.unfocused_border_color()
             };
 
-            let aux = ChangeWindowAttributesAux::new()
-                .border_pixel(border_color);
-            
+            let aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
+
             self.conn.change_window_attributes(window, &aux)?;
-            
-            let config_aux = ConfigureWindowAux::new()
-                .border_width(self.config.border_width());
-            
+
+            let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
+
             self.conn.configure_window(window, &config_aux)?;
         }
         Ok(())
@@ -371,7 +369,6 @@ impl<C: Connection> WindowManager<C> {
         info!("Focused previous window: {:?}", prev_window);
         Ok(())
     }
-
 
     /// Swaps the currently focused window with the master window
     pub fn swap_with_master(&mut self) -> Result<()> {

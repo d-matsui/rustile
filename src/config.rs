@@ -150,7 +150,8 @@ impl Config {
         if self.layout.gap + self.layout.border_width > 600 {
             return Err(anyhow::anyhow!(
                 "gap ({}) + border_width ({}) is too large (max combined 600px)",
-                self.layout.gap, self.layout.border_width
+                self.layout.gap,
+                self.layout.border_width
             ));
         }
 
