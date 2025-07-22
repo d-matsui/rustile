@@ -10,7 +10,9 @@ A lightweight tiling window manager written in Rust, designed to be simple, effi
 
 - **Automatic Tiling**: Windows are automatically arranged in a tiling layout
 - **Master-Stack Layout**: Primary window on the left, additional windows stack on the right
-- **Window Focus Management**: Visual focus indication with keyboard navigation
+- **Configurable Gaps**: Customizable spacing between windows and screen edges
+- **Window Focus Management**: Visual focus indication with colored borders and keyboard navigation
+- **Robust Configuration**: TOML-based config with validation and helpful error messages
 - **Keyboard-Driven**: Control your windows without touching the mouse
 - **Lightweight**: Minimal resource usage and fast performance
 - **Extensible**: Modular architecture makes it easy to add new features
@@ -112,7 +114,8 @@ cp config.example.toml ~/.config/rustile/config.toml
 
 Edit `~/.config/rustile/config.toml` to customize:
 - Keyboard shortcuts with human-readable key combinations
-- Master window ratio
+- Master window ratio and gap spacing
+- Window border appearance (width and colors)
 - Default display for launching applications
 
 #### Keyboard Shortcuts
@@ -159,13 +162,27 @@ Rustile automatically manages your windows using a master-stack layout:
 
 #### Layout Configuration
 
-Configure the master-stack layout in your `config.toml`:
+Configure the master-stack layout and visual appearance in your `config.toml`:
 
 ```toml
 [layout]
-master_ratio = 0.5  # Master window takes 50% of screen width
-gap = 10            # Gap between windows in pixels
+# Master window takes 50% of screen width (recommended: 0.3-0.7)
+master_ratio = 0.5
+
+# Gap between windows and screen edges in pixels (recommended: 0-50)
+gap = 10
+
+# Window border settings
+border_width = 5               # Border width in pixels (recommended: 1-10)
+focused_border_color = 0xFF0000   # Red color for focused window
+unfocused_border_color = 0x808080 # Gray color for unfocused windows
 ```
+
+**Configuration Validation:**
+- Gap: 0-500 pixels (max combined with border: 600px)
+- Border width: 0-50 pixels
+- Master ratio: 0.0-1.0
+- Minimum window sizes enforced: 100px master, 50px stack windows
 
 ## Testing
 
@@ -354,9 +371,9 @@ Download from: [GitHub Releases](https://github.com/d-matsui/rustile/releases)
 
 ### Development Roadmap
 
-- **v0.1.x**: Core tiling functionality and configuration
-- **v0.2.x**: Multi-monitor support and window navigation
-- **v0.3.x**: Floating windows and advanced layouts
+- **v0.1.x**: Core tiling functionality, configuration, focus management, and gap system ✅
+- **v0.2.x**: Multi-monitor support and advanced window navigation
+- **v0.3.x**: Floating windows and multiple layout algorithms
 - **v0.4.x**: Workspace management and window rules
 - **v0.5.x**: Status bar integration and themes
 - **v1.0.0**: Stable API and production-ready release
@@ -393,6 +410,10 @@ This error occurs when trying to run Rustile while another window manager is act
 - [x] Configuration file support (TOML)
 - [x] Window focus management with visual indication
 - [x] Keyboard-driven window navigation
+- [x] Configurable gaps between windows
+- [x] Configurable window borders and colors
+- [x] Robust input validation and error handling
+- [x] Comprehensive test coverage
 - [ ] Multiple layout algorithms (horizontal split, grid, fibonacci)
 - [ ] Workspace/virtual desktop support
 - [ ] More keyboard shortcuts (layout switching)
