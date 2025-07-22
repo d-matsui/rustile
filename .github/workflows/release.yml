@@ -8,29 +8,14 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-24.04
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+permissions:
+  contents: write
+  packages: write
 
-  build-and-upload:
-    name: Build and Upload Release Assets
+jobs:
+  build-and-release:
+    name: Build and Release
     runs-on: ${{ matrix.os }}
-    needs: create-release
     
     strategy:
       matrix:
@@ -82,12 +67,11 @@ jobs:
       if: matrix.os == 'ubuntu-24.04'
       run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
       
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+    - name: Create Release and Upload Assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        generate_release_notes: true
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-        asset_name: ${{ matrix.asset_name }}
-        asset_content_type: application/octet-stream
