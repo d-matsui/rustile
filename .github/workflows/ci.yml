@@ -12,7 +12,7 @@ env:
 jobs:
   test:
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
     - name: Checkout code
@@ -29,7 +29,7 @@ jobs:
         sudo apt-get install -y libx11-dev libxcb1-dev pkg-config
         
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -56,7 +56,7 @@ jobs:
 
   security:
     name: Security Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
     - name: Checkout code
@@ -73,7 +73,7 @@ jobs:
 
   release-build:
     name: Release Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test, security]
     
     steps:
@@ -89,7 +89,7 @@ jobs:
         sudo apt-get install -y libx11-dev libxcb1-dev pkg-config
         
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -103,7 +103,7 @@ jobs:
       run: cargo build --release --verbose
       
     - name: Upload release binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: rustile-binary
         path: target/release/rustile
