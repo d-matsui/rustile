@@ -2,92 +2,90 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
 
-jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
 
-  build-and-upload:
-    name: Build and Upload Release Assets
-    runs-on: ${{ matrix.os }}
-    needs: create-release
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-24.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     
-    strategy:
-      matrix:
-        include:
-        - os: ubuntu-latest
-          target: x86_64-unknown-linux-gnu
-          artifact_name: rustile
-          asset_name: rustile-linux-x86_64
-        - os: ubuntu-latest
-          target: x86_64-unknown-linux-musl
-          artifact_name: rustile
-          asset_name: rustile-linux-x86_64-musl
+    outputs:
+      new-release-published: ${{ steps.semantic.outputs.new-release-published }}
+      new-release-version: ${{ steps.semantic.outputs.new-release-version }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        targets: ${{ matrix.target }}
+        targets: x86_64-unknown-linux-gnu,x86_64-unknown-linux-musl
         
-    - name: Install X11 dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Install X11 dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libx11-dev libxcb1-dev pkg-config
-        
-    - name: Install musl tools (for musl target)
-      if: matrix.target == 'x86_64-unknown-linux-musl'
-      run: |
-        sudo apt-get install -y musl-tools
+        sudo apt-get install -y libx11-dev libxcb1-dev pkg-config musl-tools
         
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.target }}-cargo-
+          ${{ runner.os }}-cargo-release-
           
-    - name: Build release binary
-      run: cargo build --release --target ${{ matrix.target }}
-      
-    - name: Strip binary (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-      
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+    - name: Build release binaries
+      run: |
+        cargo build --release --target x86_64-unknown-linux-gnu
+        cargo build --release --target x86_64-unknown-linux-musl
+        
+    - name: Strip binaries
+      run: |
+        strip target/x86_64-unknown-linux-gnu/release/rustile
+        strip target/x86_64-unknown-linux-musl/release/rustile
+        
+    - name: Setup Node.js for semantic-release
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install semantic-release
+      run: |
+        npm install -g semantic-release@22
+        npm install -g @semantic-release/changelog
+        npm install -g @semantic-release/exec
+        npm install -g @semantic-release/git
+        npm install -g @semantic-release/github
+        npm install -g @semantic-release/commit-analyzer
+        npm install -g @semantic-release/release-notes-generator
+        npm install -g conventional-changelog-conventionalcommits
+        
+    - name: Run semantic release
+      id: semantic
+      run: semantic-release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-        asset_name: ${{ matrix.asset_name }}
-        asset_content_type: application/octet-stream
+        
+    - name: Summary
+      if: steps.semantic.outputs.new-release-published == 'true'
+      run: |
+        echo "🚀 New release published: v${{ steps.semantic.outputs.new-release-version }}"
+        echo "📦 Binaries built and uploaded to GitHub release"
+        echo "🔄 Cargo.toml updated automatically"

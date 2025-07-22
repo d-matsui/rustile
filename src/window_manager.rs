@@ -32,7 +32,10 @@ impl<C: Connection> WindowManager<C> {
     pub fn new(conn: C, screen_num: usize) -> Result<Self> {
         // Load configuration
         let config = Config::load()?;
-        info!("Loaded configuration with {} shortcuts", config.shortcuts().len());
+        info!(
+            "Loaded configuration with {} shortcuts",
+            config.shortcuts().len()
+        );
 
         let setup = conn.setup();
         let screen = &setup.roots[screen_num];
@@ -100,20 +103,20 @@ impl<C: Connection> WindowManager<C> {
     fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
         if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
             info!("Shortcut pressed, executing: {}", command);
-            
+
             // Parse command (simple implementation, could be improved)
             let parts: Vec<&str> = command.split_whitespace().collect();
             if let Some(program) = parts.first() {
                 let mut cmd = Command::new(program);
-                
+
                 // Add arguments if any
                 if parts.len() > 1 {
                     cmd.args(&parts[1..]);
                 }
-                
+
                 // Set display environment
                 cmd.env("DISPLAY", self.config.default_display());
-                
+
                 match cmd.spawn() {
                     Ok(_) => info!("Successfully launched: {}", command),
                     Err(e) => error!("Failed to launch {}: {}", command, e),
