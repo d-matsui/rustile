@@ -1,8 +1,8 @@
 //! Key parsing and handling utilities
 
-use x11rb::protocol::xproto::ModMask;
 use anyhow::Result;
 use std::collections::HashMap;
+use x11rb::protocol::xproto::ModMask;
 
 /// Key combination parser that converts human-readable strings to X11 codes
 pub struct KeyParser {
@@ -14,17 +14,17 @@ impl KeyParser {
     /// Creates a new key parser with common key mappings
     pub fn new() -> Self {
         let mut key_names = HashMap::new();
-        
+
         // Letters
         for c in 'a'..='z' {
             key_names.insert(c.to_string(), c as u32);
         }
-        
+
         // Numbers
         for c in '0'..='9' {
             key_names.insert(c.to_string(), c as u32);
         }
-        
+
         // Special keys
         key_names.insert("Return".to_string(), 0xff0d);
         key_names.insert("Enter".to_string(), 0xff0d);
@@ -41,26 +41,26 @@ impl KeyParser {
         key_names.insert("Up".to_string(), 0xff52);
         key_names.insert("Right".to_string(), 0xff53);
         key_names.insert("Down".to_string(), 0xff54);
-        
+
         // Function keys
         for i in 1..=12 {
             key_names.insert(format!("F{}", i), 0xffbe + i - 1);
         }
-        
+
         Self { key_names }
     }
-    
+
     /// Parses a key combination string like "Super+t" or "Ctrl+Alt+Return"
     pub fn parse_combination(&self, combo: &str) -> Result<(ModMask, u32)> {
         let parts: Vec<&str> = combo.split('+').collect();
-        
+
         if parts.is_empty() {
             return Err(anyhow::anyhow!("Empty key combination"));
         }
-        
+
         let mut modifiers = ModMask::from(0u16);
         let mut key_name = None;
-        
+
         for part in parts {
             let part = part.trim();
             match part.to_lowercase().as_str() {
@@ -69,19 +69,21 @@ impl KeyParser {
                 "alt" | "mod1" | "meta" => modifiers |= ModMask::M1,
                 "ctrl" | "control" | "ctl" => modifiers |= ModMask::CONTROL,
                 "shift" => modifiers |= ModMask::SHIFT,
-                
+
                 // Less common modifiers
                 "mod2" | "numlock" | "num" => modifiers |= ModMask::M2,
                 "mod3" | "scrolllock" | "scroll" => modifiers |= ModMask::M3,
                 "mod5" | "altgr" | "altgraph" => modifiers |= ModMask::M5,
-                
+
                 // Alternative names for common combinations
-                "hyper" => modifiers |= ModMask::M4 | ModMask::M1 | ModMask::CONTROL | ModMask::SHIFT,
+                "hyper" => {
+                    modifiers |= ModMask::M4 | ModMask::M1 | ModMask::CONTROL | ModMask::SHIFT
+                }
                 "super_l" | "super_r" => modifiers |= ModMask::M4,
                 "alt_l" | "alt_r" => modifiers |= ModMask::M1,
                 "ctrl_l" | "ctrl_r" => modifiers |= ModMask::CONTROL,
                 "shift_l" | "shift_r" => modifiers |= ModMask::SHIFT,
-                
+
                 _ => {
                     if key_name.is_some() {
                         return Err(anyhow::anyhow!("Multiple keys specified: {}", combo));
@@ -90,28 +92,28 @@ impl KeyParser {
                 }
             }
         }
-        
+
         let key_name = key_name.ok_or_else(|| anyhow::anyhow!("No key specified in: {}", combo))?;
         let keysym = self.get_keysym(key_name)?;
-        
+
         Ok((modifiers, keysym))
     }
-    
+
     /// Gets the X11 keysym for a key name
     pub fn get_keysym(&self, key_name: &str) -> Result<u32> {
         // Try exact match first
         if let Some(&keysym) = self.key_names.get(key_name) {
             return Ok(keysym);
         }
-        
+
         // Try lowercase
         if let Some(&keysym) = self.key_names.get(&key_name.to_lowercase()) {
             return Ok(keysym);
         }
-        
+
         Err(anyhow::anyhow!("Unknown key name: {}", key_name))
     }
-    
+
     /// Adds a custom key mapping
     pub fn add_key(&mut self, name: &str, keysym: u32) {
         self.key_names.insert(name.to_string(), keysym);
@@ -202,17 +204,17 @@ mod tests {
     #[test]
     fn test_alternative_modifier_names() {
         let parser = KeyParser::new();
-        
+
         // Test cmd as alias for Super
         let (modifiers1, _) = parser.parse_combination("Cmd+t").unwrap();
         let (modifiers2, _) = parser.parse_combination("Super+t").unwrap();
         assert_eq!(modifiers1, modifiers2);
-        
+
         // Test meta as alias for Alt
         let (modifiers1, _) = parser.parse_combination("Meta+t").unwrap();
         let (modifiers2, _) = parser.parse_combination("Alt+t").unwrap();
         assert_eq!(modifiers1, modifiers2);
-        
+
         // Test ctl as alias for Ctrl
         let (modifiers1, _) = parser.parse_combination("Ctl+t").unwrap();
         let (modifiers2, _) = parser.parse_combination("Ctrl+t").unwrap();
@@ -222,12 +224,12 @@ mod tests {
     #[test]
     fn test_left_right_modifiers() {
         let parser = KeyParser::new();
-        
+
         // Left and right should map to same modifier
         let (mod_l, _) = parser.parse_combination("Super_L+t").unwrap();
         let (mod_r, _) = parser.parse_combination("Super_R+t").unwrap();
         let (mod_normal, _) = parser.parse_combination("Super+t").unwrap();
-        
+
         assert_eq!(mod_l, ModMask::M4);
         assert_eq!(mod_r, ModMask::M4);
         assert_eq!(mod_normal, ModMask::M4);
@@ -236,15 +238,17 @@ mod tests {
     #[test]
     fn test_complex_modifier_combinations() {
         let parser = KeyParser::new();
-        
+
         // Test triple modifier
         let (modifiers, keysym) = parser.parse_combination("Ctrl+Alt+Shift+Delete").unwrap();
         let expected = ModMask::CONTROL | ModMask::M1 | ModMask::SHIFT;
         assert_eq!(modifiers, expected);
         assert_eq!(keysym, 0xffff); // Delete key
-        
+
         // Test quadruple modifier
-        let (modifiers, keysym) = parser.parse_combination("Super+Ctrl+Alt+Shift+F12").unwrap();
+        let (modifiers, keysym) = parser
+            .parse_combination("Super+Ctrl+Alt+Shift+F12")
+            .unwrap();
         let expected = ModMask::M4 | ModMask::CONTROL | ModMask::M1 | ModMask::SHIFT;
         assert_eq!(modifiers, expected);
         assert_eq!(keysym, 0xffc9); // F12 key
@@ -253,12 +257,12 @@ mod tests {
     #[test]
     fn test_case_insensitive_modifiers() {
         let parser = KeyParser::new();
-        
+
         let (mod1, _) = parser.parse_combination("SUPER+t").unwrap();
         let (mod2, _) = parser.parse_combination("super+t").unwrap();
         let (mod3, _) = parser.parse_combination("Super+t").unwrap();
         let (mod4, _) = parser.parse_combination("SuPeR+t").unwrap();
-        
+
         assert_eq!(mod1, ModMask::M4);
         assert_eq!(mod2, ModMask::M4);
         assert_eq!(mod3, ModMask::M4);
