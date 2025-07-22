@@ -35,6 +35,9 @@
             {"type": "test", "section": "🧪 Tests"},
             {"type": "ci", "section": "🔧 CI/CD"}
           ]
+        },
+        "writerOpts": {
+          "committerDateFormat": "YYYY-MM-DD"
         }
       }
     ],

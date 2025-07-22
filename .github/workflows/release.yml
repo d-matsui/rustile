@@ -71,14 +71,14 @@ jobs:
         
     - name: Install semantic-release
       run: |
-        npm install -g semantic-release@22
-        npm install -g @semantic-release/changelog
-        npm install -g @semantic-release/exec
-        npm install -g @semantic-release/git
-        npm install -g @semantic-release/github
-        npm install -g @semantic-release/commit-analyzer
-        npm install -g @semantic-release/release-notes-generator
-        npm install -g conventional-changelog-conventionalcommits
+        npm install -g semantic-release@24
+        npm install -g @semantic-release/changelog@7
+        npm install -g @semantic-release/exec@6  
+        npm install -g @semantic-release/git@11
+        npm install -g @semantic-release/github@12
+        npm install -g @semantic-release/commit-analyzer@14
+        npm install -g @semantic-release/release-notes-generator@15
+        npm install -g conventional-changelog-conventionalcommits@8
         
     - name: Run semantic release
       id: semantic
