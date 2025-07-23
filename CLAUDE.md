@@ -70,7 +70,8 @@ docs: update README with installation instructions
 Follow [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH):
 - **MAJOR**: Breaking changes to public API (currently bumps MINOR due to pre-1.0)
 - **MINOR**: New features (`feat:` commits)
-- **PATCH**: Bug fixes (`fix:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:` commits)
+- **PATCH**: Bug fixes (`fix:`, `style:`, `refactor:`, `test:`, `ci:` commits)
+- **NO RELEASE**: Documentation and maintenance (`docs:`, `chore:` commits)
 
 **Automated Version Management:**
 - ✅ **Version Updates**: `Cargo.toml` version automatically updated on release
@@ -285,9 +286,9 @@ Each release automatically includes:
 
 ### Version Bump Rules
 - `feat:` commits → **MINOR** version bump (new features)
-- `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:` → **PATCH** version bump
-- `feat!:` or `fix!:` (breaking changes) → **MINOR** bump (pre-1.0, later MAJOR)
-- `chore:` commits → **No release** (maintenance only)
+- `fix:`, `style:`, `refactor:`, `test:`, `ci:` → **PATCH** version bump
+- `feat!:` or `fix!:` (breaking changes) → **MINOR** bump (pre-1.0, later MAJOR)  
+- `docs:`, `chore:` commits → **No release** (documentation and maintenance)
 
 ## Troubleshooting
 
