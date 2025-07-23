@@ -1199,7 +1199,7 @@ WindowManager.handle_map_request()
     │   └── update_window_borders() - red for focused, gray for others
     └── apply_layout() - rearrange everything with gaps
         ↓
-LayoutManager.tile_master_stack(windows, master_ratio, gap)
+ LayoutManager.tile_master_stack(windows, master_ratio, gap)
     ├── Calculate positions with gaps and minimum sizes
     └── conn.configure_window() for each window
         ↓
@@ -1221,7 +1221,7 @@ WindowManager.handle_unmap_notify()
     ├── windows.retain() - remove from our list
     └── apply_layout() - rearrange remaining windows
         ↓
-LayoutManager.tile_master_stack()
+ LayoutManager.tile_master_stack()
     ├── Calculate new positions for remaining windows
     └── conn.configure_window() for each window
         ↓

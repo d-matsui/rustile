@@ -30,11 +30,9 @@ This directory contains development utilities for Rustile.
 
 ## Legacy Scripts (Root Directory)
 
-For backward compatibility, these scripts remain in the project root:
+The following standalone script remains in the project root:
 
-- `setup_config.sh` - Configuration setup (use `dev-tools.sh setup`)
-- `test_layout.sh` - Layout testing (use `dev-tools.sh layout`)
-- `switch_layout.sh` - Layout switching (standalone utility)
+- `switch_layout.sh` - Layout switching utility (used during testing)
 
 ## Usage Tips
 

@@ -21,9 +21,7 @@ rustile/
 ├── .github/               # GitHub workflows and templates
 │   └── workflows/         # CI/CD pipelines
 ├── config.example.toml    # Example configuration
-├── setup_config.sh        # Configuration setup script
 ├── switch_layout.sh       # Layout switching utility
-├── test_layout.sh         # Interactive testing script
 ├── CLAUDE.md              # Claude Code development guide
 ├── README.md              # User documentation
 └── CHANGELOG.md           # Release history
@@ -77,12 +75,8 @@ rustile/
 ./scripts/dev-tools.sh release   # Build release binary
 ```
 
-### Legacy Scripts (Root Directory)
-These remain for backward compatibility but are superseded by `dev-tools.sh`:
-
-- `setup_config.sh` - Use `dev-tools.sh setup`
-- `test_layout.sh` - Use `dev-tools.sh layout`  
-- `switch_layout.sh` - Standalone utility (kept)
+### Standalone Utilities (Root Directory)
+- `switch_layout.sh` - Layout switching utility for testing
 
 ## Architecture Patterns
 

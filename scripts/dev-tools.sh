@@ -38,10 +38,28 @@ setup_dev() {
         echo "⚠️  Warning: Xephyr not found. Install with: sudo apt-get install xserver-xephyr"
     fi
     
-    # Setup config
+    # Setup config inline
     if [ -f "$PROJECT_ROOT/config.example.toml" ]; then
         echo "📋 Setting up configuration..."
-        "$PROJECT_ROOT/setup_config.sh"
+        
+        CONFIG_DIR="$HOME/.config/rustile"
+        CONFIG_FILE="$CONFIG_DIR/config.toml"
+        
+        # Create config directory if it doesn't exist
+        if [ ! -d "$CONFIG_DIR" ]; then
+            mkdir -p "$CONFIG_DIR"
+            echo "Created config directory: $CONFIG_DIR"
+        fi
+        
+        # Check if config file already exists
+        if [ -f "$CONFIG_FILE" ]; then
+            echo "Config file already exists at: $CONFIG_FILE"
+        else
+            echo "Copying example config to: $CONFIG_FILE"
+            cp "$PROJECT_ROOT/config.example.toml" "$CONFIG_FILE"
+            echo "✅ Configuration setup complete!"
+            echo "💡 Edit $CONFIG_FILE to customize settings"
+        fi
     fi
     
     # Build project
@@ -64,10 +82,51 @@ run_tests() {
     # Integration tests with Xephyr
     if command -v Xephyr &> /dev/null; then
         echo "🖥️  Starting interactive test environment..."
-        "$PROJECT_ROOT/test_layout.sh"
+        run_xephyr_test
     else
         echo "⚠️  Skipping Xephyr tests (not installed)"
     fi
+}
+
+run_xephyr_test() {
+    echo "🔨 Building..."
+    cargo build --release
+    
+    cleanup_test() {
+        pkill -f "Xephyr :10" 2>/dev/null || true
+        pkill -f "rustile" 2>/dev/null || true
+        pkill -f "DISPLAY=:10" 2>/dev/null || true
+    }
+    
+    trap cleanup_test EXIT INT TERM
+    
+    echo "📺 Starting Xephyr..."
+    Xephyr :10 -screen 1200x800 > /dev/null 2>&1 &
+    sleep 2
+    
+    echo "🚀 Starting Rustile..."
+    DISPLAY=:10 RUST_LOG=debug "$PROJECT_ROOT/target/release/rustile" &
+    sleep 1
+    
+    echo "✨ Opening test windows..."
+    DISPLAY=:10 xterm -geometry 40x15 -title "Test Window 1" &
+    sleep 1
+    DISPLAY=:10 xterm -geometry 40x15 -title "Test Window 2" &
+    sleep 1
+    DISPLAY=:10 xterm -geometry 40x15 -title "Test Window 3" &
+    
+    echo ""
+    echo "🎮 Interactive Test Environment Ready!"
+    echo "📋 Try these shortcuts:"
+    echo "   Alt+j/k    - Focus next/previous window"
+    echo "   Shift+Alt+m - Swap with master"
+    echo "   Shift+Alt+1 - Launch terminal"
+    echo ""
+    echo "💡 Use switch_layout.sh in another terminal to test layout switching"
+    echo "📺 Close Xephyr window to exit"
+    echo ""
+    
+    wait
 }
 
 test_layout() {
@@ -84,7 +143,7 @@ test_layout() {
     echo "🔄 Use '$PROJECT_ROOT/switch_layout.sh' to change layouts"
     echo ""
     
-    "$PROJECT_ROOT/test_layout.sh"
+    run_xephyr_test
 }
 
 clean_all() {
