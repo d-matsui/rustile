@@ -725,6 +725,124 @@ mod tests {
     }
 
     #[test]
+    fn test_bsp_split_direction_alternation() {
+        let mut bsp_tree = BspTree::new();
+
+        // Test that splits alternate V→H→V→H
+        bsp_tree.add_window(1, None); // Root
+        bsp_tree.add_window(2, Some(1)); // Split 0 (even) = Vertical
+
+        if let Some(BspNode::Split { direction, .. }) = &bsp_tree.root {
+            assert!(matches!(direction, SplitDirection::Vertical));
+        }
+
+        bsp_tree.add_window(3, Some(2)); // Split 1 (odd) = Horizontal
+
+        // Navigate to the right child which should be horizontal
+        if let Some(BspNode::Split { right, .. }) = &bsp_tree.root {
+            if let BspNode::Split { direction, .. } = right.as_ref() {
+                assert!(matches!(direction, SplitDirection::Horizontal));
+            }
+        }
+    }
+
+    #[test]
+    fn test_bsp_window_not_found() {
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None);
+        bsp_tree.add_window(2, Some(1));
+
+        // Try to split a window that doesn't exist
+        let original_structure = bsp_tree.root.clone();
+        bsp_tree.add_window(3, Some(999)); // Window 999 doesn't exist
+
+        // Tree should remain unchanged when target window not found
+        assert_eq!(
+            format!("{:?}", bsp_tree.root),
+            format!("{:?}", original_structure)
+        );
+    }
+
+    #[test]
+    fn test_bsp_remove_nonexistent_window() {
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None);
+        bsp_tree.add_window(2, Some(1));
+
+        let original_structure = bsp_tree.root.clone();
+
+        // Remove a window that doesn't exist
+        bsp_tree.remove_window(999);
+
+        // Tree should remain unchanged
+        assert_eq!(
+            format!("{:?}", bsp_tree.root),
+            format!("{:?}", original_structure)
+        );
+    }
+
+    #[test]
+    fn test_bsp_complex_removal() {
+        let mut bsp_tree = BspTree::new();
+        let windows = [1, 2, 3, 4];
+
+        // Build a more complex tree
+        for (i, &window) in windows.iter().enumerate() {
+            if i == 0 {
+                bsp_tree.add_window(window, None);
+            } else {
+                bsp_tree.add_window(window, Some(windows[i - 1]));
+            }
+        }
+
+        // Remove middle window and verify tree restructuring
+        bsp_tree.remove_window(2);
+
+        // Ensure remaining windows are still in the tree
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            1
+        ));
+        assert!(!BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            2
+        ));
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            3
+        ));
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            4
+        ));
+    }
+
+    #[test]
+    fn test_bsp_empty_window_list_rebuild() {
+        let mut layout_manager = LayoutManager::new();
+        layout_manager.set_layout(Layout::Bsp);
+
+        // Test rebuild with empty window list
+        layout_manager.rebuild_bsp_tree(&[], None);
+        assert!(layout_manager.bsp_tree.root.is_none());
+    }
+
+    #[test]
+    fn test_bsp_single_window_rebuild() {
+        let mut layout_manager = LayoutManager::new();
+        layout_manager.set_layout(Layout::Bsp);
+
+        // Test rebuild with single window
+        layout_manager.rebuild_bsp_tree(&[42], None);
+
+        if let Some(BspNode::Leaf(window)) = &layout_manager.bsp_tree.root {
+            assert_eq!(*window, 42);
+        } else {
+            panic!("Single window should create a leaf node");
+        }
+    }
+
+    #[test]
     fn test_empty_window_list() {
         let _layout_manager = LayoutManager::new();
 
