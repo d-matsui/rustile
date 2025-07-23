@@ -213,6 +213,7 @@ impl BspTree {
 }
 
 /// Tiles windows using BSP layout algorithm
+#[allow(clippy::too_many_arguments)]
 pub fn tile_bsp_windows<C: Connection>(
     conn: &C,
     bsp_tree: &BspTree,
@@ -239,7 +240,14 @@ pub fn tile_bsp_windows<C: Connection>(
             screen_height,
             gap
         );
-        apply_bsp_recursive(conn, root, screen_rect, min_window_width, min_window_height, gap)?;
+        apply_bsp_recursive(
+            conn,
+            root,
+            screen_rect,
+            min_window_width,
+            min_window_height,
+            gap,
+        )?;
     } else {
         #[cfg(debug_assertions)]
         tracing::debug!("BSP: No root node, skipping layout");
@@ -320,8 +328,22 @@ fn apply_bsp_recursive<C: Connection>(
             };
 
             // Recursively apply layout to children
-            apply_bsp_recursive(conn, left, left_rect, min_window_width, min_window_height, gap)?;
-            apply_bsp_recursive(conn, right, right_rect, min_window_width, min_window_height, gap)?
+            apply_bsp_recursive(
+                conn,
+                left,
+                left_rect,
+                min_window_width,
+                min_window_height,
+                gap,
+            )?;
+            apply_bsp_recursive(
+                conn,
+                right,
+                right_rect,
+                min_window_width,
+                min_window_height,
+                gap,
+            )?
         }
     }
     Ok(())
@@ -362,5 +384,164 @@ pub fn rebuild_bsp_tree(
         tracing::debug!("BSP tree structure: {:?}", root);
     } else {
         tracing::debug!("BSP tree is empty");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bsp_tree_creation() {
+        let bsp_tree = BspTree::new();
+        assert!(bsp_tree.root.is_none());
+        assert_eq!(bsp_tree.split_count, 0);
+    }
+
+    #[test]
+    fn test_bsp_tree_default() {
+        let bsp_tree = BspTree::default();
+        assert!(bsp_tree.root.is_none());
+        assert_eq!(bsp_tree.split_count, 0);
+    }
+
+    #[test]
+    fn test_bsp_single_window() {
+        let mut bsp_tree = BspTree::new();
+        let window = 1; // Mock window ID
+
+        bsp_tree.add_window(window, None, 0.5);
+
+        assert!(bsp_tree.root.is_some());
+        if let Some(BspNode::Leaf(w)) = &bsp_tree.root {
+            assert_eq!(*w, window);
+        } else {
+            panic!("Root should be a leaf with the window");
+        }
+    }
+
+    #[test]
+    fn test_bsp_two_windows_vertical_split() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+
+        bsp_tree.add_window(window1, None, 0.5);
+        bsp_tree.add_window(window2, Some(window1), 0.5);
+
+        // Should create a vertical split (first split)
+        if let Some(BspNode::Split {
+            direction,
+            ratio,
+            left,
+            right,
+        }) = &bsp_tree.root
+        {
+            assert!(matches!(direction, SplitDirection::Vertical));
+            assert!((ratio - 0.5).abs() < f32::EPSILON);
+
+            // Left should be window1, right should be window2
+            if let (BspNode::Leaf(w1), BspNode::Leaf(w2)) = (left.as_ref(), right.as_ref()) {
+                assert_eq!(*w1, window1);
+                assert_eq!(*w2, window2);
+            } else {
+                panic!("Both children should be leaves");
+            }
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_bsp_window_removal() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+
+        // Add two windows
+        bsp_tree.add_window(window1, None, 0.5);
+        bsp_tree.add_window(window2, Some(window1), 0.5);
+
+        // Remove window2 - should collapse back to just window1
+        bsp_tree.remove_window(window2);
+
+        if let Some(BspNode::Leaf(w)) = &bsp_tree.root {
+            assert_eq!(*w, window1);
+        } else {
+            panic!("After removing one window, root should be a leaf with window1");
+        }
+
+        // Remove the last window - tree should be empty
+        bsp_tree.remove_window(window1);
+        assert!(bsp_tree.root.is_none());
+    }
+
+    #[test]
+    fn test_bsp_contains_window() {
+        let mut bsp_tree = BspTree::new();
+        let window1 = 1;
+        let window2 = 2;
+        let window3 = 999; // Not in tree
+
+        bsp_tree.add_window(window1, None, 0.5);
+        bsp_tree.add_window(window2, Some(window1), 0.5);
+
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            window1
+        ));
+        assert!(BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            window2
+        ));
+        assert!(!BspTree::contains_window_static(
+            bsp_tree.root.as_ref().unwrap(),
+            window3
+        ));
+    }
+
+    #[test]
+    fn test_bsp_split_direction_alternation() {
+        let mut bsp_tree = BspTree::new();
+
+        // Test that splits alternate V→H→V→H
+        bsp_tree.add_window(1, None, 0.5); // Root
+        bsp_tree.add_window(2, Some(1), 0.5); // Split 0 (even) = Vertical
+
+        if let Some(BspNode::Split { direction, .. }) = &bsp_tree.root {
+            assert!(matches!(direction, SplitDirection::Vertical));
+        }
+
+        bsp_tree.add_window(3, Some(2), 0.5); // Split 1 (odd) = Horizontal
+
+        // Navigate to the right child which should be horizontal
+        if let Some(BspNode::Split { right, .. }) = &bsp_tree.root {
+            if let BspNode::Split { direction, .. } = right.as_ref() {
+                assert!(matches!(direction, SplitDirection::Horizontal));
+            }
+        }
+    }
+
+    #[test]
+    fn test_bsp_empty_window_list_rebuild() {
+        let mut bsp_tree = BspTree::new();
+
+        // Test rebuild with empty window list
+        rebuild_bsp_tree(&mut bsp_tree, &[], None, 0.5);
+        assert!(bsp_tree.root.is_none());
+    }
+
+    #[test]
+    fn test_bsp_single_window_rebuild() {
+        let mut bsp_tree = BspTree::new();
+
+        // Test rebuild with single window
+        rebuild_bsp_tree(&mut bsp_tree, &[42], None, 0.5);
+
+        if let Some(BspNode::Leaf(window)) = &bsp_tree.root {
+            assert_eq!(*window, 42);
+        } else {
+            panic!("Single window should create a leaf node");
+        }
     }
 }
