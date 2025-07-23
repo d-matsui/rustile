@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, 'feature/*' ]
+    branches: [ main, 'feature/*' ]
   pull_request:
     branches: [ main ]
 
@@ -86,8 +86,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [test-and-quality, security-audit]
     if: |
-      github.event_name == 'push' && 
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') ||
+      github.event_name == 'push' && github.ref == 'refs/heads/main' ||
       (github.event_name == 'pull_request' && github.base_ref == 'main')
     
     steps:

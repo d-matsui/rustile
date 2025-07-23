@@ -90,6 +90,11 @@ Follow [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH):
 
 ### Branch Management
 
+**Branching Strategy: GitHub Flow (Simplified)**
+- ✅ **`main`** - Production branch with automated releases
+- ✅ **`feature/*`** - Feature branches for all development
+- ❌ **No `develop` branch** - Direct main workflow for simplicity
+
 **Branch naming conventions:**
 - `feature/feature-name` - New features
 - `fix/bug-description` - Bug fixes
@@ -97,12 +102,14 @@ Follow [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH):
 - `refactor/component-name` - Code refactoring
 
 **Workflow:**
-1. Create feature branch from `main`
+1. Create feature branch from `main`: `git checkout -b feature/my-feature`
 2. Implement changes with proper commit messages
 3. Ensure all checks pass (fmt, clippy, test)
-4. Create PR with descriptive title and body
-5. Address review feedback
-6. Squash merge to `main` after approval
+4. Push branch: `git push -u origin feature/my-feature`
+5. Create PR with descriptive title and body
+6. Address review feedback
+7. Squash merge to `main` after approval
+8. Automatic release triggered by semantic-release on main
 
 ## Development Commands
 
