@@ -16,11 +16,6 @@ layout_algorithm = "master_stack"
 # 0.5 means master window takes 50% of screen width
 master_ratio = 0.5
 
-# BSP-specific settings (only used when layout_algorithm = "bsp")
-# Default split ratio for new BSP splits (0.0 to 1.0)
-# 0.5 means equal 50/50 split between windows
-bsp_split_ratio = 0.5
-
 # Gap between windows in pixels
 # Recommended values: 0-50 (0 = no gaps, 10-20 = comfortable, 50+ = spacious)
 # Maximum allowed: 500 pixels
