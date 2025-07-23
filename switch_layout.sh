@@ -1,54 +1,58 @@
 #!/bin/bash
-# Helper script to switch between layout algorithms
+# Robust layout switcher
 
-CONFIG_FILE="$HOME/.config/rustile/config.toml"
+CONFIG="$HOME/.config/rustile/config.toml"
 
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Config file not found: $CONFIG_FILE"
+# Check if config exists
+if [ ! -f "$CONFIG" ]; then
+    echo "❌ Config file not found: $CONFIG"
     echo "   Run rustile once to create the default config"
     exit 1
 fi
 
-# Check current layout
-current_layout=$(grep "layout_algorithm" "$CONFIG_FILE" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+# Get current layout
+current_layout=$(grep "^layout_algorithm" "$CONFIG" | head -1 | cut -d'"' -f2)
+echo "Current layout: $current_layout"
 
-echo "🔄 Current layout: $current_layout"
-
+# Handle arguments
 case "$1" in
-    "bsp")
-        echo "🚀 Switching to BSP layout..."
-        sed -i 's/layout_algorithm = ".*"/layout_algorithm = "bsp"/' "$CONFIG_FILE"
-        echo "✅ Layout set to BSP"
+    "bsp"|"b")
+        new_layout="bsp"
         ;;
-    "master_stack"|"master-stack")
-        echo "🏗️  Switching to Master-Stack layout..."
-        sed -i 's/layout_algorithm = ".*"/layout_algorithm = "master_stack"/' "$CONFIG_FILE"
-        echo "✅ Layout set to Master-Stack"
+    "master"|"m"|"master_stack"|"master-stack"|"ms")
+        new_layout="master_stack"
         ;;
     "")
-        # No argument - toggle
+        # Toggle
         if [ "$current_layout" = "bsp" ]; then
-            echo "🏗️  Switching to Master-Stack layout..."
-            sed -i 's/layout_algorithm = "bsp"/layout_algorithm = "master_stack"/' "$CONFIG_FILE"
-            echo "✅ Layout set to Master-Stack"
+            new_layout="master_stack"
         else
-            echo "🚀 Switching to BSP layout..."
-            sed -i 's/layout_algorithm = ".*"/layout_algorithm = "bsp"/' "$CONFIG_FILE"
-            echo "✅ Layout set to BSP"
+            new_layout="bsp"
         fi
         ;;
     *)
         echo "❌ Unknown layout: $1"
-        echo "Usage: $0 [bsp|master_stack]"
-        echo "   $0         - toggle between layouts"
-        echo "   $0 bsp     - switch to BSP layout"
-        echo "   $0 master_stack - switch to Master-Stack layout"
+        echo "Usage: $0 [bsp|master_stack|master|b|m]"
+        echo "   No argument = toggle between layouts"
         exit 1
         ;;
 esac
 
+# Apply the change
+if sed -i "s/^layout_algorithm = \".*\"/layout_algorithm = \"$new_layout\"/" "$CONFIG"; then
+    echo "✅ Switched to $([ "$new_layout" = "bsp" ] && echo "BSP" || echo "Master-Stack") layout"
+    
+    # Verify the change
+    new_value=$(grep "^layout_algorithm" "$CONFIG" | head -1 | cut -d'"' -f2)
+    if [ "$new_value" = "$new_layout" ]; then
+        echo "✓ Verified: layout_algorithm = \"$new_value\""
+    else
+        echo "⚠️  Warning: Change may not have applied correctly"
+    fi
+else
+    echo "❌ Failed to update config file"
+    exit 1
+fi
+
 echo ""
-echo "🔧 Restart Rustile to apply the new layout!"
-echo ""
-echo "Current config:"
-grep "layout_algorithm" "$CONFIG_FILE" | head -1
+echo "🔧 Restart rustile to apply the new layout"
