@@ -781,17 +781,20 @@ mod tests {
 
         // Print tree structure for debugging
         if let Some(ref root) = layout_manager.bsp_tree.root {
-            println!("BSP tree structure: {:?}", root);
+            println!("BSP tree structure: {root:?}");
         }
 
         // Test individual window additions
         let mut bsp_tree = BspTree::new();
         bsp_tree.add_window(1, None, 0.5);
-        println!("After adding window 1: {:?}", bsp_tree.root);
+        let root = &bsp_tree.root;
+        println!("After adding window 1: {root:?}");
         bsp_tree.add_window(2, Some(1), 0.5);
-        println!("After adding window 2: {:?}", bsp_tree.root);
+        let root = &bsp_tree.root;
+        println!("After adding window 2: {root:?}");
         bsp_tree.add_window(3, Some(2), 0.5);
-        println!("After adding window 3: {:?}", bsp_tree.root);
+        let root = &bsp_tree.root;
+        println!("After adding window 3: {root:?}");
     }
 
     #[test]
