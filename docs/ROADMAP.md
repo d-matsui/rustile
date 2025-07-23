@@ -33,7 +33,14 @@ Rustile currently supports:
   - [ ] Toggle windows between tiling/floating
   - [ ] Floating window movement/resize
   - [ ] Float rules for specific applications
-  
+
+- [ ] **Refactoring/Misc**
+  - [ ] Avoid using X11 mock in tests (use docker container with X11?)
+  - [ ] Simplify key management (use xmodmap command?)
+  - [ ] Remove master stack layout (only used for early development)
+  - [ ] Comprehensive testing
+  - [ ] Comprehensive docs
+
 ## 🚀 Future Considerations
 
 - **Multi-Monitor Features**
