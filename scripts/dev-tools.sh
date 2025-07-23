@@ -111,21 +111,33 @@ run_xephyr_test() {
     DISPLAY=:10 RUST_LOG=debug "$PROJECT_ROOT/target/release/rustile" &
     sleep 1
     
-    echo "✨ Opening test windows..."
-    DISPLAY=:10 xterm -title "Test Window 1" &
+    echo "✨ Opening 4 test windows..."
+    echo "  📟 1/4: Starting xterm (terminal)..."
+    DISPLAY=:10 xterm -title "Terminal" -e "top" &
+    sleep 1.5
+    echo "  🖼️  2/4: Starting xlogo (X11 logo)..."
+    DISPLAY=:10 xlogo -title "X11 Logo" &
+    sleep 1.5
+    echo "  🧮 3/4: Starting xcalc (calculator)..."
+    DISPLAY=:10 xcalc -title "Calculator" &
+    sleep 1.5
+    echo "  🎨 4/4: Starting xeyes (graphics demo)..."
+    DISPLAY=:10 xeyes -title "Eyes Demo" &
     sleep 1
-    DISPLAY=:10 xlogo -title "Test Window 2" &
-    sleep 1
-    DISPLAY=:10 xcalc -title "Test Window 3" &
     
     echo ""
     echo "🎮 Interactive Test Environment Ready!"
-    echo "📋 Try these shortcuts:"
-    echo "   Alt+j/k    - Focus next/previous window"
-    echo "   Shift+Alt+m - Swap with master"
-    echo "   Shift+Alt+1 - Launch terminal"
+    echo "📊 4 test windows opened: xterm (top), xlogo, xcalc, xeyes"
     echo ""
-    echo "💡 Use '$0 switch' in another terminal to test layout switching"
+    echo "📋 Try these shortcuts:"
+    echo "   Alt+j/k      - Focus next/previous window" 
+    echo "   Shift+Alt+m  - Swap focused window with master"
+    echo "   Shift+Alt+1  - Launch another terminal"
+    echo ""
+    echo "🔄 Layout testing:"
+    echo "   Current: $(grep layout_algorithm ~/.config/rustile/config.toml 2>/dev/null | sed 's/.*"\(.*\)".*/\1/' || echo 'master_stack')"
+    echo "   Switch:  Use '$0 switch' in another terminal"
+    echo ""
     echo "📺 Close Xephyr window to exit"
     echo ""
     
