@@ -24,3 +24,6 @@ target
 # Added by cargo
 
 /target
+
+# Code explanation file
+CODE_EXPLANATION.md

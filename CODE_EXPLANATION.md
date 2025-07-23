@@ -126,26 +126,46 @@ pub struct GeneralConfig {
 
 2. **Configuration Structure**:
    - **shortcuts**: Maps key combinations to commands
-     - Example: `"Super+t" = "xterm"`
+     - Example: `"Alt+j" = "focus_next"`
+     - Example: `"Super+Return" = "xterm"`
    - **layout**: Window layout settings
-     - `master_ratio`: 0.0-1.0 (default 0.5)
-     - `gap_size`: Pixels between windows (future feature)
+     - `master_ratio`: 0.0-1.0 (default 0.5) - master window width ratio
+     - `gap`: Pixels between windows (default 0, max 500)
+     - `border_width`: Border thickness in pixels (default 2, max 50)
+     - `focused_border_color`: Color for focused window (default 0xFF0000 - red)
+     - `unfocused_border_color`: Color for unfocused windows (default 0x808080 - gray)
    - **general**: General settings
      - `default_display`: X11 display for launching apps
 
-3. **Example Config File**:
+3. **Configuration Validation**:
+   - **master_ratio**: Must be between 0.0 and 1.0
+   - **gap**: Maximum 500 pixels to prevent unusable layouts
+   - **border_width**: Maximum 50 pixels to prevent excessive borders
+   - **Combined limits**: gap + border_width maximum 600 pixels total
+   - **Shortcuts**: Key combinations and commands must be non-empty
+
+4. **Example Config File**:
 ```toml
 [general]
 default_display = ":1"
 
 [layout]
-master_ratio = 0.5
-gap_size = 0
+master_ratio = 0.5              # Master window takes 50% width
+gap = 10                        # 10 pixel gaps between windows
+border_width = 5                # 5 pixel window borders
+focused_border_color = 0xFF0000   # Red border for focused window
+unfocused_border_color = 0x808080 # Gray border for unfocused windows
 
 [shortcuts]
+# Application shortcuts
 "Shift+Alt+1" = "gnome-terminal"
 "Shift+Alt+2" = "code"
 "Super+Return" = "xterm"
+
+# Window management shortcuts
+"Alt+j" = "focus_next"           # Cycle to next window
+"Alt+k" = "focus_prev"           # Cycle to previous window
+"Shift+Alt+m" = "swap_with_master" # Promote window to master
 ```
 
 **Benefits of TOML Configuration:**
@@ -171,6 +191,10 @@ pub struct WindowManager<C: Connection> {
     screen_num: usize,
     /// Currently managed windows
     windows: Vec<Window>,
+    /// Currently focused window
+    focused_window: Option<Window>,
+    /// Window stack for focus ordering (most recently used first)
+    window_stack: Vec<Window>,
     /// Layout manager for window arrangement
     layout_manager: LayoutManager,
     /// Keyboard manager for shortcuts
@@ -184,6 +208,8 @@ pub struct WindowManager<C: Connection> {
 - `conn`: The connection to X11 server for sending commands
 - `screen_num`: Which monitor we're managing
 - `windows`: List of all windows we're currently managing
+- `focused_window`: Currently focused window (if any)
+- `window_stack`: Stack of windows in most-recently-used order for focus cycling
 - `layout_manager`: Handles the positioning and sizing of windows
 - `keyboard_manager`: Handles keyboard shortcuts
 
@@ -220,6 +246,8 @@ pub fn new(conn: C, screen_num: usize) -> Result<Self> {
         conn,
         screen_num,
         windows: Vec::new(),
+        focused_window: None,
+        window_stack: Vec::new(),
         layout_manager: LayoutManager::new(),
         keyboard_manager,
         config,
@@ -270,22 +298,30 @@ fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
     if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
         info!("Shortcut pressed, executing: {}", command);
         
-        // Parse command (simple implementation, could be improved)
-        let parts: Vec<&str> = command.split_whitespace().collect();
-        if let Some(program) = parts.first() {
-            let mut cmd = Command::new(program);
-            
-            // Add arguments if any
-            if parts.len() > 1 {
-                cmd.args(&parts[1..]);
-            }
-            
-            // Set display environment
-            cmd.env("DISPLAY", self.config.default_display());
-            
-            match cmd.spawn() {
-                Ok(_) => info!("Successfully launched: {}", command),
-                Err(e) => error!("Failed to launch {}: {}", command, e),
+        // Handle window management commands
+        match command {
+            "focus_next" => return self.focus_next(),
+            "focus_prev" => return self.focus_prev(),
+            "swap_with_master" => return self.swap_with_master(),
+            _ => {
+                // Handle regular application commands
+                let parts: Vec<&str> = command.split_whitespace().collect();
+                if let Some(program) = parts.first() {
+                    let mut cmd = Command::new(program);
+                    
+                    // Add arguments if any
+                    if parts.len() > 1 {
+                        cmd.args(&parts[1..]);
+                    }
+                    
+                    // Set display environment
+                    cmd.env("DISPLAY", self.config.default_display());
+                    
+                    match cmd.spawn() {
+                        Ok(_) => info!("Successfully launched: {}", command),
+                        Err(e) => error!("Failed to launch {}: {}", command, e),
+                    }
+                }
             }
         }
     }
@@ -294,9 +330,9 @@ fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
 ```
 
 **What happens:**
-1. Check if Super key is held down AND T key is pressed
-2. If yes, launch xcalc calculator application
-3. Set the DISPLAY environment variable so it appears on the right screen
+1. Check for keyboard shortcuts (both window management and application shortcuts)
+2. If it's a window management command (focus_next, focus_prev, swap_with_master), handle it directly
+3. Otherwise, launch the associated application with proper DISPLAY environment
 
 #### Map Request Handler (New Window)
 ```rust
@@ -304,13 +340,25 @@ fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
     let window = event.window;
     info!("Mapping window: {:?}", window);
     
+    // Set initial border attributes before mapping
+    let border_aux = ChangeWindowAttributesAux::new()
+        .border_pixel(self.config.unfocused_border_color());
+    self.conn.change_window_attributes(window, &border_aux)?;
+    
+    let config_aux = ConfigureWindowAux::new()
+        .border_width(self.config.border_width());
+    self.conn.configure_window(window, &config_aux)?;
+    
     // Map the window (make it visible)
     self.conn.map_window(window)?;
     
     // Add to managed windows
     self.windows.push(window);
     
-    // Apply layout with configured master ratio
+    // Set focus to new window
+    self.set_focus(window)?;
+    
+    // Apply layout
     self.apply_layout()?;
     
     Ok(())
@@ -319,9 +367,11 @@ fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
 
 **What happens:**
 1. A new window wants to appear
-2. Tell X11 to make it visible
-3. Add it to our list of managed windows
-4. Rearrange all windows using the layout algorithm
+2. Set up border appearance (width and unfocused color)
+3. Make the window visible
+4. Add it to our list of managed windows
+5. Set focus to the new window (including border color change)
+6. Rearrange all windows using the layout algorithm
 
 #### Unmap Notify Handler (Window Closed)
 ```rust
@@ -329,8 +379,17 @@ fn handle_unmap_notify(&mut self, event: UnmapNotifyEvent) -> Result<()> {
     let window = event.window;
     info!("Unmapping window: {:?}", window);
     
-    // Remove from managed windows
+    // Remove from managed windows and stack
     self.windows.retain(|&w| w != window);
+    self.window_stack.retain(|&w| w != window);
+    
+    // Update focus if focused window was unmapped
+    if self.focused_window == Some(window) {
+        self.focused_window = self.window_stack.first().copied();
+        if let Some(next_focus) = self.focused_window {
+            self.set_focus(next_focus)?;
+        }
+    }
     
     // Reapply layout
     self.apply_layout()?;
@@ -341,14 +400,181 @@ fn handle_unmap_notify(&mut self, event: UnmapNotifyEvent) -> Result<()> {
 
 **What happens:**
 1. A window has been closed
-2. Remove it from our list
-3. Rearrange remaining windows to fill the space
+2. Remove it from our window list and focus stack
+3. If the closed window was focused, focus the next window in the MRU stack
+4. Rearrange remaining windows to fill the space
+
+### Focus Management and Window Navigation
+
+The window manager now includes sophisticated focus tracking and keyboard navigation.
+
+#### Focus Tracking Data Structures
+
+```rust
+/// Currently focused window
+focused_window: Option<Window>,
+/// Window stack for focus ordering (most recently used first)
+window_stack: Vec<Window>,
+```
+
+**Focus State Management:**
+- `focused_window`: Tracks which window currently has focus (keyboard input)
+- `window_stack`: Maintains Most-Recently-Used (MRU) order for intelligent focus cycling
+- Visual feedback through colored borders (red for focused, gray for unfocused)
+
+#### Set Focus Function
+
+```rust
+fn set_focus(&mut self, window: Window) -> Result<()> {
+    if !self.windows.contains(&window) {
+        return Ok(());
+    }
+
+    // Set X11 input focus
+    self.conn.set_input_focus(InputFocus::POINTER_ROOT, window, CURRENT_TIME)?;
+
+    // Update focus state
+    self.focused_window = Some(window);
+
+    // Update window stack (MRU order)
+    self.window_stack.retain(|&w| w != window);
+    self.window_stack.insert(0, window);
+
+    // Update window borders
+    self.update_window_borders()?;
+
+    debug!("Focus set to window: {:?}", window);
+    Ok(())
+}
+```
+
+**Focus Setting Steps:**
+1. **Validation**: Ensure window is still managed
+2. **X11 Focus**: Tell X11 server to direct keyboard input to the window
+3. **Internal Tracking**: Update our focus state
+4. **MRU Stack**: Move focused window to front of stack (most recent)
+5. **Visual Feedback**: Update border colors to show focus state
+
+#### Border Management
+
+```rust
+fn update_window_borders(&self) -> Result<()> {
+    for &window in &self.windows {
+        let is_focused = self.focused_window == Some(window);
+        let border_color = if is_focused {
+            self.config.focused_border_color()    // Red (0xFF0000)
+        } else {
+            self.config.unfocused_border_color()  // Gray (0x808080)
+        };
+
+        let aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
+        self.conn.change_window_attributes(window, &aux)?;
+
+        let config_aux = ConfigureWindowAux::new()
+            .border_width(self.config.border_width());
+        self.conn.configure_window(window, &config_aux)?;
+    }
+    Ok(())
+}
+```
+
+**Border Updates:**
+- **Focused windows**: Red border (configurable color)
+- **Unfocused windows**: Gray border (configurable color)
+- **Border width**: Configurable (default 2px, max 50px)
+- **Real-time updates**: Borders change immediately when focus changes
+
+#### Keyboard Navigation Commands
+
+##### Focus Next Window (Alt+j)
+
+```rust
+pub fn focus_next(&mut self) -> Result<()> {
+    if self.windows.is_empty() {
+        return Ok(());
+    }
+
+    let next_window = if let Some(current) = self.focused_window {
+        // Find current window index and move to next
+        if let Some(current_idx) = self.windows.iter().position(|&w| w == current) {
+            let next_idx = (current_idx + 1) % self.windows.len();
+            self.windows[next_idx]
+        } else {
+            self.windows[0]
+        }
+    } else {
+        self.windows[0]
+    };
+
+    self.set_focus(next_window)?;
+    info!("Focused next window: {:?}", next_window);
+    Ok(())
+}
+```
+
+##### Focus Previous Window (Alt+k)
+
+```rust
+pub fn focus_prev(&mut self) -> Result<()> {
+    if self.windows.is_empty() {
+        return Ok(());
+    }
+
+    let prev_window = if let Some(current) = self.focused_window {
+        // Find current window index and move to previous
+        if let Some(current_idx) = self.windows.iter().position(|&w| w == current) {
+            let prev_idx = if current_idx == 0 {
+                self.windows.len() - 1
+            } else {
+                current_idx - 1
+            };
+            self.windows[prev_idx]
+        } else {
+            self.windows[0]
+        }
+    } else {
+        self.windows[0]
+    };
+
+    self.set_focus(prev_window)?;
+    info!("Focused previous window: {:?}", prev_window);
+    Ok(())
+}
+```
+
+##### Swap with Master Window (Shift+Alt+m)
+
+```rust
+pub fn swap_with_master(&mut self) -> Result<()> {
+    if self.windows.len() < 2 {
+        return Ok(());
+    }
+
+    if let Some(focused) = self.focused_window {
+        if let Some(focused_idx) = self.windows.iter().position(|&w| w == focused) {
+            if focused_idx != 0 {
+                // Swap with master (index 0)
+                self.windows.swap(0, focused_idx);
+                self.apply_layout()?;
+                info!("Swapped window {:?} with master", focused);
+            }
+        }
+    }
+    Ok(())
+}
+```
+
+**Navigation Features:**
+- **Cyclic navigation**: Alt+j/k cycles through windows in order
+- **Master swap**: Shift+Alt+m promotes focused window to master position
+- **Visual feedback**: Immediate border color changes show focus
+- **MRU tracking**: Focus history maintained for intelligent window switching
 
 ---
 
 ## Layout System (layout.rs)
 
-The layout system determines where windows are positioned and how big they are.
+The layout system determines where windows are positioned and how big they are. It now includes a configurable gap system with proper validation and minimum size enforcement.
 
 ### Layout Types
 
@@ -372,13 +598,19 @@ Currently, we only have one layout (MasterStack), but this design makes it easy 
 - Fibonacci spiral
 - Floating windows
 
-### Master-Stack Algorithm
+### Master-Stack Algorithm with Gap System
 
-This is the core algorithm that positions windows:
+This is the core algorithm that positions windows with configurable gaps and robust minimum size handling:
 
 ```rust
-fn tile_master_stack(&self, conn: &impl Connection, screen: &Screen, windows: &[Window]) -> Result<()> {
-    // Handle empty case
+fn tile_master_stack(
+    &self,
+    conn: &impl Connection,
+    screen: &Screen,
+    windows: &[Window],
+    master_ratio: f32,
+    gap: u32,
+) -> Result<()> {
     if windows.is_empty() {
         return Ok(());
     }
@@ -386,38 +618,61 @@ fn tile_master_stack(&self, conn: &impl Connection, screen: &Screen, windows: &[
     let screen_width = screen.width_in_pixels as i16;   // e.g., 1280
     let screen_height = screen.height_in_pixels as i16; // e.g., 720
     let num_windows = windows.len() as i16;
+    let gap_i16 = gap as i16;
 
     // Configure master window (first window)
     let master_window = windows[0];
     let master_width = if num_windows > 1 {
-        (screen_width as f32 * MASTER_RATIO) as i16  // 50% = 640 pixels
+        // Multiple windows: master takes ratio of available space, ensure minimum 100px
+        let available_width = screen_width - 3 * gap_i16;  // left + center + right gaps
+        if available_width > 150 {
+            // Need at least 150px total (100px master + 50px stack)
+            ((available_width as f32 * master_ratio) as i16).max(100)
+        } else {
+            // Fallback: reduce gaps to fit windows
+            (screen_width / 2).max(100)
+        }
     } else {
-        screen_width  // Full width if only one window
+        // Single window: full width minus gaps, minimum 100px
+        (screen_width - 2 * gap_i16).max(100)
     };
 
     let master_config = ConfigureWindowAux::new()
-        .x(0)                           // Left edge of screen
-        .y(0)                           // Top edge of screen
-        .width(master_width as u32)     // 640 pixels wide
-        .height(screen_height as u32);  // Full height
+        .x(gap_i16 as i32)                              // Start after left gap
+        .y(gap_i16 as i32)                              // Start after top gap
+        .width(master_width.max(100) as u32)            // Minimum 100px width
+        .height((screen_height - 2 * gap_i16).max(100) as u32); // Minimum 100px height
 
     conn.configure_window(master_window, &master_config)?;
 
-    // Configure stack windows (remaining windows)
+    // Configure stack windows if any
     if num_windows > 1 {
-        let stack_windows = &windows[1..];  // All except first
-        let stack_x = master_width;         // Start where master ends
-        let stack_width = screen_width - master_width;  // Remaining width
-        let stack_height = screen_height / (num_windows - 1);  // Divide height
+        let stack_windows = &windows[1..];
+        let num_stack = stack_windows.len() as i16;
+        let stack_x = gap_i16 + master_width + gap_i16; // Add gap between master and stack
+        let stack_width = (screen_width - stack_x - gap_i16).max(50); // Minimum usable width
+
+        // Ensure we have enough space for stack windows with minimum height
+        let min_total_height = num_stack * 50 + (num_stack - 1) * gap_i16; // 50px min per window
+        let available_height = screen_height - 2 * gap_i16;
+
+        let total_stack_height = if available_height >= min_total_height {
+            available_height - (num_stack - 1) * gap_i16
+        } else {
+            // Fallback: reduce gaps if necessary to fit windows
+            (available_height - num_stack * 50).max(num_stack * 50)
+        };
+
+        let stack_height = (total_stack_height / num_stack).max(50); // Minimum 50px height
 
         for (index, &window) in stack_windows.iter().enumerate() {
-            let stack_y = (index as i16) * stack_height;  // Stack vertically
+            let stack_y = gap_i16 + (index as i16) * (stack_height + gap_i16);
 
             let stack_config = ConfigureWindowAux::new()
-                .x(stack_x as i32)          // Right half of screen
-                .y(stack_y as i32)          // Stacked position
-                .width(stack_width as u32)  // Right half width
-                .height(stack_height as u32); // Divided height
+                .x(stack_x as i32)
+                .y(stack_y as i32)
+                .width(stack_width.max(1) as u32)
+                .height(stack_height.max(1) as u32);
 
             conn.configure_window(window, &stack_config)?;
         }
@@ -430,33 +685,72 @@ fn tile_master_stack(&self, conn: &impl Connection, screen: &Screen, windows: &[
 **Visual Examples:**
 
 ```
-1 Window:                2 Windows:               3 Windows:
-┌─────────────────┐      ┌────────┬────────┐      ┌────────┬────────┐
-│                 │      │        │        │      │        │   W2   │
-│       W1        │      │   W1   │   W2   │      │   W1   ├────────┤
-│                 │      │        │        │      │        │   W3   │
-│                 │      │        │        │      │        │        │
-└─────────────────┘      └────────┴────────┘      └────────┴────────┘
-     Full screen            50% | 50%              50% | 50% split
+1 Window (with gaps and borders):
+┌─────────────────────────────────┐
+│ ╔═════════════════════════════╗ │
+│ ║                             ║ │
+│ ║           W1                ║ │
+│ ║       (focused, red)        ║ │
+│ ║                             ║ │
+│ ╚═════════════════════════════╝ │
+└─────────────────────────────────┘
+     Gaps around, border colored
+
+2 Windows (master-stack with gaps):
+┌─────────────────────────────────┐
+│ ╔═══════════════╗ ╔═══════════╗ │
+│ ║               ║ ║           ║ │
+│ ║      W1       ║ ║    W2     ║ │
+│ ║   (focused,   ║ ║ (unfocused║ │
+│ ║     red)      ║ ║   gray)   ║ │
+│ ║               ║ ║           ║ │
+│ ╚═══════════════╝ ╚═══════════╝ │
+└─────────────────────────────────┘
+  Master ~50%      Stack with gap
+
+3 Windows (with vertical stack gaps):
+┌─────────────────────────────────┐
+│ ╔═══════════════╗ ╔═══════════╗ │
+│ ║               ║ ║    W2     ║ │
+│ ║      W1       ║ ║ (unfocused║ │
+│ ║   (focused,   ║ ║   gray)   ║ │
+│ ║     red)      ║ ╚═══════════╝ │
+│ ║               ║               │
+│ ║               ║ ╔═══════════╗ │
+│ ║               ║ ║    W3     ║ │
+│ ╚═══════════════╝ ║(unfocused)║ │
+│                   ╚═══════════╝ │
+└─────────────────────────────────┘
+  Master window       Stacked with gaps
 ```
 
 **Algorithm Steps:**
 
-1. **Master Window**:
+1. **Gap Management**:
+   - Calculate available space after subtracting gaps
+   - Three gaps for dual-pane: left, center (between master/stack), right
+   - Additional gaps between stacked windows vertically
+   - Fallback logic when gaps are too large for screen size
+
+2. **Master Window**:
    - Always the first window in the list
-   - Takes left side of screen
-   - Width = MASTER_RATIO * screen_width (default 50%)
-   - Height = full screen height
+   - Takes left portion with configurable ratio (default 50%)
+   - Width = master_ratio * available_width (after gaps), minimum 100px
+   - Height = full screen height minus top/bottom gaps, minimum 100px
+   - Positioned with gap offset: x=gap, y=gap
 
-2. **Stack Windows**:
-   - All other windows
-   - Share the right side of screen
-   - Each gets equal height: screen_height / number_of_stack_windows
-   - All have same width: remaining screen width
+3. **Stack Windows**:
+   - All remaining windows in vertical stack
+   - Share the right side of screen after master and gaps
+   - Each gets equal height with gaps between: minimum 50px per window
+   - Width = remaining available width, minimum 50px
+   - Positioned: x=gap+master_width+gap, y=gap+index*(height+gap)
 
-3. **Positioning**:
-   - Master: x=0, y=0
-   - Stack: x=master_width, y=index*stack_height
+4. **Robustness Features**:
+   - **Minimum sizes**: 100px master width, 50px stack width/height
+   - **Gap validation**: Maximum 500px, combined gap+border max 600px
+   - **Overflow protection**: Fallback to reduced gaps when space is tight
+   - **Integer safety**: All calculations checked for positive values
 
 ---
 
@@ -845,14 +1139,22 @@ X11 Event → WindowManager.handle_event()
 ├── KeyPress → handle_key_press()
 │   ├── KeyboardManager checks against registered shortcuts
 │   ├── Find matching shortcut by keycode and modifiers
-│   └── Execute associated command if match
+│   ├── Window management commands: focus_next, focus_prev, swap_with_master
+│   └── Application commands: launch programs
 ├── MapRequest → handle_map_request()
+│   ├── Set border attributes (unfocused color, width)
 │   ├── Make window visible
-│   ├── Add to window list
+│   ├── Add to window list and focus stack
+│   ├── Set focus (including border color update)
 │   └── Apply layout algorithm
-└── UnmapNotify → handle_unmap_notify()
-    ├── Remove from window list
-    └── Re-apply layout algorithm
+├── UnmapNotify → handle_unmap_notify()
+│   ├── Remove from window list and focus stack
+│   ├── Update focus if needed (focus next in MRU order)
+│   └── Re-apply layout algorithm
+├── EnterNotify → handle_enter_notify()
+│   └── Optional focus-follows-mouse behavior
+└── Focus events (FocusIn/FocusOut)
+    └── Handled by internal focus tracking
 ```
 
 ### Layout Application Flow
@@ -861,11 +1163,15 @@ X11 Event → WindowManager.handle_event()
 apply_layout()
 ├── Get screen dimensions from X11
 ├── Call LayoutManager.apply_layout()
-│   └── tile_master_stack()
-│       ├── Calculate master window size/position
-│       ├── Calculate stack window sizes/positions
+│   └── tile_master_stack(windows, master_ratio, gap)
+│       ├── Calculate available space after gaps
+│       ├── Ensure minimum window sizes (100px master, 50px stack)
+│       ├── Calculate master window size/position with gaps
+│       ├── Calculate stack window sizes/positions with gaps
+│       ├── Apply overflow protection and fallback sizing
 │       └── Send configure commands to X11
-└── X11 moves/resizes all windows
+├── X11 moves/resizes all windows with gaps and borders
+└── Border colors remain based on focus state
 ```
 
 ---
@@ -884,17 +1190,22 @@ X11 creates window but doesn't show it
 X11 sends MapRequest to window manager
     ↓
 WindowManager.handle_map_request()
+    ├── Set border attributes (gray border, configurable width)
     ├── conn.map_window() - make it visible
     ├── windows.push() - add to our list
-    └── apply_layout() - rearrange everything
+    ├── set_focus() - focus new window and update borders
+    │   ├── Update focused_window and window_stack (MRU order)
+    │   ├── Set X11 input focus
+    │   └── update_window_borders() - red for focused, gray for others
+    └── apply_layout() - rearrange everything with gaps
         ↓
-LayoutManager.tile_master_stack()
-    ├── Calculate new positions for all windows
+LayoutManager.tile_master_stack(windows, master_ratio, gap)
+    ├── Calculate positions with gaps and minimum sizes
     └── conn.configure_window() for each window
         ↓
-X11 moves/resizes windows
+X11 moves/resizes windows with gaps and colored borders
     ↓
-User sees tiled windows
+User sees tiled windows with visual focus indication
 ```
 
 ### Closing a Window
@@ -938,6 +1249,31 @@ New gnome-terminal process starts
 gnome-terminal creates window → MapRequest event
     ↓
 (Follow "Opening a Window" flow above)
+```
+
+### Using Window Navigation (Alt+j)
+
+```
+User presses Alt+j (focus_next)
+    ↓
+X11 sends KeyPress event to window manager
+    ↓
+WindowManager.handle_key_press()
+    ├── KeyboardManager finds "focus_next" command
+    └── WindowManager executes: self.focus_next()
+        ↓
+focus_next() method
+    ├── Find current focused window index in windows list
+    ├── Calculate next window index (wrapping around)
+    ├── Call set_focus() with next window
+    │   ├── Update focused_window and window_stack (MRU order)
+    │   ├── Set X11 input focus to new window
+    │   └── update_window_borders()
+    │       ├── Set focused window border to red
+    │       └── Set all other window borders to gray
+    └── Layout remains unchanged (only focus changes)
+        ↓
+User sees border colors change instantly
 ```
 
 ---
@@ -1020,12 +1356,27 @@ Recent improvements:
 - ✅ Human-readable key combinations
 - ✅ Support for all X11 modifiers
 - ✅ Cross-platform modifier naming
+- ✅ Window focus management with visual borders
+- ✅ Keyboard navigation (Alt+j/k for cycling, Shift+Alt+m for swapping)
+- ✅ Window stack (MRU order) and focus tracking
+- ✅ Configurable gap system with validation and bounds checking
+- ✅ Enhanced border configuration (width, focused/unfocused colors)
+- ✅ Robustness improvements (minimum sizes, overflow protection)
+
+Current capabilities:
+- **Focus Management**: Visual feedback with colored borders (red/gray)
+- **Keyboard Navigation**: Cycle through windows with Alt+j/k
+- **Window Promotion**: Swap focused window to master with Shift+Alt+m
+- **Gap System**: Configurable spacing between windows (0-500px)
+- **Border System**: Configurable borders with focus-aware colors
+- **Robust Layout**: Minimum sizes and overflow protection
+- **Configuration Validation**: Prevents invalid settings
 
 Future features to add:
-- Multiple layouts
-- Window navigation shortcuts
+- Multiple layouts (grid, spiral, floating)
 - Multi-monitor support
-- Window decorations
-- Status bars
+- Window decorations and titles
+- Status bars and workspace indicators
+- Dynamic layout switching
 
 The window manager shows how a relatively small amount of well-structured code can create a functional desktop environment.

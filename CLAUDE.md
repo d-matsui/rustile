@@ -14,12 +14,14 @@ This is a tiling window manager written in Rust using x11rb for X11 window manag
 ```bash
 source ~/.cargo/env  # Ensure cargo is in PATH
 cargo fmt           # Format code
-cargo clippy -- -D warnings  # Check for lints (treat warnings as errors)
+cargo clippy --all-targets --all-features -- -D warnings  # Check for lints (treat warnings as errors)
 cargo test          # Run all tests
 ```
 
 - **Formatting**: All code MUST be formatted with `cargo fmt` before commits
-- **Linting**: All clippy warnings MUST be resolved (use `-D warnings` flag)
+- **Linting**: All clippy warnings MUST be resolved (use `--all-targets --all-features -- -D warnings` flags to match CI)
+  - **CRITICAL**: The `--all-targets --all-features` flags are required to catch issues in test code and all build configurations
+  - **CI Alignment**: This exact command must pass locally before commits to prevent CI failures
 - **Testing**: All tests MUST pass before commits
 - **Documentation**: Use `///` for public APIs, `//!` for module-level docs
 - **Error Handling**: Use `anyhow::Result` for error propagation, never use `unwrap()` in production code
@@ -116,7 +118,7 @@ cargo build          # Full build
 cargo run            # Build and run
 cargo test           # Run all tests
 cargo fmt            # Format code (REQUIRED before commits)
-cargo clippy -- -D warnings  # Lint code (REQUIRED before commits)
+cargo clippy --all-targets --all-features -- -D warnings  # Lint code (REQUIRED before commits)
 cargo doc --open     # Generate and open documentation
 ```
 
@@ -272,7 +274,7 @@ DISPLAY=:10 cargo run
 If automated release fails, manual steps:
 1. Ensure all tests pass: `cargo test`
 2. Ensure code is formatted: `cargo fmt`
-3. Ensure no clippy warnings: `cargo clippy -- -D warnings`
+3. Ensure no clippy warnings: `cargo clippy --all-targets --all-features -- -D warnings`
 4. Push to main - automation will handle the rest
 
 ### Release Artifacts
@@ -301,6 +303,16 @@ Each release automatically includes:
 RUST_LOG=debug cargo run  # Enable debug logging
 RUST_BACKTRACE=1 cargo run  # Show backtraces on panic
 ```
+
+### CI/Local Alignment Issues
+If CI fails but local tests pass, ensure you're running the exact same commands as CI:
+
+**Common Issue**: Running `cargo clippy -- -D warnings` locally but CI runs `cargo clippy --all-targets --all-features -- -D warnings`
+- **Local**: Only checks main library code
+- **CI**: Checks all targets including tests, benches, examples, and all feature combinations
+- **Solution**: Always use the full command from the mandatory checklist above
+
+**Example**: The `--all-targets` flag catches clippy issues in test code that may not appear in basic clippy runs.
 
 ### Release Automation Issues
 - **Release not triggered**: Check conventional commit format in commit messages

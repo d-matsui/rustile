@@ -19,8 +19,20 @@ pub struct Config {
 /// Layout-related configuration
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LayoutConfig {
+    /// Layout algorithm to use ("master_stack" or "bsp")
+    #[serde(default = "default_layout_algorithm")]
+    pub layout_algorithm: String,
     /// Master window ratio (0.0 to 1.0)
     pub master_ratio: f32,
+    /// BSP split ratio (0.0 to 1.0) - applies to BSP layout
+    #[serde(default = "default_bsp_split_ratio")]
+    pub bsp_split_ratio: f32,
+    /// Minimum window width in pixels
+    #[serde(default = "default_min_window_width")]
+    pub min_window_width: u32,
+    /// Minimum window height in pixels
+    #[serde(default = "default_min_window_height")]
+    pub min_window_height: u32,
     /// Gap between windows in pixels
     pub gap: u32,
     /// Border width in pixels
@@ -29,6 +41,22 @@ pub struct LayoutConfig {
     pub focused_border_color: u32,
     /// Unfocused window border color (hex format, e.g., 0x808080 for gray)
     pub unfocused_border_color: u32,
+}
+
+fn default_layout_algorithm() -> String {
+    "master_stack".to_string()
+}
+
+fn default_bsp_split_ratio() -> f32 {
+    0.5
+}
+
+fn default_min_window_width() -> u32 {
+    100 // Default minimum width - can be customized in config
+}
+
+fn default_min_window_height() -> u32 {
+    50 // Default minimum height - can be customized in config
 }
 
 /// General application configuration
@@ -58,7 +86,11 @@ impl Default for Config {
 impl Default for LayoutConfig {
     fn default() -> Self {
         Self {
+            layout_algorithm: default_layout_algorithm(),
             master_ratio: 0.5,
+            bsp_split_ratio: default_bsp_split_ratio(),
+            min_window_width: default_min_window_width(),
+            min_window_height: default_min_window_height(),
             gap: 0,
             border_width: 2,
             focused_border_color: 0xFF0000,   // Red
@@ -130,6 +162,14 @@ impl Config {
             ));
         }
 
+        // Validate BSP split ratio
+        if self.layout.bsp_split_ratio <= 0.0 || self.layout.bsp_split_ratio > 1.0 {
+            return Err(anyhow::anyhow!(
+                "bsp_split_ratio must be between 0.0 and 1.0, got: {}",
+                self.layout.bsp_split_ratio
+            ));
+        }
+
         // Validate gap size
         if self.layout.gap > 500 {
             return Err(anyhow::anyhow!(
@@ -152,6 +192,21 @@ impl Config {
                 "gap ({}) + border_width ({}) is too large (max combined 600px)",
                 self.layout.gap,
                 self.layout.border_width
+            ));
+        }
+
+        // Validate minimum window dimensions
+        if self.layout.min_window_width < 10 || self.layout.min_window_width > 500 {
+            return Err(anyhow::anyhow!(
+                "min_window_width must be between 10 and 500 pixels, got: {}",
+                self.layout.min_window_width
+            ));
+        }
+
+        if self.layout.min_window_height < 10 || self.layout.min_window_height > 500 {
+            return Err(anyhow::anyhow!(
+                "min_window_height must be between 10 and 500 pixels, got: {}",
+                self.layout.min_window_height
             ));
         }
 
@@ -201,6 +256,21 @@ impl Config {
     /// Gets the gap between windows
     pub fn gap(&self) -> u32 {
         self.layout.gap
+    }
+
+    /// Gets the layout algorithm to use
+    pub fn layout_algorithm(&self) -> &str {
+        &self.layout.layout_algorithm
+    }
+
+    /// Gets the minimum window width
+    pub fn min_window_width(&self) -> u32 {
+        self.layout.min_window_width
+    }
+
+    /// Gets the minimum window height
+    pub fn min_window_height(&self) -> u32 {
+        self.layout.min_window_height
     }
 }
 
@@ -257,6 +327,56 @@ mod tests {
         // Gap + border combination too large should fail
         config.layout.gap = 400;
         config.layout.border_width = 250;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_minimum_window_size_validation() {
+        let mut config = Config::default();
+
+        // Valid minimum sizes should pass
+        config.layout.min_window_width = 100;
+        config.layout.min_window_height = 50;
+        assert!(config.validate().is_ok());
+
+        // Too small width should fail
+        config.layout.min_window_width = 5;
+        assert!(config.validate().is_err());
+
+        // Reset and test too large width
+        config.layout.min_window_width = 600;
+        assert!(config.validate().is_err());
+
+        // Reset and test too small height
+        config.layout.min_window_width = 100;
+        config.layout.min_window_height = 5;
+        assert!(config.validate().is_err());
+
+        // Reset and test too large height
+        config.layout.min_window_height = 600;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_bsp_split_ratio_validation() {
+        let mut config = Config::default();
+
+        // Valid BSP split ratio should pass
+        config.layout.bsp_split_ratio = 0.5;
+        assert!(config.validate().is_ok());
+
+        // Edge cases - exactly 0.0 should fail, exactly 1.0 should pass
+        config.layout.bsp_split_ratio = 0.0;
+        assert!(config.validate().is_err());
+
+        config.layout.bsp_split_ratio = 1.0;
+        assert!(config.validate().is_ok());
+
+        // Out of range should fail
+        config.layout.bsp_split_ratio = 1.5;
+        assert!(config.validate().is_err());
+
+        config.layout.bsp_split_ratio = -0.1;
         assert!(config.validate().is_err());
     }
 
