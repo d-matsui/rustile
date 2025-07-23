@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 # Setup script for Rustile configuration
 
 CONFIG_DIR="$HOME/.config/rustile"

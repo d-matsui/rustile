@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 # Robust layout switcher
 
 CONFIG="$HOME/.config/rustile/config.toml"

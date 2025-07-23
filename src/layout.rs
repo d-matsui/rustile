@@ -284,6 +284,8 @@ impl LayoutManager {
         focused_window: Option<Window>,
         master_ratio: f32,
         bsp_split_ratio: f32,
+        min_window_width: u32,
+        min_window_height: u32,
         gap: u32,
     ) -> Result<()> {
         tracing::info!(
@@ -294,13 +296,21 @@ impl LayoutManager {
         match self.current_layout {
             Layout::MasterStack => {
                 tracing::debug!("Using MasterStack layout");
-                self.tile_master_stack(conn, screen, windows, master_ratio, gap)
+                self.tile_master_stack(
+                    conn,
+                    screen,
+                    windows,
+                    master_ratio,
+                    min_window_width,
+                    min_window_height,
+                    gap,
+                )
             }
             Layout::Bsp => {
                 tracing::debug!("Using BSP layout");
                 // Rebuild BSP tree from current windows
                 self.rebuild_bsp_tree(windows, focused_window, bsp_split_ratio);
-                self.tile_bsp(conn, screen, gap)
+                self.tile_bsp(conn, screen, min_window_width, min_window_height, gap)
             }
         }
     }
@@ -340,13 +350,22 @@ impl LayoutManager {
     }
 
     /// Apply BSP tiling layout
-    fn tile_bsp(&self, conn: &impl Connection, screen: &Screen, gap: u32) -> Result<()> {
+    fn tile_bsp(
+        &self,
+        conn: &impl Connection,
+        screen: &Screen,
+        min_window_width: u32,
+        min_window_height: u32,
+        gap: u32,
+    ) -> Result<()> {
         if let Some(ref root) = self.bsp_tree.root {
             let screen_rect = BspRect {
                 x: gap as i32,
                 y: gap as i32,
-                width: (screen.width_in_pixels as i32 - 2 * gap as i32).max(100),
-                height: (screen.height_in_pixels as i32 - 2 * gap as i32).max(100),
+                width: (screen.width_in_pixels as i32 - 2 * gap as i32)
+                    .max(min_window_width as i32),
+                height: (screen.height_in_pixels as i32 - 2 * gap as i32)
+                    .max(min_window_height as i32),
             };
             tracing::debug!(
                 "BSP: Applying layout to screen {}x{} with gap {}",
@@ -354,7 +373,14 @@ impl LayoutManager {
                 screen.height_in_pixels,
                 gap
             );
-            Self::apply_bsp_recursive(conn, root, screen_rect, gap)?;
+            Self::apply_bsp_recursive(
+                conn,
+                root,
+                screen_rect,
+                min_window_width,
+                min_window_height,
+                gap,
+            )?;
         } else {
             tracing::debug!("BSP: No root node, skipping layout");
         }
@@ -366,6 +392,8 @@ impl LayoutManager {
         conn: &impl Connection,
         node: &BspNode,
         rect: BspRect,
+        min_window_width: u32,
+        min_window_height: u32,
         gap: u32,
     ) -> Result<()> {
         match node {
@@ -400,13 +428,13 @@ impl LayoutManager {
                         let left_rect = BspRect {
                             x: rect.x,
                             y: rect.y,
-                            width: split_pos.max(50),
+                            width: split_pos.max(min_window_width as i32),
                             height: rect.height,
                         };
                         let right_rect = BspRect {
                             x: rect.x + split_pos + gap_i32,
                             y: rect.y,
-                            width: (rect.width - split_pos - gap_i32).max(50),
+                            width: (rect.width - split_pos - gap_i32).max(min_window_width as i32),
                             height: rect.height,
                         };
                         (left_rect, right_rect)
@@ -418,21 +446,36 @@ impl LayoutManager {
                             x: rect.x,
                             y: rect.y,
                             width: rect.width,
-                            height: split_pos.max(50),
+                            height: split_pos.max(min_window_height as i32),
                         };
                         let right_rect = BspRect {
                             x: rect.x,
                             y: rect.y + split_pos + gap_i32,
                             width: rect.width,
-                            height: (rect.height - split_pos - gap_i32).max(50),
+                            height: (rect.height - split_pos - gap_i32)
+                                .max(min_window_height as i32),
                         };
                         (left_rect, right_rect)
                     }
                 };
 
                 // Recursively apply layout to children
-                Self::apply_bsp_recursive(conn, left, left_rect, gap)?;
-                Self::apply_bsp_recursive(conn, right, right_rect, gap)?
+                Self::apply_bsp_recursive(
+                    conn,
+                    left,
+                    left_rect,
+                    min_window_width,
+                    min_window_height,
+                    gap,
+                )?;
+                Self::apply_bsp_recursive(
+                    conn,
+                    right,
+                    right_rect,
+                    min_window_width,
+                    min_window_height,
+                    gap,
+                )?
             }
         }
         Ok(())
@@ -444,12 +487,15 @@ impl LayoutManager {
     /// - Single window: Full screen minus gaps
     /// - Multiple windows: First window takes configurable ratio (master),
     ///   remaining windows stack vertically on the right, with gaps between
+    #[allow(clippy::too_many_arguments)]
     fn tile_master_stack(
         &self,
         conn: &impl Connection,
         screen: &Screen,
         windows: &[Window],
         master_ratio: f32,
+        min_window_width: u32,
+        min_window_height: u32,
         gap: u32,
     ) -> Result<()> {
         if windows.is_empty() {
@@ -464,25 +510,26 @@ impl LayoutManager {
         // Configure master window
         let master_window = windows[0];
         let master_width = if num_windows > 1 {
-            // Multiple windows: master takes ratio of available space, ensure minimum 100px
+            // Multiple windows: master takes ratio of available space, ensure minimum width
             let available_width = screen_width - 3 * gap_i16;
-            if available_width > 150 {
-                // Need at least 150px total (100px master + 50px stack)
-                ((available_width as f32 * master_ratio) as i16).max(100)
+            let min_total = min_window_width + min_window_height; // master + stack minimum
+            if available_width > min_total as i16 {
+                // Need at least minimum total width
+                ((available_width as f32 * master_ratio) as i16).max(min_window_width as i16)
             } else {
                 // Fallback: reduce gaps to fit windows
-                (screen_width / 2).max(100)
+                (screen_width / 2).max(min_window_width as i16)
             }
         } else {
-            // Single window: full width minus gaps, minimum 100px
-            (screen_width - 2 * gap_i16).max(100)
+            // Single window: full width minus gaps, minimum width
+            (screen_width - 2 * gap_i16).max(min_window_width as i16)
         };
 
         let master_config = ConfigureWindowAux::new()
             .x(gap_i16 as i32)
             .y(gap_i16 as i32)
-            .width(master_width.max(100) as u32) // Minimum 100px width
-            .height((screen_height - 2 * gap_i16).max(100) as u32); // Minimum 100px height
+            .width(master_width.max(min_window_width as i16) as u32) // Minimum window width
+            .height((screen_height - 2 * gap_i16).max(min_window_height as i16) as u32); // Minimum window height
 
         conn.configure_window(master_window, &master_config)?;
 
@@ -491,20 +538,21 @@ impl LayoutManager {
             let stack_windows = &windows[1..];
             let num_stack = stack_windows.len() as i16;
             let stack_x = gap_i16 + master_width + gap_i16; // Add gap between master and stack
-            let stack_width = (screen_width - stack_x - gap_i16).max(50); // Minimum usable width
+            let stack_width = (screen_width - stack_x - gap_i16).max(min_window_width as i16); // Minimum usable width
 
             // Ensure we have enough space for stack windows with minimum height
-            let min_total_height = num_stack * 50 + (num_stack - 1) * gap_i16; // 50px min per window
+            let min_total_height = num_stack * min_window_height as i16 + (num_stack - 1) * gap_i16; // min height per window
             let available_height = screen_height - 2 * gap_i16;
 
             let total_stack_height = if available_height >= min_total_height {
                 available_height - (num_stack - 1) * gap_i16
             } else {
                 // Fallback: reduce gaps if necessary to fit windows
-                (available_height - num_stack * 50).max(num_stack * 50)
+                (available_height - num_stack * min_window_height as i16)
+                    .max(num_stack * min_window_height as i16)
             };
 
-            let stack_height = (total_stack_height / num_stack).max(50); // Minimum 50px height
+            let stack_height = (total_stack_height / num_stack).max(min_window_height as i16); // Minimum window height
 
             for (index, &window) in stack_windows.iter().enumerate() {
                 let stack_y = gap_i16 + (index as i16) * (stack_height + gap_i16);

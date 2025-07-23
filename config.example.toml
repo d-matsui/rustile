@@ -21,6 +21,11 @@ master_ratio = 0.5
 # 0.5 means equal 50/50 split between windows
 bsp_split_ratio = 0.5
 
+# Minimum window dimensions in pixels
+# Prevents windows from becoming too small to be usable
+min_window_width = 100   # Minimum width for any window (recommended: 80-150)
+min_window_height = 50   # Minimum height for any window (recommended: 40-80)
+
 # Gap between windows in pixels
 # Recommended values: 0-50 (0 = no gaps, 10-20 = comfortable, 50+ = spacious)
 # Maximum allowed: 500 pixels

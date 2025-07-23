@@ -285,6 +285,8 @@ impl<C: Connection> WindowManager<C> {
             self.focused_window,
             self.config.master_ratio(),
             self.config.layout.bsp_split_ratio,
+            self.config.min_window_width(),
+            self.config.min_window_height(),
             self.config.gap(),
         )?;
 
