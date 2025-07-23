@@ -1,3 +1,9 @@
+## [0.3.2](https://github.com/d-matsui/rustile/compare/v0.3.1...v0.3.2) (2025-07-23)
+
+### 📖 Documentation
+
+* improve roadmap structure and acknowledgments ([5bd3022](https://github.com/d-matsui/rustile/commit/5bd30226c549afc34f06603e8f3b9a0564cdefe0))
+
 ## [0.3.1](https://github.com/d-matsui/rustile/compare/v0.3.0...v0.3.1) (2025-07-23)
 
 ### 🐛 Bug Fixes
