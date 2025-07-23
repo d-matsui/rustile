@@ -24,6 +24,9 @@ pub struct LayoutConfig {
     pub layout_algorithm: String,
     /// Master window ratio (0.0 to 1.0)
     pub master_ratio: f32,
+    /// BSP split ratio (0.0 to 1.0) - applies to BSP layout
+    #[serde(default = "default_bsp_split_ratio")]
+    pub bsp_split_ratio: f32,
     /// Gap between windows in pixels
     pub gap: u32,
     /// Border width in pixels
@@ -36,6 +39,10 @@ pub struct LayoutConfig {
 
 fn default_layout_algorithm() -> String {
     "master_stack".to_string()
+}
+
+fn default_bsp_split_ratio() -> f32 {
+    0.5
 }
 
 /// General application configuration
@@ -67,6 +74,7 @@ impl Default for LayoutConfig {
         Self {
             layout_algorithm: default_layout_algorithm(),
             master_ratio: 0.5,
+            bsp_split_ratio: default_bsp_split_ratio(),
             gap: 0,
             border_width: 2,
             focused_border_color: 0xFF0000,   // Red
