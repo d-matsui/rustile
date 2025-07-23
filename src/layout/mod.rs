@@ -6,10 +6,11 @@
 
 // Re-export the main public interface
 pub use manager::LayoutManager;
-pub use types::{Layout, SplitDirection};
+pub use types::{Layout, SplitDirection, LayoutParams, ScreenParams, WindowConstraints, LayoutRatios};
 
 // Internal modules
 mod bsp;
+mod constants;
 mod manager;
 mod master_stack;
 mod types;

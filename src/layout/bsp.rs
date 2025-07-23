@@ -5,6 +5,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
 use super::types::{BspRect, SplitDirection};
+use super::constants::{bsp, dimensions};
 
 /// Represents a node in the BSP tree
 #[derive(Debug, Clone)]
@@ -37,7 +38,7 @@ impl BspTree {
     pub fn new() -> Self {
         Self {
             root: None,
-            split_count: 0,
+            split_count: bsp::INITIAL_SPLIT_COUNT,
         }
     }
 
@@ -77,7 +78,7 @@ impl BspTree {
             BspNode::Leaf(existing_window) => {
                 if *existing_window == target_window {
                     // Found target - split this leaf
-                    let direction = if split_count % 2 == 0 {
+                    let direction = if split_count % bsp::SPLIT_DIRECTION_MODULUS == 0 {
                         SplitDirection::Vertical
                     } else {
                         SplitDirection::Horizontal
@@ -279,8 +280,8 @@ fn apply_bsp_recursive<C: Connection>(
             let config = ConfigureWindowAux::new()
                 .x(rect.x)
                 .y(rect.y)
-                .width(rect.width.max(1) as u32)
-                .height(rect.height.max(1) as u32);
+                .width(rect.width.max(dimensions::MIN_WINDOW_WIDTH as i32) as u32)
+                .height(rect.height.max(dimensions::MIN_WINDOW_HEIGHT as i32) as u32);
             conn.configure_window(*window, &config)?;
         }
         BspNode::Split {
@@ -364,7 +365,7 @@ pub fn rebuild_bsp_tree(
     );
     *bsp_tree = BspTree::new();
     for (index, &window) in windows.iter().enumerate() {
-        if index == 0 {
+        if index == bsp::INITIAL_SPLIT_COUNT {
             // First window becomes root
             #[cfg(debug_assertions)]
             tracing::debug!("BSP: Adding first window {} as root", window);
@@ -372,7 +373,7 @@ pub fn rebuild_bsp_tree(
         } else {
             // For BSP, we want to split the most recently added window (not focused)
             // This creates the typical BSP behavior
-            let target = Some(windows[index - 1]);
+            let target = Some(windows[index - bsp::TARGET_WINDOW_OFFSET]);
             #[cfg(debug_assertions)]
             tracing::debug!("BSP: Adding window {} targeting {:?}", window, target);
             bsp_tree.add_window(window, target, bsp_split_ratio);

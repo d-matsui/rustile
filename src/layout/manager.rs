@@ -5,7 +5,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
 use super::bsp::BspTree;
-use super::types::Layout;
+use super::types::{Layout, LayoutParams, ScreenParams, WindowConstraints, LayoutRatios};
 
 /// Window layout manager
 ///
@@ -66,7 +66,7 @@ impl LayoutManager {
         }
     }
 
-    /// Applies the current layout to arrange windows
+    /// Applies the current layout to arrange windows (legacy interface)
     #[allow(clippy::too_many_arguments)]
     pub fn apply_layout<C: Connection>(
         &mut self,
@@ -81,6 +81,34 @@ impl LayoutManager {
         min_window_height: u32,
         gap: u32,
     ) -> Result<()> {
+        // Convert to new parameter struct and delegate
+        let params = LayoutParams {
+            screen: ScreenParams {
+                width: screen_width,
+                height: screen_height,
+                gap,
+            },
+            constraints: WindowConstraints {
+                min_width: min_window_width,
+                min_height: min_window_height,
+            },
+            ratios: LayoutRatios {
+                master_ratio,
+                bsp_split_ratio,
+            },
+        };
+        
+        self.apply_layout_with_params(conn, windows, focused_window, params)
+    }
+    
+    /// Applies the current layout to arrange windows using parameter structs
+    pub fn apply_layout_with_params<C: Connection>(
+        &mut self,
+        conn: &C,
+        windows: &[Window],
+        focused_window: Option<Window>,
+        params: LayoutParams,
+    ) -> Result<()> {
         if windows.is_empty() {
             return Ok(());
         }
@@ -90,25 +118,20 @@ impl LayoutManager {
                 super::master_stack::tile_master_stack(
                     conn,
                     windows,
-                    screen_width,
-                    screen_height,
-                    master_ratio,
-                    min_window_width,
-                    min_window_height,
-                    gap,
+                    params.screen.width,
+                    params.screen.height,
+                    params.ratios.master_ratio,
+                    params.constraints.min_width,
+                    params.constraints.min_height,
+                    params.screen.gap,
                 )?;
             }
             Layout::Bsp => {
-                self.tile_bsp(
+                self.tile_bsp_with_params(
                     conn,
                     windows,
                     focused_window,
-                    screen_width,
-                    screen_height,
-                    bsp_split_ratio,
-                    min_window_width,
-                    min_window_height,
-                    gap,
+                    params,
                 )?;
             }
         }
@@ -116,8 +139,8 @@ impl LayoutManager {
         Ok(())
     }
 
-    /// Rebuild BSP tree from window list and apply layout
-    #[allow(clippy::too_many_arguments)]
+    /// Rebuild BSP tree from window list and apply layout (legacy interface)
+    #[allow(clippy::too_many_arguments, dead_code)]
     fn tile_bsp<C: Connection>(
         &mut self,
         conn: &C,
@@ -130,8 +153,35 @@ impl LayoutManager {
         min_window_height: u32,
         gap: u32,
     ) -> Result<()> {
+        let params = LayoutParams {
+            screen: ScreenParams {
+                width: screen_width,
+                height: screen_height,
+                gap,
+            },
+            constraints: WindowConstraints {
+                min_width: min_window_width,
+                min_height: min_window_height,
+            },
+            ratios: LayoutRatios {
+                master_ratio: 0.5, // Not used in BSP
+                bsp_split_ratio: split_ratio,
+            },
+        };
+        
+        self.tile_bsp_with_params(conn, windows, focused_window, params)
+    }
+
+    /// Rebuild BSP tree from window list and apply layout using parameter structs
+    fn tile_bsp_with_params<C: Connection>(
+        &mut self,
+        conn: &C,
+        windows: &[Window],
+        focused_window: Option<Window>,
+        params: LayoutParams,
+    ) -> Result<()> {
         // Rebuild BSP tree from current windows
-        super::bsp::rebuild_bsp_tree(&mut self.bsp_tree, windows, focused_window, split_ratio);
+        super::bsp::rebuild_bsp_tree(&mut self.bsp_tree, windows, focused_window, params.ratios.bsp_split_ratio);
 
         // Apply the BSP layout
         super::bsp::tile_bsp_windows(
@@ -139,12 +189,12 @@ impl LayoutManager {
             &self.bsp_tree,
             windows,
             focused_window,
-            screen_width,
-            screen_height,
-            split_ratio,
-            min_window_width,
-            min_window_height,
-            gap,
+            params.screen.width,
+            params.screen.height,
+            params.ratios.bsp_split_ratio,
+            params.constraints.min_width,
+            params.constraints.min_height,
+            params.screen.gap,
         )
     }
 }

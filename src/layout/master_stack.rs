@@ -4,6 +4,8 @@ use anyhow::Result;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
+use super::constants::{dimensions, layout};
+
 /// Tiles windows in master-stack layout
 ///
 /// Layout behavior:
@@ -31,41 +33,41 @@ pub fn tile_master_stack<C: Connection>(
     let gap_i16 = gap as i16;
 
     // Configure master window
-    let master_window = windows[0];
+    let master_window = windows[layout::FIRST_WINDOW_INDEX];
     let master_width = if num_windows > 1 {
         // Multiple windows: master takes ratio of available space, ensure minimum width
-        let available_width = screen_width - 3 * gap_i16;
+        let available_width = screen_width - layout::MASTER_STACK_GAP_COUNT * gap_i16;
         let min_total = min_window_width + min_window_height; // master + stack minimum
         if available_width > min_total as i16 {
             // Need at least minimum total width
             ((available_width as f32 * master_ratio) as i16).max(min_window_width as i16)
         } else {
             // Fallback: reduce gaps to fit windows
-            (screen_width / 2).max(min_window_width as i16)
+            (screen_width / layout::FALLBACK_SCREEN_RATIO).max(min_window_width as i16)
         }
     } else {
         // Single window: full width minus gaps, minimum width
-        (screen_width - 2 * gap_i16).max(min_window_width as i16)
+        (screen_width - layout::SINGLE_WINDOW_GAP_COUNT * gap_i16).max(min_window_width as i16)
     };
 
     let master_config = ConfigureWindowAux::new()
         .x(gap_i16 as i32)
         .y(gap_i16 as i32)
         .width(master_width.max(min_window_width as i16) as u32) // Minimum window width
-        .height((screen_height - 2 * gap_i16).max(min_window_height as i16) as u32); // Minimum window height
+        .height((screen_height - layout::SINGLE_WINDOW_GAP_COUNT * gap_i16).max(min_window_height as i16) as u32); // Minimum window height
 
     conn.configure_window(master_window, &master_config)?;
 
     // Configure stack windows if any
-    if num_windows > 1 {
-        let stack_windows = &windows[1..];
+    if num_windows > layout::MIN_MULTI_WINDOW_COUNT {
+        let stack_windows = &windows[(layout::FIRST_WINDOW_INDEX + 1)..]; 
         let num_stack = stack_windows.len() as i16;
         let stack_x = gap_i16 + master_width + gap_i16; // Add gap between master and stack
         let stack_width = (screen_width - stack_x - gap_i16).max(min_window_width as i16); // Minimum usable width
 
         // Ensure we have enough space for stack windows with minimum height
         let min_total_height = num_stack * min_window_height as i16 + (num_stack - 1) * gap_i16; // min height per window
-        let available_height = screen_height - 2 * gap_i16;
+        let available_height = screen_height - layout::SINGLE_WINDOW_GAP_COUNT * gap_i16;
 
         let total_stack_height = if available_height >= min_total_height {
             available_height - (num_stack - 1) * gap_i16
@@ -83,8 +85,8 @@ pub fn tile_master_stack<C: Connection>(
             let stack_config = ConfigureWindowAux::new()
                 .x(stack_x as i32)
                 .y(stack_y as i32)
-                .width(stack_width.max(1) as u32)
-                .height(stack_height.max(1) as u32);
+                .width(stack_width.max(dimensions::MIN_WINDOW_WIDTH as i16) as u32)
+                .height(stack_height.max(dimensions::MIN_WINDOW_HEIGHT as i16) as u32);
 
             conn.configure_window(window, &stack_config)?;
         }
@@ -95,6 +97,7 @@ pub fn tile_master_stack<C: Connection>(
 
 #[cfg(test)]
 mod tests {
+    // Tests use hardcoded values for clarity and simplicity
 
     #[test]
     fn test_master_window_dimensions() {
