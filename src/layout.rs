@@ -51,6 +51,11 @@ pub enum Layout {
 }
 
 /// Window layout manager
+///
+/// Future enhancements could include:
+/// - Dynamic minimum sizes based on screen resolution
+/// - Per-application minimum size rules
+/// - Adaptive layout switching based on window count
 pub struct LayoutManager {
     current_layout: Layout,
     bsp_tree: BspTree,
@@ -150,13 +155,7 @@ impl BspTree {
         }
     }
 
-    /// Check if a subtree contains a specific window
-    #[allow(dead_code)]
-    fn contains_window(&self, node: &BspNode, target_window: Window) -> bool {
-        Self::contains_window_static(node, target_window)
-    }
-
-    /// Static version of contains_window to avoid borrow issues
+    /// Check if a subtree contains a specific window (static version to avoid borrow issues)
     fn contains_window_static(node: &BspNode, target_window: Window) -> bool {
         match node {
             BspNode::Leaf(window) => *window == target_window,
@@ -322,6 +321,7 @@ impl LayoutManager {
         focused_window: Option<Window>,
         bsp_split_ratio: f32,
     ) {
+        #[cfg(debug_assertions)]
         tracing::debug!(
             "Rebuilding BSP tree with {} windows, focused: {:?}",
             windows.len(),
@@ -331,17 +331,20 @@ impl LayoutManager {
         for (index, &window) in windows.iter().enumerate() {
             if index == 0 {
                 // First window becomes root
+                #[cfg(debug_assertions)]
                 tracing::debug!("BSP: Adding first window {} as root", window);
                 self.bsp_tree.add_window(window, None, bsp_split_ratio);
             } else {
                 // For BSP, we want to split the most recently added window (not focused)
                 // This creates the typical yabai behavior
                 let target = Some(windows[index - 1]);
+                #[cfg(debug_assertions)]
                 tracing::debug!("BSP: Adding window {} targeting {:?}", window, target);
                 self.bsp_tree.add_window(window, target, bsp_split_ratio);
             }
         }
-        // Debug print the tree structure
+        // Debug print the tree structure (only in debug builds)
+        #[cfg(debug_assertions)]
         if let Some(ref root) = self.bsp_tree.root {
             tracing::debug!("BSP tree structure: {:?}", root);
         } else {
@@ -367,6 +370,7 @@ impl LayoutManager {
                 height: (screen.height_in_pixels as i32 - 2 * gap as i32)
                     .max(min_window_height as i32),
             };
+            #[cfg(debug_assertions)]
             tracing::debug!(
                 "BSP: Applying layout to screen {}x{} with gap {}",
                 screen.width_in_pixels,
@@ -382,6 +386,7 @@ impl LayoutManager {
                 gap,
             )?;
         } else {
+            #[cfg(debug_assertions)]
             tracing::debug!("BSP: No root node, skipping layout");
         }
         Ok(())
@@ -399,6 +404,7 @@ impl LayoutManager {
         match node {
             BspNode::Leaf(window) => {
                 // Configure the window to fill the rect
+                #[cfg(debug_assertions)]
                 tracing::debug!(
                     "BSP: Positioning window {} at ({}, {}) with size {}x{}",
                     window,

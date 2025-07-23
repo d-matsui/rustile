@@ -52,11 +52,11 @@ fn default_bsp_split_ratio() -> f32 {
 }
 
 fn default_min_window_width() -> u32 {
-    100
+    100 // Default minimum width - can be customized in config
 }
 
 fn default_min_window_height() -> u32 {
-    50
+    50 // Default minimum height - can be customized in config
 }
 
 /// General application configuration
@@ -184,6 +184,21 @@ impl Config {
                 "gap ({}) + border_width ({}) is too large (max combined 600px)",
                 self.layout.gap,
                 self.layout.border_width
+            ));
+        }
+
+        // Validate minimum window dimensions
+        if self.layout.min_window_width < 10 || self.layout.min_window_width > 500 {
+            return Err(anyhow::anyhow!(
+                "min_window_width must be between 10 and 500 pixels, got: {}",
+                self.layout.min_window_width
+            ));
+        }
+
+        if self.layout.min_window_height < 10 || self.layout.min_window_height > 500 {
+            return Err(anyhow::anyhow!(
+                "min_window_height must be between 10 and 500 pixels, got: {}",
+                self.layout.min_window_height
             ));
         }
 

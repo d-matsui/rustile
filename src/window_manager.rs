@@ -117,6 +117,7 @@ impl<C: Connection> WindowManager<C> {
             Event::FocusOut(ev) => self.handle_focus_out(ev),
             Event::EnterNotify(ev) => self.handle_enter_notify(ev),
             _ => {
+                #[cfg(debug_assertions)]
                 debug!("Unhandled event: {:?}", event);
                 Ok(())
             }
@@ -213,6 +214,7 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles window configure requests
     fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
         debug!("Configure request for window: {:?}", event.window);
 
         // For now, just honor the request
@@ -248,6 +250,7 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles focus in events
     fn handle_focus_in(&mut self, event: FocusInEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
         debug!("Focus in for window: {:?}", event.event);
         // X11 focus events can be noisy, we mainly rely on our own focus tracking
         Ok(())
@@ -255,6 +258,7 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles focus out events
     fn handle_focus_out(&mut self, event: FocusOutEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
         debug!("Focus out for window: {:?}", event.event);
         // X11 focus events can be noisy, we mainly rely on our own focus tracking
         Ok(())
@@ -263,6 +267,7 @@ impl<C: Connection> WindowManager<C> {
     /// Handles enter notify events (mouse enters window)
     fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
         let window = event.event;
+        #[cfg(debug_assertions)]
         debug!("Mouse entered window: {:?}", window);
 
         // Optionally enable focus-follows-mouse
@@ -313,6 +318,7 @@ impl<C: Connection> WindowManager<C> {
         // Update window borders
         self.update_window_borders()?;
 
+        #[cfg(debug_assertions)]
         debug!("Focus set to window: {:?}", window);
         Ok(())
     }
