@@ -139,21 +139,13 @@ cargo test test_name         # Run specific test
 
 ## Project Structure and Architecture
 
-```
-rustile/
-├── src/
-│   ├── main.rs              # Entry point and CLI
-│   ├── lib.rs               # Library root
-│   ├── window_manager.rs    # Core window management logic
-│   ├── layout.rs            # Tiling layout algorithms
-│   ├── config.rs            # Configuration system (TOML)
-│   ├── keyboard.rs          # Keyboard shortcut handling
-│   └── keys.rs              # Key parsing utilities
-├── config.example.toml      # Example configuration
-├── test_focus.sh            # Testing script with Xephyr
-├── setup_config.sh          # Configuration setup script
-└── CLAUDE.md               # This file
-```
+For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+Key directories:
+- `src/` - Core source code
+- `scripts/` - Development utilities (use `scripts/dev-tools.sh`)
+- `docs/` - Project documentation
+- `.github/workflows/` - CI/CD configuration
 
 ## Current Features
 
