@@ -1,3 +1,13 @@
+## [0.3.1](https://github.com/d-matsui/rustile/compare/v0.3.0...v0.3.1) (2025-07-23)
+
+### 🐛 Bug Fixes
+
+* use PAT for semantic-release to bypass branch protection ([a333807](https://github.com/d-matsui/rustile/commit/a33380709ed8186b997a25e116faec89766721cf))
+
+### 📖 Documentation
+
+* reorganize documentation structure and simplify README ([d658f52](https://github.com/d-matsui/rustile/commit/d658f52e02ca68bb6e9d91391714f8892c6ce839))
+
 ## [0.3.0](https://github.com/d-matsui/rustile/compare/v0.2.0...v0.3.0) (2025-07-23)
 
 ### ⚠ BREAKING CHANGES
