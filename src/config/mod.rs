@@ -5,6 +5,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::info;
 
+pub mod validation;
+
+use validation::{Validate, validators};
+
 /// Main configuration structure
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
@@ -102,8 +106,76 @@ impl Default for LayoutConfig {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            default_display: ":1".to_string(),
+            default_display: ":10".to_string(),
         }
+    }
+}
+
+// Validation trait implementations
+
+impl Validate for LayoutConfig {
+    fn validate(&self) -> Result<()> {
+        // Validate ratios
+        validators::validate_ratio(self.master_ratio, "master_ratio")?;
+        validators::validate_ratio(self.bsp_split_ratio, "bsp_split_ratio")?;
+
+        // Validate dimensions
+        validators::validate_dimension(self.gap, "gap", 0, 500)?;
+        validators::validate_dimension(self.border_width, "border_width", 0, 50)?;
+        validators::validate_dimension(self.min_window_width, "min_window_width", 10, 500)?;
+        validators::validate_dimension(self.min_window_height, "min_window_height", 10, 500)?;
+
+        // Validate combinations
+        validators::validate_combination(
+            self.gap,
+            "gap",
+            self.border_width,
+            "border_width",
+            600,
+            "600px total",
+        )?;
+
+        // Validate layout algorithm choice
+        validators::validate_choice(
+            &self.layout_algorithm,
+            "layout_algorithm",
+            &["master_stack", "bsp"],
+        )?;
+
+        Ok(())
+    }
+}
+
+impl Validate for GeneralConfig {
+    fn validate(&self) -> Result<()> {
+        // Validate display format (simple check for X11 display format)
+        if !self.default_display.starts_with(':') && !self.default_display.contains('.') {
+            return Err(anyhow::anyhow!(
+                "default_display should be in X11 format (e.g., ':0', '192.168.1.1:0.0'), got: '{}'",
+                self.default_display
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl Validate for Config {
+    fn validate(&self) -> Result<()> {
+        // Validate sub-configurations
+        self.layout.validate()?;
+        self.general.validate()?;
+
+        // Validate shortcuts
+        for (key_combo, command) in &self.shortcuts {
+            if key_combo.is_empty() {
+                return Err(anyhow::anyhow!("Empty key combination"));
+            }
+            if command.is_empty() {
+                return Err(anyhow::anyhow!("Empty command for key: {}", key_combo));
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -152,75 +224,9 @@ impl Config {
         Ok(config_dir.join("rustile").join("config.toml"))
     }
 
-    /// Validates the configuration
+    /// Validates the configuration using the Validate trait
     fn validate(&self) -> Result<()> {
-        // Validate master ratio
-        if self.layout.master_ratio <= 0.0 || self.layout.master_ratio > 1.0 {
-            return Err(anyhow::anyhow!(
-                "master_ratio must be between 0.0 and 1.0, got: {}",
-                self.layout.master_ratio
-            ));
-        }
-
-        // Validate BSP split ratio
-        if self.layout.bsp_split_ratio <= 0.0 || self.layout.bsp_split_ratio > 1.0 {
-            return Err(anyhow::anyhow!(
-                "bsp_split_ratio must be between 0.0 and 1.0, got: {}",
-                self.layout.bsp_split_ratio
-            ));
-        }
-
-        // Validate gap size
-        if self.layout.gap > 500 {
-            return Err(anyhow::anyhow!(
-                "gap is too large (max 500 pixels), got: {}",
-                self.layout.gap
-            ));
-        }
-
-        // Validate border width
-        if self.layout.border_width > 50 {
-            return Err(anyhow::anyhow!(
-                "border_width is too large (max 50 pixels), got: {}",
-                self.layout.border_width
-            ));
-        }
-
-        // Validate gap + border combination
-        if self.layout.gap + self.layout.border_width > 600 {
-            return Err(anyhow::anyhow!(
-                "gap ({}) + border_width ({}) is too large (max combined 600px)",
-                self.layout.gap,
-                self.layout.border_width
-            ));
-        }
-
-        // Validate minimum window dimensions
-        if self.layout.min_window_width < 10 || self.layout.min_window_width > 500 {
-            return Err(anyhow::anyhow!(
-                "min_window_width must be between 10 and 500 pixels, got: {}",
-                self.layout.min_window_width
-            ));
-        }
-
-        if self.layout.min_window_height < 10 || self.layout.min_window_height > 500 {
-            return Err(anyhow::anyhow!(
-                "min_window_height must be between 10 and 500 pixels, got: {}",
-                self.layout.min_window_height
-            ));
-        }
-
-        // Validate shortcuts
-        for (key_combo, command) in &self.shortcuts {
-            if key_combo.is_empty() {
-                return Err(anyhow::anyhow!("Empty key combination"));
-            }
-            if command.is_empty() {
-                return Err(anyhow::anyhow!("Empty command for key: {}", key_combo));
-            }
-        }
-
-        Ok(())
+        Validate::validate(self)
     }
 
     /// Gets the master ratio for layout calculations
@@ -271,6 +277,11 @@ impl Config {
     /// Gets the minimum window height
     pub fn min_window_height(&self) -> u32 {
         self.layout.min_window_height
+    }
+
+    /// Gets the BSP split ratio
+    pub fn bsp_split_ratio(&self) -> f32 {
+        self.layout.bsp_split_ratio
     }
 }
 
@@ -384,7 +395,7 @@ mod tests {
     fn test_config_accessors() {
         let config = Config::default();
         assert_eq!(config.master_ratio(), 0.5);
-        assert_eq!(config.default_display(), ":1");
+        assert_eq!(config.default_display(), ":10");
         assert_eq!(config.gap(), 0);
         assert_eq!(config.border_width(), 2);
         assert_eq!(config.focused_border_color(), 0xFF0000);

@@ -3,13 +3,13 @@
 
 [general]
 # Default display for launching applications
-default_display = ":1"
+default_display = ":10"
 
 [layout]
 # Layout algorithm to use
 # Options: "master_stack" (default) or "bsp" (binary space partitioning)
 # master_stack: Traditional tiling with one master + stack
-# bsp: Recursive splitting of screen space (yabai-inspired)
+# bsp: Recursive splitting of screen space (binary space partitioning)
 layout_algorithm = "master_stack"
 
 # Master window ratio (0.0 to 1.0) - applies to master_stack layout
@@ -51,7 +51,7 @@ unfocused_border_color = 0x808080 # Gray color for unfocused windows (hex format
 # Case insensitive: "SUPER+T", "super+t", "Super+t" all work the same
 
 # Application shortcuts
-"Shift+Alt+1" = "gnome-terminal"
+"Shift+Alt+1" = "xterm"
 "Shift+Alt+2" = "code"
 "Shift+Alt+3" = "chrome"
 

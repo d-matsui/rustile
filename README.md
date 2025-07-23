@@ -6,6 +6,8 @@ A lightweight tiling window manager written in Rust, designed to be simple, effi
 ![X11](https://img.shields.io/badge/X11-Window%20Manager-orange)
 ![License](https://img.shields.io/github/license/d-matsui/rustile)
 
+![Example](<Screenshot from 2025-07-23 15-14-27.png>)
+
 ## Features
 
 - **Automatic Tiling**: Windows are automatically arranged without overlapping
@@ -142,6 +144,11 @@ RUST_LOG=debug rustile
 
 ## Documentation
 
+### 📚 Learning Resources
+- **[Beginner's Guide](docs/BEGINNER_GUIDE.md)** - Perfect for first-time Rust programmers and window manager newcomers
+- **[Technical Deep Dive](docs/TECHNICAL_DEEP_DIVE.md)** - Advanced implementation details and algorithms
+
+### 📖 Reference Guides  
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical details and code structure
 - **[Development Roadmap](docs/ROADMAP.md)** - Planned features and timeline
 - **[Development Guide](CLAUDE.md)** - Contributing and development workflow
