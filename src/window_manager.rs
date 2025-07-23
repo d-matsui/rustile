@@ -285,9 +285,10 @@ impl<C: Connection> WindowManager<C> {
 
         self.layout_manager.apply_layout(
             &self.conn,
-            screen,
             &self.windows,
             self.focused_window,
+            screen.width_in_pixels,
+            screen.height_in_pixels,
             self.config.master_ratio(),
             self.config.layout.bsp_split_ratio,
             self.config.min_window_width(),

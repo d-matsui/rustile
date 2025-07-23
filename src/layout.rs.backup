@@ -336,7 +336,7 @@ impl LayoutManager {
                 self.bsp_tree.add_window(window, None, bsp_split_ratio);
             } else {
                 // For BSP, we want to split the most recently added window (not focused)
-                // This creates the typical yabai behavior
+                // This creates the typical BSP behavior
                 let target = Some(windows[index - 1]);
                 #[cfg(debug_assertions)]
                 tracing::debug!("BSP: Adding window {} targeting {:?}", window, target);

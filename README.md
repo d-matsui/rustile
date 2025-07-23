@@ -6,6 +6,8 @@ A lightweight tiling window manager written in Rust, designed to be simple, effi
 ![X11](https://img.shields.io/badge/X11-Window%20Manager-orange)
 ![License](https://img.shields.io/github/license/d-matsui/rustile)
 
+![Example](<Screenshot from 2025-07-23 15-14-27.png>)
+
 ## Features
 
 - **Automatic Tiling**: Windows are automatically arranged without overlapping
@@ -160,4 +162,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-Inspired by existing tiling window managers like [yabai](https://github.com/koekeishiya/yabai) and [xpywm](https://github.com/h-ohsaki/xpywm).
+Inspired by existing tiling window managers like [xpywm](https://github.com/h-ohsaki/xpywm) and other traditional tiling WMs.
