@@ -47,7 +47,7 @@ This directory contains optimized CI/CD workflows for the Rustile project.
 - **Always-running release builds** regardless of branch
 
 ### After Optimization:
-- **2 parallel jobs** for main CI (test-and-quality, security-audit)
+- **2 parallel jobs** for main CI (test-suite, security-audit)
 - **1 consolidated Claude workflow** with smart triggers
 - **Shared setup patterns** reducing redundancy
 - **Improved caching** with versioned keys

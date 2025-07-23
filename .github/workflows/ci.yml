@@ -12,8 +12,8 @@ env:
 
 jobs:
   # Combined test and quality checks job to reduce overhead
-  test-and-quality:
-    name: Test & Quality
+  test-suite:
+    name: Test Suite
     runs-on: ubuntu-24.04
     
     steps:
@@ -95,7 +95,7 @@ jobs:
   release-build:
     name: Release Build
     runs-on: ubuntu-24.04
-    needs: [test-and-quality, security-audit]
+    needs: [test-suite, security-audit]
     if: |
       github.event_name == 'push' && github.ref == 'refs/heads/main' ||
       (github.event_name == 'pull_request' && github.base_ref == 'main')
