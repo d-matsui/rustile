@@ -76,8 +76,17 @@ jobs:
         key: cargo-audit-${{ runner.os }}
         
     - name: Install cargo-audit
-      if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
-      run: cargo install cargo-audit --locked
+      run: |
+        # Ensure cargo bin directory is in PATH
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+        # Check if cargo-audit exists and install if not
+        if [ ! -f "$HOME/.cargo/bin/cargo-audit" ]; then
+          echo "Installing cargo-audit..."
+          cargo install cargo-audit --locked
+        else
+          echo "cargo-audit already cached"
+        fi
       
     - name: Run security audit
       run: cargo audit
