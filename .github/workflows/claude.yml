@@ -11,7 +11,7 @@ on:
   pull_request_review:
     types: [submitted]
   
-  # Automatic PR review (only for external contributors to avoid spam)
+  # Automatic PR review
   pull_request:
     types: [opened, synchronize]
 

@@ -62,16 +62,12 @@ This directory contains optimized CI/CD workflows for the Rustile project.
 
 ## Usage
 
-### For Contributors:
+### Usage:
 - Push to feature branches triggers full CI
 - PRs to main get comprehensive testing + release build
-- All contributors get automatic Claude reviews (use [skip-review] to disable)
+- All PRs get automatic Claude reviews (use [skip-review] to disable)
 - Use `@claude` in comments for interactive assistance
-
-### For Maintainers:
-- All previous functionality maintained
-- Faster feedback on PRs
-- Comprehensive code reviews on all PRs
+- Faster feedback and comprehensive code reviews on all PRs
 - Better resource utilization
 
 ## Migration Notes

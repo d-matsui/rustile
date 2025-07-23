@@ -1,6 +1,6 @@
 # Project Structure
 
-This document outlines the organization of the Rustile codebase for maintainers and contributors.
+This document outlines the organization of the Rustile codebase.
 
 ## Directory Layout
 
@@ -143,7 +143,7 @@ X11 Events → WindowManager → [Layout|Keyboard|Config] → X11 Commands
 - **README.md**: Installation, usage, basic configuration
 - **config.example.toml**: Comprehensive configuration guide
 
-### Developer-Facing  
+### Development-Facing  
 - **CLAUDE.md**: Development standards and CI requirements
 - **PROJECT_STRUCTURE.md**: This architecture guide
 - **Code Comments**: Inline documentation for complex logic
