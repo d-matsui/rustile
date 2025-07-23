@@ -162,4 +162,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-Inspired by existing tiling window managers like [xpywm](https://github.com/h-ohsaki/xpywm) and other traditional tiling WMs.
+Inspired by existing tiling window managers like [yabai](https://github.com/koekeishiya/yabai) and [xpywm](https://github.com/h-ohsaki/xpywm).
