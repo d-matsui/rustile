@@ -1,3 +1,9 @@
+## [0.3.3](https://github.com/d-matsui/rustile/compare/v0.3.2...v0.3.3) (2025-07-23)
+
+### 🐛 Bug Fixes
+
+* prevent docs commits from triggering releases ([c88ab8c](https://github.com/d-matsui/rustile/commit/c88ab8c08c2601887d9263982b2e231d463a5bed))
+
 ## [0.3.2](https://github.com/d-matsui/rustile/compare/v0.3.1...v0.3.2) (2025-07-23)
 
 ### 📖 Documentation
