@@ -95,7 +95,7 @@ impl<C: Connection> WindowManager<C> {
         loop {
             self.conn.flush()?;
             let event = self.conn.wait_for_event()?;
-            
+
             if let Err(e) = self.handle_event(event) {
                 error!("Error handling event: {:?}", e);
                 // Continue running despite errors

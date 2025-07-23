@@ -6,8 +6,10 @@
 
 // Re-export the main public interface
 pub use manager::LayoutManager;
-pub use types::{Layout, SplitDirection, LayoutParams, ScreenParams, WindowConstraints, LayoutRatios};
 pub use traits::LayoutAlgorithm;
+pub use types::{
+    Layout, LayoutParams, LayoutRatios, ScreenParams, SplitDirection, WindowConstraints,
+};
 
 // Internal modules
 mod algorithms;

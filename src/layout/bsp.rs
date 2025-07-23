@@ -4,8 +4,8 @@ use anyhow::Result;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
-use super::types::{BspRect, SplitDirection};
 use super::constants::{bsp, dimensions};
+use super::types::{BspRect, SplitDirection};
 
 /// Represents a node in the BSP tree
 #[derive(Debug, Clone)]

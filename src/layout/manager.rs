@@ -5,7 +5,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
 use super::bsp::BspTree;
-use super::types::{Layout, LayoutParams, ScreenParams, WindowConstraints, LayoutRatios};
+use super::types::{Layout, LayoutParams, LayoutRatios, ScreenParams, WindowConstraints};
 
 /// Window layout manager
 ///
@@ -97,10 +97,10 @@ impl LayoutManager {
                 bsp_split_ratio,
             },
         };
-        
+
         self.apply_layout_with_params(conn, windows, focused_window, params)
     }
-    
+
     /// Applies the current layout to arrange windows using parameter structs
     pub fn apply_layout_with_params<C: Connection>(
         &mut self,
@@ -127,12 +127,7 @@ impl LayoutManager {
                 )?;
             }
             Layout::Bsp => {
-                self.tile_bsp_with_params(
-                    conn,
-                    windows,
-                    focused_window,
-                    params,
-                )?;
+                self.tile_bsp_with_params(conn, windows, focused_window, params)?;
             }
         }
 
@@ -168,7 +163,7 @@ impl LayoutManager {
                 bsp_split_ratio: split_ratio,
             },
         };
-        
+
         self.tile_bsp_with_params(conn, windows, focused_window, params)
     }
 
@@ -181,7 +176,12 @@ impl LayoutManager {
         params: LayoutParams,
     ) -> Result<()> {
         // Rebuild BSP tree from current windows
-        super::bsp::rebuild_bsp_tree(&mut self.bsp_tree, windows, focused_window, params.ratios.bsp_split_ratio);
+        super::bsp::rebuild_bsp_tree(
+            &mut self.bsp_tree,
+            windows,
+            focused_window,
+            params.ratios.bsp_split_ratio,
+        );
 
         // Apply the BSP layout
         super::bsp::tile_bsp_windows(

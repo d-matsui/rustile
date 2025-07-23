@@ -54,13 +54,16 @@ pub fn tile_master_stack<C: Connection>(
         .x(gap_i16 as i32)
         .y(gap_i16 as i32)
         .width(master_width.max(min_window_width as i16) as u32) // Minimum window width
-        .height((screen_height - layout::SINGLE_WINDOW_GAP_COUNT * gap_i16).max(min_window_height as i16) as u32); // Minimum window height
+        .height(
+            (screen_height - layout::SINGLE_WINDOW_GAP_COUNT * gap_i16)
+                .max(min_window_height as i16) as u32,
+        ); // Minimum window height
 
     conn.configure_window(master_window, &master_config)?;
 
     // Configure stack windows if any
     if num_windows > layout::MIN_MULTI_WINDOW_COUNT {
-        let stack_windows = &windows[(layout::FIRST_WINDOW_INDEX + 1)..]; 
+        let stack_windows = &windows[(layout::FIRST_WINDOW_INDEX + 1)..];
         let num_stack = stack_windows.len() as i16;
         let stack_x = gap_i16 + master_width + gap_i16; // Add gap between master and stack
         let stack_width = (screen_width - stack_x - gap_i16).max(min_window_width as i16); // Minimum usable width

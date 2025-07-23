@@ -36,7 +36,7 @@ pub struct ScreenParams {
 /// Window size constraints for layout calculations
 #[derive(Debug, Clone, Copy)]
 pub struct WindowConstraints {
-    pub min_width: u32, 
+    pub min_width: u32,
     pub min_height: u32,
 }
 
@@ -51,6 +51,6 @@ pub struct LayoutRatios {
 #[derive(Debug, Clone, Copy)]
 pub struct LayoutParams {
     pub screen: ScreenParams,
-    pub constraints: WindowConstraints, 
+    pub constraints: WindowConstraints,
     pub ratios: LayoutRatios,
 }

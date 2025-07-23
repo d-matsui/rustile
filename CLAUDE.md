@@ -14,14 +14,18 @@ This is a tiling window manager written in Rust using x11rb for X11 window manag
 ```bash
 source ~/.cargo/env  # Ensure cargo is in PATH
 cargo fmt           # Format code
+cargo build --all-targets --all-features  # Build all targets to catch warnings
 cargo clippy --all-targets --all-features -- -D warnings  # Check for lints (treat warnings as errors)
 cargo test          # Run all tests
 ```
 
+**Pre-Commit Quality Requirements:**
+- **Zero Warnings**: Builds MUST produce no warnings (warnings indicate potential issues)
 - **Formatting**: All code MUST be formatted with `cargo fmt` before commits
 - **Linting**: All clippy warnings MUST be resolved (use `--all-targets --all-features -- -D warnings` flags to match CI)
   - **CRITICAL**: The `--all-targets --all-features` flags are required to catch issues in test code and all build configurations
   - **CI Alignment**: This exact command must pass locally before commits to prevent CI failures
+- **Clean Build**: `cargo build --all-targets --all-features` must complete without warnings
 - **Testing**: All tests MUST pass before commits
 - **Documentation**: Use `///` for public APIs, `//!` for module-level docs
 - **Error Handling**: Use `anyhow::Result` for error propagation, never use `unwrap()` in production code

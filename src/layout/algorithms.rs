@@ -22,17 +22,22 @@ impl LayoutAlgorithm for MasterStackAlgorithm {
     fn name(&self) -> &'static str {
         "master_stack"
     }
-    
-    fn add_window(&mut self, _window: Window, _focused_window: Option<Window>, _params: &LayoutParams) {
+
+    fn add_window(
+        &mut self,
+        _window: Window,
+        _focused_window: Option<Window>,
+        _params: &LayoutParams,
+    ) {
         // Master-stack doesn't need to track window additions
         // The algorithm works directly on the window list provided to apply_layout
     }
-    
+
     fn remove_window(&mut self, _window: Window) {
         // Master-stack doesn't need to track window removals
         // The algorithm works directly on the window list provided to apply_layout
     }
-    
+
     fn apply_layout<C: Connection>(
         &mut self,
         conn: &C,
@@ -77,15 +82,21 @@ impl LayoutAlgorithm for BspAlgorithm {
     fn name(&self) -> &'static str {
         "bsp"
     }
-    
-    fn add_window(&mut self, window: Window, focused_window: Option<Window>, params: &LayoutParams) {
-        self.bsp_tree.add_window(window, focused_window, params.ratios.bsp_split_ratio);
+
+    fn add_window(
+        &mut self,
+        window: Window,
+        focused_window: Option<Window>,
+        params: &LayoutParams,
+    ) {
+        self.bsp_tree
+            .add_window(window, focused_window, params.ratios.bsp_split_ratio);
     }
-    
+
     fn remove_window(&mut self, window: Window) {
         self.bsp_tree.remove_window(window);
     }
-    
+
     fn apply_layout<C: Connection>(
         &mut self,
         conn: &C,
@@ -94,8 +105,13 @@ impl LayoutAlgorithm for BspAlgorithm {
         params: &LayoutParams,
     ) -> Result<()> {
         // Rebuild BSP tree from current windows
-        super::bsp::rebuild_bsp_tree(&mut self.bsp_tree, windows, focused_window, params.ratios.bsp_split_ratio);
-        
+        super::bsp::rebuild_bsp_tree(
+            &mut self.bsp_tree,
+            windows,
+            focused_window,
+            params.ratios.bsp_split_ratio,
+        );
+
         // Apply the BSP layout
         super::bsp::tile_bsp_windows(
             conn,
@@ -110,7 +126,7 @@ impl LayoutAlgorithm for BspAlgorithm {
             params.screen.gap,
         )
     }
-    
+
     fn on_activate(&mut self) {
         // Reset BSP tree when switching to BSP layout
         self.bsp_tree = BspTree::new();

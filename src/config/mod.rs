@@ -7,7 +7,7 @@ use tracing::info;
 
 pub mod validation;
 
-use validation::{validators, Validate};
+use validation::{Validate, validators};
 
 /// Main configuration structure
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -118,30 +118,30 @@ impl Validate for LayoutConfig {
         // Validate ratios
         validators::validate_ratio(self.master_ratio, "master_ratio")?;
         validators::validate_ratio(self.bsp_split_ratio, "bsp_split_ratio")?;
-        
+
         // Validate dimensions
         validators::validate_dimension(self.gap, "gap", 0, 500)?;
         validators::validate_dimension(self.border_width, "border_width", 0, 50)?;
         validators::validate_dimension(self.min_window_width, "min_window_width", 10, 500)?;
         validators::validate_dimension(self.min_window_height, "min_window_height", 10, 500)?;
-        
+
         // Validate combinations
         validators::validate_combination(
             self.gap,
             "gap",
             self.border_width,
-            "border_width", 
+            "border_width",
             600,
-            "600px total"
+            "600px total",
         )?;
-        
+
         // Validate layout algorithm choice
         validators::validate_choice(
             &self.layout_algorithm,
             "layout_algorithm",
-            &["master_stack", "bsp"]
+            &["master_stack", "bsp"],
         )?;
-        
+
         Ok(())
     }
 }
@@ -164,7 +164,7 @@ impl Validate for Config {
         // Validate sub-configurations
         self.layout.validate()?;
         self.general.validate()?;
-        
+
         // Validate shortcuts
         for (key_combo, command) in &self.shortcuts {
             if key_combo.is_empty() {
@@ -174,7 +174,7 @@ impl Validate for Config {
                 return Err(anyhow::anyhow!("Empty command for key: {}", key_combo));
             }
         }
-        
+
         Ok(())
     }
 }
