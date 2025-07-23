@@ -15,6 +15,7 @@ Rustile currently supports:
 ## 📋 Roadmap (~v1.0.0)
 
 - [ ] **Basic Window Features**
+  - [ ] Destroy window
   - [ ] Switch window
   - [ ] Rotate window
   - [ ] Auto-balance window
