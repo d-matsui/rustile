@@ -19,6 +19,9 @@ pub struct Config {
 /// Layout-related configuration
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LayoutConfig {
+    /// Layout algorithm to use ("master_stack" or "bsp")
+    #[serde(default = "default_layout_algorithm")]
+    pub layout_algorithm: String,
     /// Master window ratio (0.0 to 1.0)
     pub master_ratio: f32,
     /// Gap between windows in pixels
@@ -29,6 +32,10 @@ pub struct LayoutConfig {
     pub focused_border_color: u32,
     /// Unfocused window border color (hex format, e.g., 0x808080 for gray)
     pub unfocused_border_color: u32,
+}
+
+fn default_layout_algorithm() -> String {
+    "master_stack".to_string()
 }
 
 /// General application configuration
@@ -58,6 +65,7 @@ impl Default for Config {
 impl Default for LayoutConfig {
     fn default() -> Self {
         Self {
+            layout_algorithm: default_layout_algorithm(),
             master_ratio: 0.5,
             gap: 0,
             border_width: 2,
@@ -201,6 +209,11 @@ impl Config {
     /// Gets the gap between windows
     pub fn gap(&self) -> u32 {
         self.layout.gap
+    }
+
+    /// Gets the layout algorithm to use
+    pub fn layout_algorithm(&self) -> &str {
+        &self.layout.layout_algorithm
     }
 }
 
