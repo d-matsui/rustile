@@ -28,11 +28,9 @@ This directory contains development utilities for Rustile.
 ./scripts/dev-tools.sh release
 ```
 
-## Legacy Scripts (Root Directory)
+## Integrated Features
 
-The following standalone script remains in the project root:
-
-- `switch_layout.sh` - Layout switching utility (used during testing)
+All development utilities are now consolidated into the main dev-tools.sh script, including layout switching functionality.
 
 ## Usage Tips
 
@@ -51,7 +49,8 @@ The following standalone script remains in the project root:
 ```bash
 ./scripts/dev-tools.sh layout
 # In another terminal:
-./switch_layout.sh
+./scripts/dev-tools.sh switch bsp      # Switch to BSP layout
+./scripts/dev-tools.sh switch          # Toggle between layouts
 ```
 
 All scripts include error handling and helpful output messages.

@@ -21,7 +21,6 @@ rustile/
 ├── .github/               # GitHub workflows and templates
 │   └── workflows/         # CI/CD pipelines
 ├── config.example.toml    # Example configuration
-├── switch_layout.sh       # Layout switching utility
 ├── CLAUDE.md              # Claude Code development guide
 ├── README.md              # User documentation
 └── CHANGELOG.md           # Release history
@@ -75,8 +74,8 @@ rustile/
 ./scripts/dev-tools.sh release   # Build release binary
 ```
 
-### Standalone Utilities (Root Directory)
-- `switch_layout.sh` - Layout switching utility for testing
+### Additional Features
+- Layout switching integrated into `dev-tools.sh switch` command
 
 ## Architecture Patterns
 

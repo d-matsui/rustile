@@ -16,6 +16,7 @@ COMMANDS:
     setup           Setup development environment
     test            Run comprehensive tests  
     layout          Test layout switching
+    switch          Switch between layout algorithms
     clean           Clean build artifacts and caches
     check           Run all quality checks (fmt, clippy, test)
     release         Build release binary
@@ -24,6 +25,8 @@ EXAMPLES:
     $0 setup        # Initial development setup
     $0 test         # Run test suite with Xephyr
     $0 layout       # Interactive layout testing
+    $0 switch bsp   # Switch to BSP layout
+    $0 switch       # Toggle between layouts
     $0 check        # Pre-commit quality checks
     $0 clean        # Clean all build artifacts
 
@@ -109,11 +112,11 @@ run_xephyr_test() {
     sleep 1
     
     echo "✨ Opening test windows..."
-    DISPLAY=:10 xterm -geometry 40x15 -title "Test Window 1" &
+    DISPLAY=:10 xterm -title "Test Window 1" &
     sleep 1
-    DISPLAY=:10 xterm -geometry 40x15 -title "Test Window 2" &
+    DISPLAY=:10 xlogo -title "Test Window 2" &
     sleep 1
-    DISPLAY=:10 xterm -geometry 40x15 -title "Test Window 3" &
+    DISPLAY=:10 xcalc -title "Test Window 3" &
     
     echo ""
     echo "🎮 Interactive Test Environment Ready!"
@@ -122,7 +125,7 @@ run_xephyr_test() {
     echo "   Shift+Alt+m - Swap with master"
     echo "   Shift+Alt+1 - Launch terminal"
     echo ""
-    echo "💡 Use switch_layout.sh in another terminal to test layout switching"
+    echo "💡 Use '$0 switch' in another terminal to test layout switching"
     echo "📺 Close Xephyr window to exit"
     echo ""
     
@@ -140,7 +143,7 @@ test_layout() {
     fi
     
     echo "📋 Current layout: $(grep layout_algorithm ~/.config/rustile/config.toml 2>/dev/null | sed 's/.*"\(.*\)".*/\1/' || echo 'master_stack')"
-    echo "🔄 Use '$PROJECT_ROOT/switch_layout.sh' to change layouts"
+    echo "🔄 Use '$0 switch' to change layouts"
     echo ""
     
     run_xephyr_test
@@ -189,6 +192,66 @@ build_release() {
     echo "📦 Size: $(du -h target/release/rustile | cut -f1)"
 }
 
+switch_layout() {
+    echo "🔄 Switching layout algorithm..."
+    
+    CONFIG="$HOME/.config/rustile/config.toml"
+    
+    # Check if config exists
+    if [ ! -f "$CONFIG" ]; then
+        echo "❌ Config file not found: $CONFIG"
+        echo "   Run '$0 setup' to create the default config"
+        exit 1
+    fi
+    
+    # Get current layout
+    current_layout=$(grep "^layout_algorithm" "$CONFIG" | head -1 | cut -d'"' -f2)
+    echo "📋 Current layout: $current_layout"
+    
+    # Handle arguments
+    case "$1" in
+        "bsp"|"b")
+            new_layout="bsp"
+            ;;
+        "master"|"m"|"master_stack"|"master-stack"|"ms")
+            new_layout="master_stack"
+            ;;
+        "")
+            # Toggle
+            if [ "$current_layout" = "bsp" ]; then
+                new_layout="master_stack"
+            else
+                new_layout="bsp"
+            fi
+            ;;
+        *)
+            echo "❌ Unknown layout: $1"
+            echo "Usage: $0 switch [bsp|master_stack|master|b|m]"
+            echo "   No argument = toggle between layouts"
+            exit 1
+            ;;
+    esac
+    
+    # Apply the change
+    if sed -i "s/^layout_algorithm = \".*\"/layout_algorithm = \"$new_layout\"/" "$CONFIG"; then
+        echo "✅ Switched to $([ "$new_layout" = "bsp" ] && echo "BSP" || echo "Master-Stack") layout"
+        
+        # Verify the change
+        new_value=$(grep "^layout_algorithm" "$CONFIG" | head -1 | cut -d'"' -f2)
+        if [ "$new_value" = "$new_layout" ]; then
+            echo "✓ Verified: layout_algorithm = \"$new_value\""
+        else
+            echo "⚠️  Warning: Change may not have applied correctly"
+        fi
+    else
+        echo "❌ Failed to update config file"
+        exit 1
+    fi
+    
+    echo ""
+    echo "🔧 Restart rustile to apply the new layout"
+}
+
 # Main command dispatcher
 case "${1:-help}" in
     setup)
@@ -199,6 +262,10 @@ case "${1:-help}" in
         ;;
     layout)
         test_layout
+        ;;
+    switch)
+        shift  # Remove 'switch' from arguments
+        switch_layout "$@"
         ;;
     clean)
         clean_all
