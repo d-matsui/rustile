@@ -46,12 +46,9 @@ jobs:
 
   claude-auto-review:
     name: Claude Auto Review
-    # Only auto-review for first-time contributors and external contributors
+    # Auto-review all PRs (use [skip-review] or [WIP] in title to disable)
     if: |
       github.event_name == 'pull_request' &&
-      (github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' ||
-       github.event.pull_request.author_association == 'CONTRIBUTOR' ||
-       !contains(fromJson('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)) &&
       !contains(github.event.pull_request.title, '[skip-review]') &&
       !contains(github.event.pull_request.title, '[WIP]')
     runs-on: ubuntu-latest

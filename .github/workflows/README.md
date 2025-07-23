@@ -21,13 +21,13 @@ This directory contains optimized CI/CD workflows for the Rustile project.
 **Consolidated interactive and auto-review functionality**
 
 - **Interactive Mode**: Triggered by `@claude` mentions in issues/PRs
-- **Auto Review**: Automatic reviews for external contributors only
-- **Smart Filtering**: Prevents spam by filtering based on contributor status
+- **Auto Review**: Automatic reviews for all PRs (can be disabled with [skip-review] or [WIP] in title)
 - **Sticky Comments**: Reuses review comments on PR updates
+- **Skip Options**: Add `[skip-review]` or `[WIP]` to PR title to disable auto-review
 
 **Features:**
 - 🤖 Manual assistance via `@claude` mentions
-- 🔍 Automatic code review for first-time contributors
+- 🔍 Automatic code review for all pull requests
 - 📝 Comprehensive review criteria for Rust projects
 - 🎯 Focused on window manager specific concerns
 
@@ -58,20 +58,20 @@ This directory contains optimized CI/CD workflows for the Rustile project.
 - 💰 **Reduced compute costs** from fewer job starts and parallel execution
 - 🔄 **Better cache utilization** with consistent, versioned cache keys
 - 🚫 **Eliminated duplicate Claude runs** on PRs
-- 🎯 **Targeted auto-reviews** only for external contributors
+- 🎯 **Comprehensive auto-reviews** for all pull requests
 
 ## Usage
 
 ### For Contributors:
 - Push to feature branches triggers full CI
 - PRs to main get comprehensive testing + release build
-- First-time contributors get automatic Claude reviews
+- All contributors get automatic Claude reviews (use [skip-review] to disable)
 - Use `@claude` in comments for interactive assistance
 
 ### For Maintainers:
 - All previous functionality maintained
 - Faster feedback on PRs
-- Reduced noise from Claude auto-reviews
+- Comprehensive code reviews on all PRs
 - Better resource utilization
 
 ## Migration Notes
