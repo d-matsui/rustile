@@ -160,4 +160,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-Inspired by [yabai](https://github.com/koekeishiya/yabai) and other tiling window managers.
+Inspired by existing tiling window managers like [yabai](https://github.com/koekeishiya/yabai) and [xpywm](https://github.com/h-ohsaki/xpywm).
