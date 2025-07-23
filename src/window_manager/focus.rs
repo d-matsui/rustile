@@ -1,9 +1,9 @@
 //! Window focus management and visual indication
 
 use anyhow::Result;
-use tracing::info;
 #[cfg(debug_assertions)]
 use tracing::debug;
+use tracing::info;
 use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;

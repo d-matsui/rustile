@@ -46,7 +46,7 @@ impl<C: Connection> WindowManager<C> {
                     // Swap with master (index 0)
                     self.windows.swap(0, focused_idx);
                     info!("Swapped window {:?} with master", focused);
-                    
+
                     // Reapply layout to update window positions on screen
                     self.apply_layout()?;
                 }
