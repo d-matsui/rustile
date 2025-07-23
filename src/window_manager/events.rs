@@ -2,7 +2,9 @@
 
 use anyhow::Result;
 use std::process::Command;
-use tracing::{debug, error, info};
+use tracing::{error, info};
+#[cfg(debug_assertions)]
+use tracing::debug;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
@@ -154,16 +156,16 @@ impl<C: Connection> WindowManager<C> {
     }
 
     /// Handles focus in events
-    fn handle_focus_in(&mut self, event: FocusInEvent) -> Result<()> {
+    fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Focus in event for window: {:?}", event.event);
+        debug!("Focus in event for window: {:?}", _event.event);
         Ok(())
     }
 
     /// Handles focus out events
-    fn handle_focus_out(&mut self, event: FocusOutEvent) -> Result<()> {
+    fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Focus out event for window: {:?}", event.event);
+        debug!("Focus out event for window: {:?}", _event.event);
         Ok(())
     }
 
