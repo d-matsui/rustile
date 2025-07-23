@@ -3,7 +3,7 @@
 
 [general]
 # Default display for launching applications
-default_display = ":1"
+default_display = ":10"
 
 [layout]
 # Layout algorithm to use
