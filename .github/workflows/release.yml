@@ -28,7 +28,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
         
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -84,7 +84,7 @@ jobs:
       id: semantic
       run: semantic-release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
         
     - name: Summary
       if: steps.semantic.outputs.new-release-published == 'true'
