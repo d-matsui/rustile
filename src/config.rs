@@ -162,6 +162,14 @@ impl Config {
             ));
         }
 
+        // Validate BSP split ratio
+        if self.layout.bsp_split_ratio <= 0.0 || self.layout.bsp_split_ratio > 1.0 {
+            return Err(anyhow::anyhow!(
+                "bsp_split_ratio must be between 0.0 and 1.0, got: {}",
+                self.layout.bsp_split_ratio
+            ));
+        }
+
         // Validate gap size
         if self.layout.gap > 500 {
             return Err(anyhow::anyhow!(
@@ -319,6 +327,56 @@ mod tests {
         // Gap + border combination too large should fail
         config.layout.gap = 400;
         config.layout.border_width = 250;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_minimum_window_size_validation() {
+        let mut config = Config::default();
+
+        // Valid minimum sizes should pass
+        config.layout.min_window_width = 100;
+        config.layout.min_window_height = 50;
+        assert!(config.validate().is_ok());
+
+        // Too small width should fail
+        config.layout.min_window_width = 5;
+        assert!(config.validate().is_err());
+
+        // Reset and test too large width
+        config.layout.min_window_width = 600;
+        assert!(config.validate().is_err());
+
+        // Reset and test too small height
+        config.layout.min_window_width = 100;
+        config.layout.min_window_height = 5;
+        assert!(config.validate().is_err());
+
+        // Reset and test too large height
+        config.layout.min_window_height = 600;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_bsp_split_ratio_validation() {
+        let mut config = Config::default();
+
+        // Valid BSP split ratio should pass
+        config.layout.bsp_split_ratio = 0.5;
+        assert!(config.validate().is_ok());
+
+        // Edge cases - exactly 0.0 should fail, exactly 1.0 should pass
+        config.layout.bsp_split_ratio = 0.0;
+        assert!(config.validate().is_err());
+
+        config.layout.bsp_split_ratio = 1.0;
+        assert!(config.validate().is_ok());
+
+        // Out of range should fail
+        config.layout.bsp_split_ratio = 1.5;
+        assert!(config.validate().is_err());
+
+        config.layout.bsp_split_ratio = -0.1;
         assert!(config.validate().is_err());
     }
 
