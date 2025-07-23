@@ -106,7 +106,7 @@ impl Default for LayoutConfig {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            default_display: ":1".to_string(),
+            default_display: ":10".to_string(),
         }
     }
 }
@@ -395,7 +395,7 @@ mod tests {
     fn test_config_accessors() {
         let config = Config::default();
         assert_eq!(config.master_ratio(), 0.5);
-        assert_eq!(config.default_display(), ":1");
+        assert_eq!(config.default_display(), ":10");
         assert_eq!(config.gap(), 0);
         assert_eq!(config.border_width(), 2);
         assert_eq!(config.focused_border_color(), 0xFF0000);
