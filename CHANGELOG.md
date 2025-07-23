@@ -1,3 +1,33 @@
+## [0.3.4](https://github.com/d-matsui/rustile/compare/v0.3.3...v0.3.4) (2025-07-23)
+
+### 🐛 Bug Fixes
+
+* resolve cargo fmt formatting issues for CI compliance ([72bb8c2](https://github.com/d-matsui/rustile/commit/72bb8c2f7f1f79e828d1cb856a1a71520e777d89))
+* resolve compiler warnings for conditional debug imports ([ddd4dc2](https://github.com/d-matsui/rustile/commit/ddd4dc220b670048b191dd295571669416319406))
+* swap_with_master now reapplies layout to update window positions ([d9f088e](https://github.com/d-matsui/rustile/commit/d9f088e148101742a8853ad34b05c927cdf3a892))
+* update default display from :1 to :10 for test environment compatibility ([7c9df1f](https://github.com/d-matsui/rustile/commit/7c9df1faca598f66193c83e1df683b2452f2d645))
+
+### 📖 Documentation
+
+* add comprehensive educational documentation with visual diagrams ([19b785e](https://github.com/d-matsui/rustile/commit/19b785ead55d4e412192ddd4fa42a4efbc6c0ae4))
+* add destroy window to roadmap basic features ([af33c7d](https://github.com/d-matsui/rustile/commit/af33c7ded51d38f6599c5d71c25eeaaf26e1a9b0))
+* enforce zero-warning builds and fix code formatting ([b8a2aff](https://github.com/d-matsui/rustile/commit/b8a2aff117c99b36fb6e9519d341055e968a8466))
+* restore yabai reference in README acknowledgments ([942226c](https://github.com/d-matsui/rustile/commit/942226ccfecebe80b4f3816c731f1bbd4ecd8ec5))
+* update ROADMAP.md with refined development priorities ([db3b4a1](https://github.com/d-matsui/rustile/commit/db3b4a13d4ed411b2e67882d8cf8ec4116574bec))
+
+### ♻️ Refactor
+
+* complete layout.rs modularization with improved code organization ([c854661](https://github.com/d-matsui/rustile/commit/c85466139b04c467b7eb4e130f44a052533998ce))
+* extract constants and introduce parameter structs for better maintainability ([40b3b2b](https://github.com/d-matsui/rustile/commit/40b3b2b6aff3ff19bf213399819fbbe1184307cc))
+* implement layout trait and improve config validation system ([f3f6964](https://github.com/d-matsui/rustile/commit/f3f6964635a48212d714e2f482d780245908a627))
+* split layout.rs into modules and remove yabai references ([565b6d7](https://github.com/d-matsui/rustile/commit/565b6d7b76787a0e6b69264320036f16962a762f))
+* split window_manager.rs into focused modules for better organization ([e9a253a](https://github.com/d-matsui/rustile/commit/e9a253adbd5195b57a013fc4289c14a83be9f226))
+
+### 🧪 Tests
+
+* add comprehensive window manager tests for core business logic ([158915b](https://github.com/d-matsui/rustile/commit/158915b6b73cec3e6b37aca16aa3be6d55051c0e))
+* enhance test script to open 4 diverse X11 applications ([4826d4f](https://github.com/d-matsui/rustile/commit/4826d4f80da4c6a5015162b1b4aea26860f585e4))
+
 ## [0.3.3](https://github.com/d-matsui/rustile/compare/v0.3.2...v0.3.3) (2025-07-23)
 
 ### 🐛 Bug Fixes
