@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a tiling window manager written in Rust using x11rb for X11 window management. The project implements a master-stack layout with configurable gaps, focus management, and keyboard shortcuts.
+This is a tiling window manager written in Rust using x11rb for X11 window management. The project implements both master-stack and BSP (Binary Space Partitioning) layouts with configurable gaps, focus management, and keyboard shortcuts.
 
 ## Development Rules and Standards
 
@@ -123,7 +123,33 @@ Follow [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH):
 source ~/.cargo/env  # Ensure Rust toolchain is available
 ```
 
-**Development Workflow:**
+**Using the Development Tools Script:**
+```bash
+# Initial setup
+./scripts/dev-tools.sh setup
+
+# Run comprehensive tests in Xephyr
+./scripts/dev-tools.sh test
+
+# Test layout switching interactively
+./scripts/dev-tools.sh layout
+
+# Switch between layouts
+./scripts/dev-tools.sh switch bsp    # Switch to BSP
+./scripts/dev-tools.sh switch master # Switch to Master-Stack
+./scripts/dev-tools.sh switch        # Toggle between layouts
+
+# Run all quality checks
+./scripts/dev-tools.sh check
+
+# Clean build artifacts
+./scripts/dev-tools.sh clean
+
+# Build release binary
+./scripts/dev-tools.sh release
+```
+
+**Manual Development Commands:**
 ```bash
 cargo check          # Quick syntax check
 cargo build          # Full build
@@ -144,31 +170,70 @@ cargo test test_name         # Run specific test
 
 ## Project Structure and Architecture
 
-For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-Key directories:
-- `src/` - Core source code
-- `scripts/` - Development utilities (use `scripts/dev-tools.sh`)
-- `docs/` - Project documentation
-- `.github/workflows/` - CI/CD configuration
+```
+rustile/
+├── src/
+│   ├── main.rs              # Entry point and CLI
+│   ├── lib.rs               # Library root
+│   │
+│   ├── window_manager/      # Core window management
+│   │   ├── mod.rs           # Module interface & tests
+│   │   ├── core.rs          # WindowManager struct & main loop
+│   │   ├── events.rs        # X11 event handling
+│   │   ├── focus.rs         # Focus management
+│   │   └── window_ops.rs    # Window operations
+│   │
+│   ├── layout/              # Tiling algorithms
+│   │   ├── mod.rs           # Layout module interface
+│   │   ├── manager.rs       # Layout coordination
+│   │   ├── master_stack.rs  # Master-stack algorithm
+│   │   ├── bsp.rs           # BSP tree algorithm
+│   │   ├── types.rs         # Data structures
+│   │   ├── traits.rs        # Layout trait system
+│   │   ├── constants.rs     # Extracted magic numbers
+│   │   └── algorithms.rs    # Trait implementations
+│   │
+│   ├── config/              # Configuration system
+│   │   ├── mod.rs           # Config structures
+│   │   └── validation.rs    # Validation trait & validators
+│   │
+│   ├── keyboard.rs          # Keyboard shortcut handling
+│   └── keys.rs              # Key parsing utilities
+│
+├── scripts/
+│   └── dev-tools.sh         # Consolidated development utilities
+│
+├── docs/
+│   ├── ARCHITECTURE.md      # Technical architecture details
+│   ├── BEGINNER_GUIDE.md    # Guide for Rust newcomers
+│   ├── TECHNICAL_DEEP_DIVE.md # Advanced implementation details
+│   └── ROADMAP.md           # Development roadmap
+│
+├── config.example.toml      # Example configuration
+├── CLAUDE.md                # This file
+└── README.md                # User documentation
+```
 
 ## Current Features
 
 ### Window Management
-- **Master-Stack Tiling**: Configurable ratio, automatic window arrangement
+- **Dual Layout Support**: Master-Stack and BSP (Binary Space Partitioning)
 - **Focus Management**: Visual borders (red=focused, gray=unfocused)
 - **Gap System**: Configurable spacing between windows and screen edges
 - **Keyboard Navigation**: Alt+j/k (focus), Shift+Alt+m (swap with master)
+- **Window Operations**: Automatic tiling on add/remove
 
 ### Configuration System
 - **TOML Configuration**: `~/.config/rustile/config.toml`
 - **Runtime Validation**: Input validation with helpful error messages
 - **Flexible Shortcuts**: Support for complex key combinations
+- **Layout-specific Options**: master_ratio, bsp_split_ratio
 
 ### Testing Infrastructure
-- **Unit Tests**: Comprehensive test coverage for all components
-- **Integration Testing**: Xephyr-based testing environment
+- **Unit Tests**: 49 tests covering all major components
+- **Integration Testing**: Xephyr-based testing environment with 4 test applications
 - **Edge Case Testing**: Gap calculations, minimum sizes, validation
+- **Zero-Warning CI**: Strict quality enforcement
 
 ## Configuration Guidelines
 
@@ -177,30 +242,48 @@ Key directories:
 - **Border Width**: 0-50 pixels (recommended: 1-10)
 - **Combined Limits**: gap + border_width ≤ 600 pixels
 - **Master Ratio**: 0.0-1.0 (recommended: 0.3-0.7)
+- **BSP Split Ratio**: 0.0-1.0 (recommended: 0.5)
 - **Minimum Window Sizes**: 100px master, 50px stack windows
 
-### Recommended Ranges
+### Recommended Configuration
 ```toml
+[general]
+default_display = ":10"  # For Xephyr testing
+
 [layout]
+layout_algorithm = "master_stack"  # or "bsp"
 master_ratio = 0.5      # 50% screen width for master
-gap = 10               # 10px comfortable spacing
-border_width = 5       # 5px visible borders
+bsp_split_ratio = 0.5   # Equal splits for BSP
+gap = 10                # 10px comfortable spacing
+border_width = 5        # 5px visible borders
+min_window_width = 100  # Minimum window width
+min_window_height = 50  # Minimum window height
+focused_border_color = 0xFF0000    # Red
+unfocused_border_color = 0x808080  # Gray
+
+[shortcuts]
+"Shift+Alt+1" = "xterm"
+"Alt+j" = "focus_next"
+"Alt+k" = "focus_prev"
+"Shift+Alt+m" = "swap_with_master"
 ```
 
 ## Testing Strategy
 
-### Test Environment
+### Test Environment Setup
 ```bash
-# Run test script for manual testing
-./test_focus.sh
+# Use the development tools script (recommended)
+./scripts/dev-tools.sh layout
 
-# Alternative manual testing
-Xephyr :10 -screen 1280x720 &
-DISPLAY=:10 cargo run
+# This opens 4 test applications:
+# 1. xterm (running top)
+# 2. xlogo (X11 logo)
+# 3. xcalc (calculator)
+# 4. xeyes (graphics demo)
 ```
 
 ### Test Categories
-1. **Unit Tests**: Component logic validation
+1. **Unit Tests**: Component logic validation (49 tests)
 2. **Integration Tests**: Full window manager behavior
 3. **Edge Case Tests**: Boundary conditions and error handling
 4. **Configuration Tests**: Validation and parsing
@@ -223,12 +306,13 @@ DISPLAY=:10 cargo run
 - Use `tracing` crate for structured logging
 - Log levels: `error!`, `warn!`, `info!`, `debug!`, `trace!`
 - Include relevant context in log messages
+- Debug logging wrapped in `#[cfg(debug_assertions)]`
 
 ### Documentation
 - Document all public APIs with `///` comments
 - Include examples in documentation where helpful
 - Keep README.md updated with current features
-- Maintain CHANGELOG.md for release notes
+- Educational docs: BEGINNER_GUIDE.md, TECHNICAL_DEEP_DIVE.md
 
 ## Dependencies Management
 
@@ -244,6 +328,7 @@ DISPLAY=:10 cargo run
 - Standard Rust toolchain (rustc, cargo)
 - `clippy`: Linting
 - `rustfmt`: Code formatting
+- `Xephyr`: Nested X server for testing
 
 ## Security Considerations
 
@@ -325,11 +410,35 @@ If CI fails but local tests pass, ensure you're running the exact same commands 
 - **Binary build fails**: Check X11 dependencies and Rust toolchain setup
 - **Permission denied**: Ensure `GITHUB_TOKEN` has `contents: write` permission
 
+## Recent Architectural Changes
+
+### Phase 1: Layout Module Refactoring
+- Split 1039-line `layout.rs` into focused modules
+- Created trait system for extensible layout algorithms
+- Extracted constants to improve maintainability
+
+### Phase 2: Window Manager Modularization  
+- Split 643-line `window_manager.rs` into 5 focused modules
+- Added comprehensive test coverage (11 new tests)
+- Improved separation of concerns
+
+### Phase 3: Configuration Improvements
+- Created validation trait system
+- Modularized config structure
+- Added reusable validators
+
+### Phase 4: Documentation Enhancement
+- Added BEGINNER_GUIDE.md with visual diagrams
+- Created TECHNICAL_DEEP_DIVE.md for advanced topics
+- Updated all docs to use GitHub-friendly ASCII art
+
 ## Future Development Priorities
 
-1. **Multi-monitor Support**: Extend to multiple screens
-2. **Workspace Management**: Virtual desktop functionality  
-3. **Floating Windows**: Non-tiled window support
-4. **Advanced Layouts**: Grid, spiral, custom layouts
-5. **IPC Interface**: Runtime configuration changes
-6. **Theme System**: Customizable colors and styling
+See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed planning:
+
+1. **Basic Window Features**: Destroy, switch, rotate, auto-balance
+2. **BSP Enhancements**: Directional focus, targeted insertion
+3. **Configuration**: Live reload support
+4. **Floating Windows**: Toggle tiling/floating mode
+5. **Refactoring**: Docker tests, simplified key management
+6. **Multi-Monitor**: Window movement between screens

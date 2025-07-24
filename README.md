@@ -97,8 +97,8 @@ unfocused_border_color = 0x808080  # Gray for unfocused
 
 [shortcuts]
 # Application shortcuts
-"Shift+Alt+1" = "gnome-terminal"
-"Super+Return" = "xterm"
+"Shift+Alt+1" = "xterm"
+"Super+Return" = "xterm"  # Alternative terminal shortcut
 
 # Window management
 "Alt+j" = "focus_next"             # Focus next window
