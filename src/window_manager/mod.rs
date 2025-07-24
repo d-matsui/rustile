@@ -239,4 +239,77 @@ mod tests {
         test_swap_with_master_logic(&mut windows, Some(1));
         assert_eq!(windows, vec![1, 2, 3, 4, 5]);
     }
+
+    /// Helper to test destroy window logic
+    fn test_destroy_window_logic(windows: &mut Vec<Window>, focused: Option<Window>) -> bool {
+        if let Some(focused) = focused {
+            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
+                windows.remove(focused_idx);
+                return true;
+            }
+        }
+        false
+    }
+
+    #[test]
+    fn test_destroy_window_empty_list() {
+        let mut windows = vec![];
+        let result = test_destroy_window_logic(&mut windows, Some(10));
+        assert!(!result); // No destruction should occur
+        assert!(windows.is_empty());
+    }
+
+    #[test]
+    fn test_destroy_window_no_focus() {
+        let mut windows = vec![10, 20, 30];
+        let result = test_destroy_window_logic(&mut windows, None);
+        assert!(!result); // No destruction should occur
+        assert_eq!(windows, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn test_destroy_window_focused_exists() {
+        let mut windows = vec![10, 20, 30];
+
+        // Destroy focused window (middle)
+        let result = test_destroy_window_logic(&mut windows, Some(20));
+        assert!(result); // Destruction should occur
+        assert_eq!(windows, vec![10, 30]);
+
+        // Destroy focused window (first)
+        let result = test_destroy_window_logic(&mut windows, Some(10));
+        assert!(result); // Destruction should occur
+        assert_eq!(windows, vec![30]);
+
+        // Destroy last window
+        let result = test_destroy_window_logic(&mut windows, Some(30));
+        assert!(result); // Destruction should occur
+        assert!(windows.is_empty());
+    }
+
+    #[test]
+    fn test_destroy_window_focused_not_exists() {
+        let mut windows = vec![10, 20, 30];
+        let result = test_destroy_window_logic(&mut windows, Some(999));
+        assert!(!result); // No destruction should occur
+        assert_eq!(windows, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn test_destroy_window_order_preservation() {
+        // Test that remaining windows preserve order after destruction
+        let mut windows = vec![1, 2, 3, 4, 5];
+
+        // Destroy middle window
+        test_destroy_window_logic(&mut windows, Some(3));
+        assert_eq!(windows, vec![1, 2, 4, 5]);
+
+        // Destroy first window
+        test_destroy_window_logic(&mut windows, Some(1));
+        assert_eq!(windows, vec![2, 4, 5]);
+
+        // Destroy last window
+        test_destroy_window_logic(&mut windows, Some(5));
+        assert_eq!(windows, vec![2, 4]);
+    }
 }

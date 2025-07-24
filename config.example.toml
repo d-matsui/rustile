@@ -59,3 +59,4 @@ unfocused_border_color = 0x808080 # Gray color for unfocused windows (hex format
 "Alt+j" = "focus_next"        # Focus next window
 "Alt+k" = "focus_prev"        # Focus previous window
 "Shift+Alt+m" = "swap_with_master"  # Swap focused window with master
+"Shift+Alt+q" = "destroy_window"    # Close/destroy focused window

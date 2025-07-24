@@ -3,6 +3,7 @@
 use anyhow::Result;
 use tracing::info;
 use x11rb::connection::Connection;
+use x11rb::protocol::xproto::ConnectionExt;
 
 use super::core::WindowManager;
 
@@ -52,6 +53,77 @@ impl<C: Connection> WindowManager<C> {
                 }
             }
         }
+        Ok(())
+    }
+
+    /// Destroys (closes) the currently focused window
+    pub fn destroy_focused_window(&mut self) -> Result<()> {
+        if let Some(focused) = self.focused_window {
+            info!("Destroying focused window: {:?}", focused);
+
+            // Try to close the window gracefully first using WM_DELETE_WINDOW
+            // If that fails, kill it forcefully
+            self.close_window_gracefully(focused)
+                .or_else(|_| self.kill_window_forcefully(focused))?;
+        } else {
+            info!("No focused window to destroy");
+        }
+        Ok(())
+    }
+
+    /// Attempts to close a window gracefully using WM_DELETE_WINDOW protocol
+    fn close_window_gracefully(&self, window: x11rb::protocol::xproto::Window) -> Result<()> {
+        use x11rb::protocol::xproto::*;
+
+        // Get WM_DELETE_WINDOW and WM_PROTOCOLS atoms
+        let wm_protocols = self.conn.intern_atom(false, b"WM_PROTOCOLS")?.reply()?.atom;
+        let wm_delete_window = self
+            .conn
+            .intern_atom(false, b"WM_DELETE_WINDOW")?
+            .reply()?
+            .atom;
+
+        // Check if the window supports WM_DELETE_WINDOW
+        let protocols = self
+            .conn
+            .get_property(false, window, wm_protocols, AtomEnum::ATOM, 0, 1024)?
+            .reply()?;
+
+        if protocols.format == 32 {
+            let atoms: Vec<Atom> = protocols
+                .value32()
+                .ok_or_else(|| anyhow::anyhow!("Failed to parse WM_PROTOCOLS"))?
+                .collect();
+
+            if atoms.contains(&wm_delete_window) {
+                // Window supports graceful close, send WM_DELETE_WINDOW message
+                let event = ClientMessageEvent {
+                    response_type: CLIENT_MESSAGE_EVENT,
+                    format: 32,
+                    sequence: 0,
+                    window,
+                    type_: wm_protocols,
+                    data: ClientMessageData::from([wm_delete_window, x11rb::CURRENT_TIME, 0, 0, 0]),
+                };
+
+                self.conn
+                    .send_event(false, window, EventMask::NO_EVENT, event)?;
+                self.conn.flush()?;
+                info!("Sent WM_DELETE_WINDOW message to window {:?}", window);
+                return Ok(());
+            }
+        }
+
+        Err(anyhow::anyhow!(
+            "Window does not support WM_DELETE_WINDOW protocol"
+        ))
+    }
+
+    /// Forcefully kills a window using XKillClient
+    fn kill_window_forcefully(&self, window: x11rb::protocol::xproto::Window) -> Result<()> {
+        info!("Forcefully killing window {:?}", window);
+        self.conn.kill_client(window)?;
+        self.conn.flush()?;
         Ok(())
     }
 }
