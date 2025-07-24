@@ -133,8 +133,16 @@ impl KeyboardManager {
 
     /// Handles a key press event and returns the command if a shortcut matches
     pub fn handle_key_press(&self, event: &KeyPressEvent) -> Option<&str> {
+        // Only consider relevant modifiers, ignoring NumLock, CapsLock, ScrollLock
+        let relevant_modifiers = ModMask::SHIFT.bits()
+            | ModMask::CONTROL.bits()
+            | ModMask::M1.bits()
+            | ModMask::M4.bits();
+        let event_modifiers_bits = event.state.bits() & relevant_modifiers;
+
         for shortcut in &self.shortcuts {
-            if event.state.contains(shortcut.modifiers) && event.detail == shortcut.keycode {
+            if event_modifiers_bits == shortcut.modifiers.bits() && event.detail == shortcut.keycode
+            {
                 return Some(&shortcut.command);
             }
         }

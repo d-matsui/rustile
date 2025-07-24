@@ -312,4 +312,154 @@ mod tests {
         test_destroy_window_logic(&mut windows, Some(5));
         assert_eq!(windows, vec![2, 4]);
     }
+
+    /// Direction for test swap operations
+    #[derive(Debug, Clone, Copy)]
+    enum TestSwapDirection {
+        Next,
+        Previous,
+    }
+
+    /// Helper to test window swapping logic in either direction
+    fn test_swap_window_logic(
+        windows: &mut [Window],
+        focused: Option<Window>,
+        direction: TestSwapDirection,
+    ) -> bool {
+        if windows.len() < 2 {
+            return false;
+        }
+
+        if let Some(focused) = focused {
+            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
+                let target_idx = match direction {
+                    TestSwapDirection::Next => (focused_idx + 1) % windows.len(),
+                    TestSwapDirection::Previous => {
+                        if focused_idx == 0 {
+                            windows.len() - 1
+                        } else {
+                            focused_idx - 1
+                        }
+                    }
+                };
+                windows.swap(focused_idx, target_idx);
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Helper to test swap_window_next logic
+    fn test_swap_window_next_logic(windows: &mut [Window], focused: Option<Window>) -> bool {
+        test_swap_window_logic(windows, focused, TestSwapDirection::Next)
+    }
+
+    /// Helper to test swap_window_prev logic
+    fn test_swap_window_prev_logic(windows: &mut [Window], focused: Option<Window>) -> bool {
+        test_swap_window_logic(windows, focused, TestSwapDirection::Previous)
+    }
+
+    #[test]
+    fn test_swap_window_next_empty_windows() {
+        let mut windows = vec![];
+        let result = test_swap_window_next_logic(&mut windows, None);
+        assert!(!result); // No swap should occur
+        assert!(windows.is_empty());
+    }
+
+    #[test]
+    fn test_swap_window_next_single_window() {
+        let mut windows = vec![10];
+        let result = test_swap_window_next_logic(&mut windows, Some(10));
+        assert!(!result); // No swap should occur
+        assert_eq!(windows, vec![10]);
+    }
+
+    #[test]
+    fn test_swap_window_next_multiple_windows() {
+        // Test swapping first with second
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_next_logic(&mut windows, Some(10));
+        assert!(result); // Swap should occur
+        assert_eq!(windows, vec![20, 10, 30]);
+
+        // Test swapping middle with next
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_next_logic(&mut windows, Some(20));
+        assert!(result); // Swap should occur
+        assert_eq!(windows, vec![10, 30, 20]);
+
+        // Test swapping last with first (wrap around)
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_next_logic(&mut windows, Some(30));
+        assert!(result); // Swap should occur
+        assert_eq!(windows, vec![30, 20, 10]);
+
+        // Test non-existent focused window
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_next_logic(&mut windows, Some(999));
+        assert!(!result); // No swap should occur
+        assert_eq!(windows, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn test_swap_window_prev_empty_windows() {
+        let mut windows = vec![];
+        let result = test_swap_window_prev_logic(&mut windows, None);
+        assert!(!result); // No swap should occur
+        assert!(windows.is_empty());
+    }
+
+    #[test]
+    fn test_swap_window_prev_single_window() {
+        let mut windows = vec![10];
+        let result = test_swap_window_prev_logic(&mut windows, Some(10));
+        assert!(!result); // No swap should occur
+        assert_eq!(windows, vec![10]);
+    }
+
+    #[test]
+    fn test_swap_window_prev_multiple_windows() {
+        // Test swapping first with last (wrap around)
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_prev_logic(&mut windows, Some(10));
+        assert!(result); // Swap should occur
+        assert_eq!(windows, vec![30, 20, 10]);
+
+        // Test swapping middle with previous
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_prev_logic(&mut windows, Some(20));
+        assert!(result); // Swap should occur
+        assert_eq!(windows, vec![20, 10, 30]);
+
+        // Test swapping last with previous
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_prev_logic(&mut windows, Some(30));
+        assert!(result); // Swap should occur
+        assert_eq!(windows, vec![10, 30, 20]);
+
+        // Test non-existent focused window
+        let mut windows = vec![10, 20, 30];
+        let result = test_swap_window_prev_logic(&mut windows, Some(999));
+        assert!(!result); // No swap should occur
+        assert_eq!(windows, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn test_swap_window_order_preservation() {
+        // Test that swapping preserves correct order relationships
+        let mut windows = vec![1, 2, 3, 4, 5];
+
+        // Swap middle window with next
+        test_swap_window_next_logic(&mut windows, Some(3));
+        assert_eq!(windows, vec![1, 2, 4, 3, 5]);
+
+        // Swap back
+        test_swap_window_prev_logic(&mut windows, Some(3));
+        assert_eq!(windows, vec![1, 2, 3, 4, 5]);
+
+        // Test wrapping behavior
+        test_swap_window_next_logic(&mut windows, Some(5));
+        assert_eq!(windows, vec![5, 2, 3, 4, 1]);
+    }
 }
