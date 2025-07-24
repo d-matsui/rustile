@@ -41,6 +41,7 @@ impl<C: Connection> WindowManager<C> {
                 "focus_next" => return self.focus_next(),
                 "focus_prev" => return self.focus_prev(),
                 "swap_with_master" => return self.swap_with_master(),
+                "destroy_window" => return self.destroy_focused_window(),
                 _ => {
                     // Handle regular application commands
                     let parts: Vec<&str> = command.split_whitespace().collect();
