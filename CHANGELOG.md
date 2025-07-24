@@ -1,3 +1,13 @@
+## [0.4.0](https://github.com/d-matsui/rustile/compare/v0.3.4...v0.4.0) (2025-07-24)
+
+### 🚀 Features
+
+* implement destroy/close window functionality ([0dee404](https://github.com/d-matsui/rustile/commit/0dee40428c9ef384294d1a4a1a7b38c1a5ab2b0d))
+
+### 📖 Documentation
+
+* comprehensive documentation update with GitHub-friendly ASCII art ([b7cbfa4](https://github.com/d-matsui/rustile/commit/b7cbfa42d1fc100f93c508a4e1ff2aac46577918))
+
 ## [0.3.4](https://github.com/d-matsui/rustile/compare/v0.3.3...v0.3.4) (2025-07-23)
 
 ### 🐛 Bug Fixes
