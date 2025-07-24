@@ -7,6 +7,13 @@ use x11rb::protocol::xproto::ConnectionExt;
 
 use super::core::WindowManager;
 
+/// Direction for window swapping operations
+#[derive(Debug, Clone, Copy)]
+enum SwapDirection {
+    Next,
+    Previous,
+}
+
 impl<C: Connection> WindowManager<C> {
     /// Applies the current layout to arrange windows
     pub(super) fn apply_layout(&mut self) -> Result<()> {
@@ -124,6 +131,54 @@ impl<C: Connection> WindowManager<C> {
         info!("Forcefully killing window {:?}", window);
         self.conn.kill_client(window)?;
         self.conn.flush()?;
+        Ok(())
+    }
+
+    /// Swaps the currently focused window with the next window in the layout
+    pub fn swap_window_next(&mut self) -> Result<()> {
+        self.swap_window_direction(SwapDirection::Next)
+    }
+
+    /// Swaps the currently focused window with the previous window in the layout
+    pub fn swap_window_prev(&mut self) -> Result<()> {
+        self.swap_window_direction(SwapDirection::Previous)
+    }
+
+    /// Helper method to swap windows in a given direction
+    fn swap_window_direction(&mut self, direction: SwapDirection) -> Result<()> {
+        if self.windows.len() < 2 {
+            return Ok(());
+        }
+
+        if let Some(focused) = self.focused_window {
+            if let Some(focused_idx) = self.windows.iter().position(|&w| w == focused) {
+                let target_idx = match direction {
+                    SwapDirection::Next => (focused_idx + 1) % self.windows.len(),
+                    SwapDirection::Previous => {
+                        if focused_idx == 0 {
+                            self.windows.len() - 1
+                        } else {
+                            focused_idx - 1
+                        }
+                    }
+                };
+
+                let target_window = self.windows[target_idx];
+                self.windows.swap(focused_idx, target_idx);
+
+                let direction_str = match direction {
+                    SwapDirection::Next => "next",
+                    SwapDirection::Previous => "previous",
+                };
+
+                info!(
+                    "Swapped window {:?} with {} window {:?}",
+                    focused, direction_str, target_window
+                );
+
+                self.apply_layout()?;
+            }
+        }
         Ok(())
     }
 }
