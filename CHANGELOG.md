@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/d-matsui/rustile/compare/v0.4.0...v0.5.0) (2025-07-24)
+
+### 🚀 Features
+
+* implement window swapping functionality with Shift+Alt+j/k shortcuts ([115774b](https://github.com/d-matsui/rustile/commit/115774bd018ecf57bd1c59abdf1ba48648863995))
+
 ## [0.4.0](https://github.com/d-matsui/rustile/compare/v0.3.4...v0.4.0) (2025-07-24)
 
 ### 🚀 Features
