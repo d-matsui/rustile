@@ -1,383 +1,414 @@
-# 🪟 Rustile Window Manager - Beginner's Guide
+# 🦀 Rustile Guide for First-Time Rust and X11 Window Manager Experience
 
-## 📚 What is a Window Manager?
+Welcome! This guide will teach you how Rustile works while introducing you to Rust programming and X11 window manager concepts. No prior experience with X11, window managers, or Rust required!
 
-A **window manager** is a program that controls how application windows appear and behave on your screen. Instead of windows appearing randomly, a **tiling window manager** automatically arranges them in organized patterns.
+## 🎯 What You'll Learn
 
-### 🖥️ Traditional vs Tiling Window Managers
+- **Window Manager Basics** - What they are and how they work
+- **X11 Fundamentals** - The graphics system that powers Linux desktops  
+- **Rust Programming** - Key concepts through real examples
+- **Rustile Internals** - How a tiling window manager actually works
 
-```
-Traditional (Floating) Windows:        Tiling Window Manager:
-+----------------------------------+   +----------------------------------+
-|                                  |   |                                  |
-|  +-------+                       |   | +-----------+ +------------------+|
-|  | App1  |   +----------+        |   | |           | |                  ||
-|  |       |   |  App2    |        |   | |   App1    | |      App2        ||
-|  +-------+   |          |        |   | | (Master)  | |    (Stack)       ||
-|               +----------+        |   | |           | |                  ||
-|     +---------------+            |   | +-----------+ +------------------+|
-|     |    App3      |             |   |               |                  ||
-|     |  (hidden)    |             |   |               |      App3        ||
-|     +---------------+            |   |               |    (Stack)       ||
-|                                  |   |               |                  ||
-+----------------------------------+   +-------------------------------+---+
-```
+---
 
-**Problems with Floating:**
-- Windows overlap and hide each other
-- You waste time moving/resizing windows
-- Hard to see all applications at once
+## 1. 🏠 Welcome to Window Managers
 
-**Benefits of Tiling:**
-- Every window is visible
-- No manual positioning needed
-- Efficient use of screen space
-- Keyboard-driven workflow
+### 🤔 What is a Window Manager?
 
-## 🏗️ How Rustile Works
-
-### 🎯 Core Concept: X11 Protocol
-
-Rustile communicates with your desktop using **X11**, a protocol that manages graphics on Linux:
+Think of your desktop like a messy room where you throw clothes (application windows) everywhere:
 
 ```
-+-------------------------------------------------------------+
-|                    Your Desktop (X11 Server)                |
-|                                                             |
-|  +-----------+ +-----------+ +-----------+                  |
-|  |   xterm   | |  chrome   | |   code    | <- Applications  |
-|  | (window)  | | (window)  | | (window)  |                  |
-|  +-----------+ +-----------+ +-----------+                  |
-|        ^             ^             ^                        |
-|        |             |             |                        |
-|        +-------------+-------------+                        |
-|                      |                                      |
-|                      v                                      |
-|              +----------------+                             |
-|              |    Rustile     |                             |
-|              | (Window Manager)| <- Controls positions      |
-|              +----------------+    and sizes                |
-+-------------------------------------------------------------+
+Traditional Desktop (Floating Windows):
++----------------------------------+
+|  📧 Email                        |
+|  +-------+                      |
+|  | Inbox |   📝 Text Editor     |
+|  |       |   +----------+       |
+|  +-------+   | Hello... |       |
+|            +--| World!   |       |
+|   🌐 Browser | +----------+      |
+|   +--------+ |                  |
+|   |Google  | |   🎵 Music       |
+|   |        | |   +------+       |
+|   +--------+ |   |♪ Song|       |
+|              |   +------+       |
++----------------------------------+
 ```
 
-**What happens:**
-1. Applications create windows
-2. X11 tells Rustile "new window appeared!"
-3. Rustile calculates where to put it
-4. Rustile tells X11 "move window to position (x,y) with size (w,h)"
-5. X11 moves the window
-
-### 🔄 Event Loop - The Heart of Rustile
-
-Rustile runs in a continuous loop, waiting for events:
+A **window manager** is like having a super-organized roommate who automatically arranges everything:
 
 ```
-Start Rustile
-     |
-     v
-+-------------------------------------------------------------+
-|                    MAIN EVENT LOOP                          |
-|                                                             |
-|  +--- Wait for Event <---------------------------------+    |
-|  |                                                     |    |
-|  v                                                     |    |
-| Event Received                                         |    |
-|  |                                                     |    |
-|  +--- Key Press? --> Handle Keyboard Shortcut --------+    |
-|  |                   (focus_next, swap_master, etc.)  |    |
-|  |                                                     |    |
-|  +--- New Window? -> Add to window list --------------+    |
-|  |                   Calculate layout                  |    |
-|  |                   Position window                   |    |
-|  |                                                     |    |
-|  +--- Window Closed? > Remove from list --------------+    |
-|  |                     Recalculate layout             |    |
-|  |                                                     |    |
-|  +--- Mouse Click? -> Update focus -------------------+    |
-|                                                             |
-+-------------------------------------------------------------+
+Tiling Window Manager (Rustile):
++----------------------------------+
+| +----------------+ +-------------+|
+| |                | | 📧 Email    ||
+| |   🌐 Browser   | +-------------+|
+| |                | | 📝 Text     ||
+| |                | | Editor      ||
+| |                | +-------------+|
+| |                | | 🎵 Music    ||
+| +----------------+ +-------------+|
++----------------------------------+
 ```
 
-## 🏗️ Layout Algorithms
+**Key Differences:**
+- **Floating** (traditional): You manually move and resize windows
+- **Tiling** (Rustile): Windows automatically arrange themselves
+- **No overlapping**: Every window is visible
+- **Keyboard-driven**: Use shortcuts instead of mouse
 
-Rustile supports two tiling patterns:
+### 🧩 Why Use a Tiling Window Manager?
 
-### 📐 Master-Stack Layout
+**Benefits:**
+- ⚡ **Faster workflow** - No time wasted arranging windows
+- 👀 **See everything** - No hidden windows
+- ⌨️ **Keyboard efficiency** - Hands stay on keyboard
+- 🎯 **Consistent layout** - Same arrangement every time
 
-The most common tiling pattern:
+**Perfect for:**
+- Programmers (code + terminal + browser)
+- Writers (editor + research + notes)
+- Anyone who uses multiple apps simultaneously
 
-```
-                    Screen (1920x1080)
-    +-------------------------------------------------------------+
-    | gap                                                     gap |
-    | +---------------------------+ gap +---------------------+   |
-    | |                           |     |                     |   |
-    | |                           |     |      Stack 1        |   |
-    | |                           |     |                     |   |
-    | |         Master            |     +---------------------+   |
-    | |       (50% width)         |     | gap                 |   |
-    | |                           |     |      Stack 2        |   |
-    | |                           |     |                     |   |
-    | |                           |     +---------------------+   |
-    | |                           |     | gap                 |   |
-    | |                           |     |      Stack 3        |   |
-    | |                           |     |                     |   |
-    | +---------------------------+     +---------------------+   |
-    |                                                         gap |
-    +-------------------------------------------------------------+
-     ^                           ^
-     |                           |
-   Master window takes         Stack windows share
-   master_ratio (50%)          remaining space equally
-   of screen width
-```
+---
 
-**How it works:**
-- **Master**: First window gets left side (configurable width ratio)
-- **Stack**: Additional windows stack vertically on the right
-- **Focus**: Red border shows which window receives keyboard input
+## 2. 🖥️ Understanding Your Desktop (X11 Basics)
 
-### 🌳 BSP (Binary Space Partitioning) Layout
+### 🌐 What is X11?
 
-More complex but flexible pattern:
+X11 is like the **postal service** for your computer's graphics:
 
 ```
-Step 1: First window          Step 2: Add second window
-+-------------------------+   +-------------------------+
-|                         |   |           |             |
-|                         |   |           |             |
-|          App1           |   |   App1    |    App2     |
-|         (root)          |   |  (left)   |   (right)   |
-|                         |   |           |             |
-|                         |   |           |             |
-+-------------------------+   +-------------------------+
-
-Step 3: Add third window      Step 4: Add fourth window
-+-------------------------+   +-------------------------+
-|           |             |   |           |      |      |
-|           |    App2     |   |           | App2 | App4 |
-|   App1    +-------------+   |   App1    +------+------+
-|  (left)   |             |   |  (left)   |      |      |
-|           |    App3     |   |           | App3 |      |
-|           |             |   |           |      |      |
-+-------------------------+   +-------------------------+
+📱 Applications          📮 X11 Server          🖥️ Your Screen
++------------+           +------------+         +------------+
+|  Firefox   |  ➤ "I need|            | ➤ Draw |            |
+| "I want to |    a window|  X11       |   window|   Screen   |
+|  display   |    here"   | (Postal    |   here  |            |
+|  a webpage"|           | Service)   |         |            |
++------------+           +------------+         +------------+
+                                ⬇️
+                         📬 Window Manager (Rustile)
+                         "I'll decide WHERE that window goes"
 ```
 
-**How it works:**
-- Each new window **splits** an existing window's space
-- Creates a **binary tree** structure
-- **Alternates** between vertical and horizontal splits
-- Very flexible but more complex to understand
+**The Flow:**
+1. **Application starts** (Firefox, Terminal, etc.)
+2. **Application tells X11**: "I need a window!"
+3. **X11 asks Window Manager**: "Where should this window go?"
+4. **Rustile decides**: "Put it in the master position"
+5. **X11 draws** the window where Rustile said
+6. **You see** the arranged windows on screen
 
-## 🧠 Rustile's Brain - The Code Structure
+### 🎭 Rustile's Role
 
-### 📁 File Organization
-
-```
-rustile/
-├── src/
-│   ├── main.rs                 # Program entry point
-│   ├── lib.rs                  # Library root
-│   │
-│   ├── window_manager/         # The main controller
-│   │   ├── mod.rs              # Window manager interface
-│   │   ├── core.rs             # Initialization & main loop
-│   │   ├── events.rs           # Handles X11 events
-│   │   ├── focus.rs            # Which window is active
-│   │   └── window_ops.rs       # Window operations
-│   │
-│   ├── layout/                 # How windows are arranged
-│   │   ├── mod.rs              # Layout system interface
-│   │   ├── manager.rs          # Coordinates layouts
-│   │   ├── master_stack.rs     # Master-stack algorithm
-│   │   ├── bsp.rs              # BSP algorithm
-│   │   ├── types.rs            # Data structures
-│   │   ├── traits.rs           # Layout interfaces
-│   │   └── constants.rs        # Magic numbers
-│   │
-│   ├── config/                 # User settings
-│   │   ├── mod.rs              # Configuration main
-│   │   └── validation.rs       # Config validation
-│   │
-│   ├── keyboard.rs             # Keyboard shortcuts
-│   └── keys.rs                 # Key parsing
-└── config.example.toml         # User configuration
-```
-
-### 🔧 Data Flow Diagram
+Rustile is the **traffic controller** for windows:
 
 ```
-User presses key (Alt+j)
-        |
-        v
-+-------------------------------------------------------------+
-|                    events.rs                                |
-|  +--- Key Press Event -> Parse Shortcut -> Match Command --+|
-|  |                                                         ||
-|  |    "Alt+j" → "focus_next"                              ||
-|  +---------------------------------------------------------+|
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                    focus.rs                                 |
-|  +--- focus_next() -> Find next window -> Update focus ----+|
-|  |                                                         ||
-|  |   current: window_2  →  next: window_3                 ||
-|  |   set red border on window_3                           ||
-|  +---------------------------------------------------------+|
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                 window_ops.rs                               |
-|  +--- apply_layout() -> Call layout manager ---------------+|
-|  |                                                         ||
-|  |   Trigger visual update of all windows                 ||
-|  +---------------------------------------------------------+|
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                layout/manager.rs                            |
-|  +--- Choose layout algorithm -> Calculate positions ------+|
-|  |                                                         ||
-|  |   master_stack OR bsp                                  ||
-|  +---------------------------------------------------------+|
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|            layout/master_stack.rs OR layout/bsp.rs          |
-|  +--- Calculate window positions and sizes ----------------+|
-|  |                                                         ||
-|  |   window_1: x=0,   y=0,   w=960,  h=1080              ||
-|  |   window_2: x=960, y=0,   w=960,  h=540               ||
-|  |   window_3: x=960, y=540, w=960,  h=540               ||
-|  +---------------------------------------------------------+|
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                        X11                                  |
-|  +--- Move windows to calculated positions ----------------+|
-|  |                                                         ||
-|  |   User sees windows rearrange on screen                ||
-|  +---------------------------------------------------------+|
-+-------------------------------------------------------------+
+Without Window Manager:          With Rustile:
++------------------------+       +------------------------+
+|  Windows appear        |       |  ┌──────────┬────────┐ |
+|  randomly everywhere   |  ➤    |  │          │   App  │ |
+|  and overlap each      |       |  │   Main   │    2   │ |
+|  other messily         |       |  │   App    ├────────┤ |
+|                        |       |  │          │  App 3 │ |
++------------------------+       |  └──────────┴────────┘ |
+                                 +------------------------+
 ```
 
-## 🧩 Key Rust Concepts Used
+---
 
-### 📦 Structs - Data Containers
+## 3. 🦀 Rust Concepts Through Rustile
+
+Let's learn Rust by looking at how Rustile is built!
+
+### 📦 Structs - Organizing Data
+
+In Rust, a `struct` is like a container that holds related information:
 
 ```rust
-// Like a container that holds related data
-pub struct WindowManager<C: Connection> {
-    conn: C,                    // Connection to X11
-    windows: Vec<Window>,       // List of all windows
-    focused_window: Option<Window>, // Which window is active
-    config: Config,            // User settings
-    layout_manager: LayoutManager, // How to arrange windows
+// Rustile's main "brain"
+pub struct WindowManager {
+    windows: Vec<Window>,           // 📝 List of all open windows
+    focused_window: Option<Window>, // 🎯 Which window gets keyboard input
+    config: Config,                 // ⚙️ User settings (gaps, colors, etc.)
 }
 ```
 
-**Think of it like:**
+**Think of it like a desk organizer:**
 ```
-WindowManager = {
-    📡 X11 connection
-    📝 List of windows: [window1, window2, window3]
-    🎯 Currently focused: window2
-    ⚙️  User settings: gaps=10px, master_ratio=0.5
-    📐 Layout calculator
+🗃️ WindowManager = {
+    📝 Window List: [Firefox, Terminal, VSCode, Music Player]
+    🎯 Currently Active: Terminal
+    ⚙️ Settings: {
+        gap_between_windows: 10 pixels,
+        border_color: red,
+        shortcuts: Alt+j for next window
+    }
 }
 ```
 
-### 🔄 Enums - Multiple Choices
+### 🎛️ Enums - Multiple Choices
+
+An `enum` represents "one of several options":
 
 ```rust
-// Like a multiple choice question - it can be ONE of these options
+// Rustile can arrange windows in different patterns
 pub enum Layout {
-    MasterStack,  // Option A: Use master-stack layout
-    Bsp,          // Option B: Use BSP layout
+    MasterStack,  // One big window + smaller stack
+    Bsp,          // Binary space partitioning (advanced)
 }
 ```
 
 **Visual representation:**
 ```
-Layout = MasterStack  →  +-------------+ +-------+
-                         |             | |   2   |
-                         |      1      | +-------+
-                         |             | |   3   |
-                         +-------------+ +-------+
-
-Layout = Bsp         →   +-------+-------+
-                         |   1   |   2   |
-                         +-------+-------+
-                         |   3   |   4   |
-                         +-------+-------+
+Layout::MasterStack          Layout::Bsp
+┌─────────────┬─────┐       ┌───────┬───────┐
+│             │  2  │       │   1   │   2   │
+│      1      ├─────┤       ├───────┼───────┤
+│             │  3  │       │   3   │   4   │
+└─────────────┴─────┘       └───────┴───────┘
 ```
 
-### 🏪 Traits - Contracts
+### 🔄 Pattern Matching - Making Decisions
+
+Rust uses `match` to handle different situations:
 
 ```rust
-// Like a contract: "Any layout algorithm MUST implement these functions"
-pub trait LayoutAlgorithm {
-    fn name(&self) -> &'static str;
-    fn add_window(&mut self, window: Window, ...);
-    fn remove_window(&mut self, window: Window);
-    fn apply_layout(&mut self, ...);
+// When something happens (an "event"), Rustile decides what to do
+match event {
+    KeyPress { key: Alt + J } => {
+        // User pressed Alt+J, so focus next window
+        self.focus_next_window();
+    },
+    NewWindow { window_id } => {
+        // A new app opened, so add it to our layout
+        self.add_window_to_layout(window_id);
+    },
+    WindowClosed { window_id } => {
+        // An app closed, so remove it and rearrange
+        self.remove_window_and_reflow(window_id);
+    },
 }
 ```
 
-**Why this is useful:**
+**Like a receptionist at a busy office:**
 ```
-Master-Stack Algorithm implements LayoutAlgorithm
-BSP Algorithm implements LayoutAlgorithm
-Future Spiral Algorithm implements LayoutAlgorithm
-
-→ All can be used interchangeably!
-→ Easy to add new layout types
-→ Code stays organized
+🔔 "Someone's at the door"     ➤ "Please come in and sit here"
+🔔 "Phone is ringing"          ➤ "Hello, how can I help you?"
+🔔 "Someone's leaving"         ➤ "Have a nice day, close the door"
 ```
 
-### 🗂️ Modules - Code Organization
+### 🛡️ Memory Safety - No Crashes
+
+Rust prevents common programming mistakes that cause crashes:
 
 ```rust
-// Like folders for organizing code
-mod window_manager {
-    mod core;      // Main logic
-    mod events;    // Event handling
-    mod focus;     // Focus management
-}
+// ❌ This would crash in C/C++:
+// window_id = 12345;
+// delete_window(window_id);
+// use_window(window_id);  // CRASH! Window was already deleted
 
-mod layout {
-    mod manager;      // Layout coordination
-    mod master_stack; // Master-stack algorithm
-    mod bsp;         // BSP algorithm
+// ✅ Rust prevents this:
+let window_id = Some(12345);
+if let Some(id) = window_id {
+    delete_window(id);
+    // window_id is now None, can't accidentally use deleted window
 }
 ```
 
-## ⚙️ Configuration System
+**Benefits for window managers:**
+- 🚫 **No crashes** from accessing deleted windows
+- 🚫 **No memory leaks** from forgotten cleanup
+- 🚫 **No race conditions** between threads
+- ✅ **Reliable** window management
 
-### 📝 TOML Configuration File
+---
+
+## 4. 🧩 How Rustile Works (Visual Step-by-Step)
+
+### 🔄 The Main Event Loop
+
+Rustile runs in a continuous loop, like a waiter in a restaurant:
+
+```
+    🍽️ Rustile Event Loop
+         ⏰ 1. Wait for something to happen
+              ⬇️
+🔔 2. Event happens! (key press, new window, etc.)
+              ⬇️
+🤔 3. "What should I do about this?"
+              ⬇️
+⚡ 4. Take action (move windows, change focus, etc.)
+              ⬇️
+♻️ 5. Go back to waiting
+              ⬆️
+              ⬅️─────────────────────┘
+```
+
+**In Rust code:**
+```rust
+// Simplified version of Rustile's main loop
+loop {
+    // 1. Wait for something to happen
+    let event = wait_for_event();
+    
+    // 2. Decide what to do
+    match event {
+        KeyPress => handle_keyboard(),
+        NewWindow => arrange_windows(),
+        WindowClosed => cleanup_and_rearrange(),
+    }
+    
+    // 3. Update the display
+    refresh_screen();
+    
+    // 4. Loop forever
+}
+```
+
+### 🪟 What Happens When You Open an App
+
+Let's trace what happens when you open Firefox:
+
+```
+Step 1: You run "firefox" in terminal
+    👤 User ──"firefox"──➤ 💻 Terminal
+
+Step 2: Firefox starts and asks X11 for a window
+    🦊 Firefox ──"I need a window!"──➤ 🖥️ X11
+
+Step 3: X11 asks Rustile where to put it
+    🖥️ X11 ──"Where should Firefox go?"──➤ 🦀 Rustile
+
+Step 4: Rustile calculates the best position
+    🦀 Rustile thinks:
+    "I have 2 windows already: [Terminal, VSCode]
+     Firefox should go in the stack area
+     Position: x=960, y=0, width=960, height=540"
+
+Step 5: X11 draws Firefox in that position
+    🖥️ X11 ──draws──➤ 📺 Screen
+
+Step 6: You see the new layout
+    Before:                    After:
+    ┌─────────────┬─────┐     ┌─────────────┬─────┐
+    │             │VSCode│     │             │VSCode│
+    │   Terminal  │     │     │   Terminal  ├─────┤
+    │             │     │     │             │Fire-│
+    │             │     │     │             │fox  │
+    └─────────────┴─────┘     └─────────────┴─────┘
+```
+
+### 🎯 Focus Management (Red Borders)
+
+Focus determines which window receives your keyboard input:
+
+```rust
+// Rustile tracks which window is "active"
+pub struct WindowManager {
+    focused_window: Option<Window>,  // Currently focused window
+    // ... other fields
+}
+
+// When focus changes:
+fn set_focus(&mut self, new_window: Window) {
+    // Remove red border from old window
+    if let Some(old_focused) = self.focused_window {
+        self.set_border_color(old_focused, GRAY);
+    }
+    
+    // Add red border to new window
+    self.set_border_color(new_window, RED);
+    self.focused_window = Some(new_window);
+}
+```
+
+**Visual representation:**
+```
+Before Alt+J:                  After Alt+J:
+┌─────────────┬─────┐         ┌─────────────┬─────┐
+│             │     │         │             │═════│ ← Red border
+│   Terminal  │VSCode│         │   Terminal  ║VSCode║   (focused)
+│   (focused) │     │         │             ║     ║
+│═════════════│     │         │             ║     ║
+└─────────────┴─────┘         └─────────────┴═════┘
+  ↑ Red border moved                        ↑ Focus moved here
+```
+
+---
+
+## 5. 🎹 Basic Operations (Hands-On)
+
+### ⌨️ Essential Keyboard Shortcuts
+
+These are the core shortcuts you need to know:
+
+```
+🎯 FOCUS (Which window gets your typing):
+Alt + J     ➤  Focus next window (clockwise)
+Alt + K     ➤  Focus previous window (counter-clockwise)
+
+🔄 SWAP (Move windows around):
+Shift + Alt + J  ➤  Swap focused window with next window
+Shift + Alt + K  ➤  Swap focused window with previous window  
+Shift + Alt + M  ➤  Swap focused window with master (main) window
+
+🗑️ MANAGE:
+Shift + Alt + Q  ➤  Close focused window
+
+🚀 LAUNCH:
+Super + Return   ➤  Open terminal
+```
+
+### 🎮 Try It Yourself
+
+**Exercise 1: Moving Focus**
+1. Open 3 applications (terminal, browser, text editor)
+2. Press `Alt + J` repeatedly
+3. Watch the red border move between windows
+4. Try `Alt + K` to go backwards
+
+**Exercise 2: Rearranging Windows**  
+1. Focus the middle window
+2. Press `Shift + Alt + J` (swap with next)
+3. Notice how the windows exchange positions
+4. Try `Shift + Alt + M` (swap with master)
+
+**Exercise 3: Master Window**
+```
+Initial Layout:           After Shift+Alt+M:
+┌─────────────┬─────┐    ┌─────────────┬─────┐
+│             │  B  │    │             │  A  │
+│      A      ├─────┤ ➤  │      B      ├─────┤
+│ (Master)    │  C* │    │ (New Master)│  C* │
+│             │     │    │             │     │
+└─────────────┴─────┘    └─────────────┴─────┘
+                           * = focused window
+```
+
+---
+
+## 6. 🔧 Configuration Basics
+
+### 📝 What is TOML?
+
+TOML is a simple format for configuration files, like a recipe:
 
 ```toml
 # ~/.config/rustile/config.toml
+
 [layout]
-layout_algorithm = "master_stack"  # Which layout to use
-master_ratio = 0.6                # Master window takes 60% of width
-gap = 15                          # 15 pixels between windows
-border_width = 2                  # 2 pixel window borders
+master_ratio = 0.6           # Master window takes 60% of screen width
+gap = 10                     # 10 pixels between windows
+border_width = 2             # 2 pixel thick borders
 
 [shortcuts]
-"Alt+j" = "focus_next"            # Move focus to next window
-"Alt+k" = "focus_prev"            # Move focus to previous window
-"Shift+Alt+m" = "swap_with_master" # Swap focused with master
-"Shift+Alt+1" = "xterm"           # Launch terminal
+"Alt+j" = "focus_next"       # Define what Alt+J does
+"Alt+k" = "focus_prev"       # Define what Alt+K does
+"Super+Return" = "xterm"     # Super+Enter opens terminal
 ```
 
-### 🎨 Visual Settings
+### 🎨 Visual Settings Explained
 
 ```
 border_width = 3, gap = 10:
@@ -396,193 +427,159 @@ border_width = 3, gap = 10:
 +-------------------------------------------------------------+
 ```
 
-## 🔄 Common Operations Explained
+### 🧪 Safe Experimentation
 
-### 1️⃣ Adding a New Window
+**Start with small changes:**
+```toml
+[layout]
+gap = 5          # Try smaller gaps
+master_ratio = 0.7   # Make master window bigger
 
-```
-Step 1: Application starts (e.g., user runs "xterm")
-       +-------------+
-       |    xterm    | --> X11: "I need a window!"
-       +-------------+
-
-Step 2: X11 notifies Rustile
-       +-------------+
-       |     X11     | --> Rustile: "New window created: ID 12345"
-       +-------------+
-
-Step 3: Rustile adds to its window list
-       Before: windows = [101, 102, 103]
-       After:  windows = [101, 102, 103, 12345]
-
-Step 4: Recalculate layout
-       +-------------------------------------+
-       | Master-Stack Layout Calculator      |
-       |                                     |
-       | 4 windows total:                    |
-       | • Master (101): 50% width, full height
-       | • Stack (102): 50% width, 1/3 height 
-       | • Stack (103): 50% width, 1/3 height
-       | • Stack (12345): 50% width, 1/3 height
-       +-------------------------------------+
-
-Step 5: Apply new positions
-       +-------------------------------------+
-       | +-------------+ +-----------------+ |
-       | |             | |      102        | |
-       | |     101     | +-----------------+ |
-       | |  (Master)   | |      103        | |
-       | |             | +-----------------+ |
-       | |             | |    12345 (new)  | |
-       | +-------------+ +-----------------+ |
-       +-------------------------------------+
+[shortcuts]
+"Super+b" = "firefox"  # Add custom browser shortcut
 ```
 
-### 2️⃣ Focus Navigation (Alt+j)
-
-```
-Current state: windows = [101, 102, 103], focused = 102
-
-Step 1: User presses Alt+j
-       Keyboard --> Rustile: "focus_next command"
-
-Step 2: Find next window
-       Current index: 1 (102 is at position 1)
-       Next index: 2 (wrap around if at end)
-       Next window: 103
-
-Step 3: Update focus
-       Before: focused_window = Some(102)
-       After:  focused_window = Some(103)
-
-Step 4: Update visual borders
-       +-------------------------------------+
-       | +-------------+ +-----------------+ |
-       | #     101     # #      102        # | <- Gray borders
-       | #             # +=================+ |
-       | #             # ‖      103        ‖ | <- Red border (focused)
-       | #             # ‖                 ‖ |
-       | #             # ‖                 ‖ |
-       | +-------------+ +=================+ |
-       +-------------------------------------+
-```
-
-### 3️⃣ Swap with Master (Shift+Alt+m)
-
-```
-Current state: windows = [101, 102, 103], focused = 103
-
-Step 1: User presses Shift+Alt+m
-       Keyboard --> Rustile: "swap_with_master command"
-
-Step 2: Find focused window position
-       Focused window: 103 (at index 2)
-       Master position: index 0
-
-Step 3: Swap in window list
-       Before: windows = [101, 102, 103]
-       After:  windows = [103, 102, 101]
-
-Step 4: Recalculate and apply layout
-       +-------------------------------------+
-       | +-------------+ +-----------------+ |
-       | ‖     103     ‖ #      102        # | <- 103 now master
-       | ‖ (New Master)‖ +-----------------+ |   (with focus)
-       | ‖             ‖ #      101        # |
-       | ‖             ‖ #                 # |
-       | ‖             ‖ #                 # |
-       | +============-+ +-----------------+ |
-       +-------------------------------------+
-```
-
-## 🐛 Debugging and Troubleshooting
-
-### 🔍 Log Messages
-
-Rustile produces helpful log messages:
-
-```bash
-# Run with debug logging
-RUST_LOG=debug cargo run
-
-# Example output:
-INFO  rustile::window_manager::events - New window mapped: 16777225
-DEBUG rustile::layout::manager - Applied layout to 3 windows
-INFO  rustile::window_manager::focus - Focused next window: Some(16777226)
-DEBUG rustile::layout::bsp - BSP: Adding window 16777227 targeting Some(16777226)
-```
-
-### 🛠️ Test Environment
-
-```bash
-# Start test environment
-./scripts/dev-tools.sh layout
-
-# This creates:
-+-------------------------------------------------------------+
-|  Xephyr :10 (Nested X Server)                              |
-|  +---------------------------------------------------------+|
-|  |              Test Desktop (:10)                         ||
-|  |                                                         ||
-|  |  +-------------+ +-------------------+                  ||
-|  |  |             | |                   |                  ||
-|  |  |   xterm     | |     xlogo        | <- Test windows  ||
-|  |  |             | |                   |                  ||
-|  |  |             | |                   |                  ||
-|  |  +-------------+ +-------------------+                  ||
-|  +---------------------------------------------------------+|
-+-------------------------------------------------------------+
-```
-
-## 🎯 Next Steps for Learning
-
-### 🔧 Try These Modifications
-
-1. **Change Master Ratio:**
-   ```toml
-   # In ~/.config/rustile/config.toml
-   master_ratio = 0.7  # Master takes 70% instead of 50%
-   ```
-
-2. **Add Custom Shortcut:**
-   ```toml
-   [shortcuts]
-   "Super+t" = "xterm"  # Windows key + t opens terminal
-   ```
-
-3. **Experiment with Gaps:**
-   ```toml
-   gap = 20           # Larger gaps
-   border_width = 1   # Thinner borders
-   ```
-
-### 📚 Code Reading Path
-
-1. **Start here:** `src/main.rs` - See how the program starts
-2. **Then:** `src/window_manager/core.rs` - Understand the main loop
-3. **Next:** `src/window_manager/events.rs` - See how events are handled
-4. **Finally:** `src/layout/master_stack.rs` - Understand layout math
-
-### 🧪 Experiment Ideas
-
-1. **Add a new layout algorithm**
-2. **Create custom keyboard shortcuts**
-3. **Implement window decorations**
-4. **Add multi-monitor support**
-
-## 📖 Glossary
-
-| Term | Definition | Visual Example |
-|------|------------|----------------|
-| **Window** | A rectangular area where an application displays its content | `+-----+`<br>`| App |`<br>`+-----+` |
-| **Focus** | Which window receives keyboard input (shown with red border) | `+=====+` <- Focused<br>`‖ App ‖`<br>`+=====+` |
-| **Master** | The main window (usually largest) in master-stack layout | `+-------+ +---+`<br>`|Master | |Stk|`<br>`+-------+ +---+` |
-| **Stack** | Secondary windows arranged vertically | `+---+ +---+`<br>`|Mst| |St1|`<br>`+---+ +---+`<br>`      |St2|`<br>`      +---+` |
-| **Layout** | The algorithm used to arrange windows | Master-Stack vs BSP |
-| **BSP** | Binary Space Partitioning - recursive window splitting | `+---+---+`<br>`| 1 | 2 |`<br>`+---+---+`<br>`| 3 | 4 |`<br>`+---+---+` |
-| **Event** | A message from X11 (key press, new window, etc.) | User presses key → Event → Action |
-| **X11** | The graphics system on Linux that manages windows | The "messenger" between apps and window manager |
+**What happens if you mess up?**
+- Rustile uses safe defaults if config is invalid
+- Check terminal for helpful error messages
+- Copy from `config.example.toml` to reset
 
 ---
 
-🎉 **Congratulations!** You now understand how Rustile works from the ground up. The combination of Rust's safety, X11's flexibility, and tiling algorithms creates an efficient window management system.
+## 7. 🚀 Your First Session
+
+### 📋 Step-by-Step Walkthrough
+
+**1. Starting Rustile (Test Environment):**
+```bash
+# Start test environment (safe to experiment)
+./scripts/dev-tools.sh layout
+```
+
+**2. Open Some Apps:**
+```bash
+# In the test window, open:
+xterm &          # Terminal
+xlogo &          # Simple logo app  
+xclock &         # Clock
+```
+
+**3. Practice Focus Movement:**
+- Press `Alt + J` - see red border move
+- Press `Alt + K` - border moves backwards  
+- Notice: windows stay in same positions
+
+**4. Try Window Swapping:**
+- Focus middle window (`Alt + J` until red border is on it)
+- Press `Shift + Alt + J` - windows swap positions!
+- Press `Shift + Alt + M` - focused window becomes master
+
+**5. Close a Window:**
+- Focus any window
+- Press `Shift + Alt + Q` - window closes
+- Remaining windows automatically expand
+
+### 🐛 Common Beginner Mistakes
+
+**❌ "Nothing happens when I press shortcuts"**
+- ✅ Make sure the test window has focus (click on it)
+- ✅ Try clicking inside the window first
+
+**❌ "I can't tell which window is focused"**  
+- ✅ Look for the red border (vs gray borders)
+- ✅ Try typing - characters appear in focused window
+
+**❌ "Windows are too small"**
+- ✅ Adjust `master_ratio` in config (try 0.7 or 0.8)
+- ✅ Reduce `gap` size (try 5 instead of 10)
+
+**❌ "I'm confused about focus vs swap"**
+- ✅ `Alt + J/K` = red border moves, windows stay put
+- ✅ `Shift + Alt + J/K` = windows change positions
+
+---
+
+## 8. 📚 Key Concepts & Glossary
+
+### 🧠 Rust Concepts You Learned
+
+| Concept | Definition | Rustile Example |
+|---------|------------|-----------------|
+| **Struct** | Container for related data | `WindowManager` holds windows, focus, config |
+| **Enum** | One choice from several options | `Layout` can be `MasterStack` or `Bsp` |
+| **Pattern Matching** | Handle different cases | `match event` handles KeyPress, NewWindow, etc. |
+| **Option** | Value that might not exist | `focused_window: Option<Window>` (might be None) |
+| **Vector** | Growable list | `windows: Vec<Window>` (list of open windows) |
+| **Memory Safety** | No crashes from bad pointers | Rust prevents accessing deleted windows |
+
+### 🪟 Window Manager Concepts You Learned
+
+| Term | Definition | Visual Example |
+|------|------------|----------------|
+| **Window** | Rectangular area where an app displays content | `+-----+`<br>`| App |`<br>`+-----+` |
+| **Focus** | Which window receives keyboard input (red border) | `+=====+` ← Focused<br>`‖ App ‖`<br>`+=====+` |
+| **Master** | Main window (usually largest) in master-stack layout | `+-------+ +---+`<br>`|Master | |Stk|`<br>`+-------+ +---+` |
+| **Stack** | Secondary windows arranged vertically | `+---+ +---+`<br>`|Mst| |St1|`<br>`+---+ +---+`<br>`      |St2|`<br>`      +---+` |
+| **Layout** | Algorithm for arranging windows | Master-Stack vs BSP |
+| **Tiling** | Automatic window arrangement (no overlapping) | All windows visible, organized |
+| **Event** | Message from X11 (key press, new window, etc.) | User presses key → Event → Action |
+| **X11** | Graphics system on Linux that manages windows | "Postal service" between apps and window manager |
+
+### 🔑 Essential Shortcuts Reference
+
+```
+FOCUS MOVEMENT:
+Alt + J         Focus next window (clockwise)
+Alt + K         Focus previous window
+
+WINDOW SWAPPING:  
+Shift + Alt + J   Swap focused with next window
+Shift + Alt + K   Swap focused with previous window
+Shift + Alt + M   Swap focused with master window
+
+WINDOW MANAGEMENT:
+Shift + Alt + Q   Close focused window
+
+APPLICATION LAUNCHING:
+Super + Return    Open terminal
+```
+
+---
+
+## 🎓 What's Next?
+
+### 🌟 You Now Understand:
+- ✅ How window managers work (automatic vs manual arrangement)
+- ✅ Basic Rust programming concepts (structs, enums, pattern matching)
+- ✅ X11 graphics system (how apps talk to your desktop)
+- ✅ Rustile's event-driven architecture
+- ✅ Essential keyboard shortcuts and workflows
+
+### 🚀 Ready for More?
+
+**Continue Learning Rust:**
+- [The Rust Book](https://doc.rust-lang.org/book/) - Official Rust tutorial
+- Practice with small projects using structs and enums
+
+**Dive Deeper into Rustile:**
+- [TECHNICAL_DEEP_DIVE.md](TECHNICAL_DEEP_DIVE.md) - Advanced implementation details
+- Try customizing layouts and adding new shortcuts
+- Contribute to the Rustile project on GitHub
+
+**Explore Other Window Managers:**
+- i3wm - Popular tiling window manager
+- dwm - Minimal window manager
+- Compare different approaches to tiling
+
+### 🎯 Practice Projects
+
+1. **Customize Your Config** - Create your perfect layout settings
+2. **Add New Shortcuts** - Define shortcuts for your favorite apps
+3. **Study the Code** - Read through `src/main.rs` and understand the main loop
+4. **Try BSP Layout** - Experiment with binary space partitioning
+
+---
+
+🎉 **Congratulations!** You've learned window manager fundamentals while getting your first taste of Rust programming. The combination of Rust's safety, clear code structure, and Rustile's elegant design makes this a perfect introduction to both concepts.
+
+*Happy tiling!* 🪟✨
