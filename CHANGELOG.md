@@ -1,3 +1,20 @@
+## [0.5.1](https://github.com/d-matsui/rustile/compare/v0.5.0...v0.5.1) (2025-07-28)
+
+### 🐛 Bug Fixes
+
+* resolve PR review issues with broken references and commands ([8e739af](https://github.com/d-matsui/rustile/commit/8e739af8f48df96876c2029c25c017de1b1ff083))
+
+### 📖 Documentation
+
+* comprehensive README update with user-focused content ([9da0ab4](https://github.com/d-matsui/rustile/commit/9da0ab44bddb6142c1a5263d64af4559963ceb2b))
+* fix FIXME comments and improve figure formatting for GitHub ([bc3e823](https://github.com/d-matsui/rustile/commit/bc3e823e5e15fc108da359d79d0714bf09c5d89b))
+* remove FIXME comment from beginner guide ([92b814f](https://github.com/d-matsui/rustile/commit/92b814f0378c28441e2796b2811abe415747e109))
+* restructure documentation with simplified beginner and technical guides ([4fa6e1a](https://github.com/d-matsui/rustile/commit/4fa6e1a4a77fcd16877ac92cc4cd7544f219a9e6))
+
+### ♻️ Refactor
+
+* simplify test scripts following KISS principle ([04ee3f3](https://github.com/d-matsui/rustile/commit/04ee3f342b9ec1f770cdf34bc0f22aac7d95563d))
+
 ## [0.5.0](https://github.com/d-matsui/rustile/compare/v0.4.0...v0.5.0) (2025-07-24)
 
 ### 🚀 Features
