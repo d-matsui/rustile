@@ -74,19 +74,6 @@ exec rustile
 ```
 Then use `startx` to launch.
 
-## Quick Start
-
-### Test Safely with Xephyr
-```bash
-# Install Xephyr first (Debian/Ubuntu):
-sudo apt-get install xserver-xephyr
-
-# Test without affecting your system:
-git clone https://github.com/d-matsui/rustile.git
-cd rustile
-./scripts/dev-tools.sh test  # Opens isolated test environment
-```
-
 ## Basic Usage
 
 ```bash
@@ -126,13 +113,8 @@ See [config.example.toml](config.example.toml) for all available options.
 
 ## Troubleshooting
 
-### "Another window manager is already running"
-```bash
-# Test safely with Xephyr:
-./scripts/dev-tools.sh test
-```
-
 ### Configuration Issues
+
 ```bash
 # Check for errors (logs to stderr):
 RUST_LOG=debug rustile 2>&1 | tee rustile.log
@@ -143,8 +125,8 @@ rm ~/.config/rustile/config.toml
 
 ## Documentation
 
-- **[Development Guide](CLAUDE.md)** - Contributing and development setup
-- **[Technical Details](docs/)** - Architecture and implementation guides  
+- **[Beginner Guide](docs/BEGINNER_GUIDE.md)** - Learn window managers and how Rustile works
+- **[Technical Deep Dive](docs/TECHNICAL_DEEP_DIVE.md)** - Implementation details for developers
 - **[Roadmap](docs/ROADMAP.md)** - Planned features and development timeline
 
 ## License

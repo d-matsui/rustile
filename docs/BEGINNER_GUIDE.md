@@ -1,24 +1,24 @@
-# 🦀 Rustile Guide for First-Time Rust and X11 Window Manager Experience
+# 🦀 Rustile Guide
 
-Welcome! This guide will teach you how Rustile works while introducing you to Rust programming and X11 window manager concepts. No prior experience with X11, window managers, or Rust required!
+Welcome! This guide will teach you how Rustile works while introducing you to X11 window manager concepts. No prior experience with X11, window managers, or Rust required!
 
 ## 🎯 What You'll Learn
 
 - **Window Manager Basics** - What they are and how they work
 - **X11 Fundamentals** - The graphics system that powers Linux desktops  
-- **Rust Programming** - Key concepts through real examples
 - **Rustile Internals** - How a tiling window manager actually works
 
 ---
 
-## 1. 🏠 Welcome to Window Managers
+## 1. 🏠 Welcome to Tiling Window Managers
 
 ### 🤔 What is a Window Manager?
 
-Think of your desktop like a messy room where you throw clothes (application windows) everywhere:
+A **window manager** controls how application windows are displayed and organized on your screen. There are two main types:
 
-```
-Traditional Desktop (Floating Windows):
+**Floating Window Manager** (traditional):
+```text
+Floating Window Manager:
 +----------------------------------+
 |  📧 Email                        |
 |  +-------+                      |
@@ -35,9 +35,9 @@ Traditional Desktop (Floating Windows):
 +----------------------------------+
 ```
 
-A **window manager** is like having a super-organized roommate who automatically arranges everything:
+A **tiling window manager** like Rustile automatically arranges windows without overlapping:
 
-```
+```text
 Tiling Window Manager (Rustile):
 +----------------------------------+
 | +----------------+ +-------------+|
@@ -54,7 +54,7 @@ Tiling Window Manager (Rustile):
 **Key Differences:**
 - **Floating** (traditional): You manually move and resize windows
 - **Tiling** (Rustile): Windows automatically arrange themselves
-- **No overlapping**: Every window is visible
+- **No overlapping**: Every window is visible (in tiling mode)
 - **Keyboard-driven**: Use shortcuts instead of mouse
 
 ### 🧩 Why Use a Tiling Window Manager?
@@ -78,7 +78,7 @@ Tiling Window Manager (Rustile):
 
 X11 is like the **postal service** for your computer's graphics:
 
-```
+```text
 📱 Applications          📮 X11 Server          🖥️ Your Screen
 +------------+           +------------+         +------------+
 |  Firefox   |  ➤ "I need|            | ➤ Draw |            |
@@ -89,7 +89,7 @@ X11 is like the **postal service** for your computer's graphics:
                                 ⬇️
                          📬 Window Manager (Rustile)
                          "I'll decide WHERE that window goes"
-```
+```text
 
 **The Flow:**
 1. **Application starts** (Firefox, Terminal, etc.)
@@ -103,7 +103,7 @@ X11 is like the **postal service** for your computer's graphics:
 
 Rustile is the **traffic controller** for windows:
 
-```
+```text
 Without Window Manager:          With Rustile:
 +------------------------+       +------------------------+
 |  Windows appear        |       |  ┌──────────┬────────┐ |
@@ -113,17 +113,16 @@ Without Window Manager:          With Rustile:
 |                        |       |  │          │  App 3 │ |
 +------------------------+       |  └──────────┴────────┘ |
                                  +------------------------+
-```
+```text
 
 ---
 
-## 3. 🦀 Rust Concepts Through Rustile
+<FIXME: We dont need rust concepts. But explaing with codes are good for beginners.>
+## 3. 🦀 How Rustile is Built
 
-Let's learn Rust by looking at how Rustile is built!
+### 📦 Understanding the Code Structure
 
-### 📦 Structs - Organizing Data
-
-In Rust, a `struct` is like a container that holds related information:
+Rustile organizes its data in structures. Here's how the main window manager works:
 
 ```rust
 // Rustile's main "brain"
@@ -135,7 +134,7 @@ pub struct WindowManager {
 ```
 
 **Think of it like a desk organizer:**
-```
+```text
 🗃️ WindowManager = {
     📝 Window List: [Firefox, Terminal, VSCode, Music Player]
     🎯 Currently Active: Terminal
@@ -147,9 +146,9 @@ pub struct WindowManager {
 }
 ```
 
-### 🎛️ Enums - Multiple Choices
+### 🎛️ Layout Options
 
-An `enum` represents "one of several options":
+Rustile supports different layout algorithms:
 
 ```rust
 // Rustile can arrange windows in different patterns
@@ -160,18 +159,18 @@ pub enum Layout {
 ```
 
 **Visual representation:**
-```
+```text
 Layout::MasterStack          Layout::Bsp
 ┌─────────────┬─────┐       ┌───────┬───────┐
 │             │  2  │       │   1   │   2   │
 │      1      ├─────┤       ├───────┼───────┤
 │             │  3  │       │   3   │   4   │
 └─────────────┴─────┘       └───────┴───────┘
-```
+```text
 
-### 🔄 Pattern Matching - Making Decisions
+### 🔄 Event Handling
 
-Rust uses `match` to handle different situations:
+Rustile responds to different events from X11:
 
 ```rust
 // When something happens (an "event"), Rustile decides what to do
@@ -189,18 +188,18 @@ match event {
         self.remove_window_and_reflow(window_id);
     },
 }
-```
+```text
 
 **Like a receptionist at a busy office:**
-```
+```text
 🔔 "Someone's at the door"     ➤ "Please come in and sit here"
 🔔 "Phone is ringing"          ➤ "Hello, how can I help you?"
 🔔 "Someone's leaving"         ➤ "Have a nice day, close the door"
-```
+```text
 
-### 🛡️ Memory Safety - No Crashes
+### 🛡️ Reliability
 
-Rust prevents common programming mistakes that cause crashes:
+Rustile is designed to be crash-free:
 
 ```rust
 // ❌ This would crash in C/C++:
@@ -214,7 +213,7 @@ if let Some(id) = window_id {
     delete_window(id);
     // window_id is now None, can't accidentally use deleted window
 }
-```
+```text
 
 **Benefits for window managers:**
 - 🚫 **No crashes** from accessing deleted windows
@@ -230,7 +229,7 @@ if let Some(id) = window_id {
 
 Rustile runs in a continuous loop, like a waiter in a restaurant:
 
-```
+```text
     🍽️ Rustile Event Loop
          ⏰ 1. Wait for something to happen
               ⬇️
@@ -243,7 +242,7 @@ Rustile runs in a continuous loop, like a waiter in a restaurant:
 ♻️ 5. Go back to waiting
               ⬆️
               ⬅️─────────────────────┘
-```
+```text
 
 **In Rust code:**
 ```rust
@@ -264,13 +263,13 @@ loop {
     
     // 4. Loop forever
 }
-```
+```text
 
 ### 🪟 What Happens When You Open an App
 
 Let's trace what happens when you open Firefox:
 
-```
+```text
 Step 1: You run "firefox" in terminal
     👤 User ──"firefox"──➤ 💻 Terminal
 
@@ -297,7 +296,7 @@ Step 6: You see the new layout
     │             │     │     │             │Fire-│
     │             │     │     │             │fox  │
     └─────────────┴─────┘     └─────────────┴─────┘
-```
+```text
 
 ### 🎯 Focus Management (Red Borders)
 
@@ -321,10 +320,10 @@ fn set_focus(&mut self, new_window: Window) {
     self.set_border_color(new_window, RED);
     self.focused_window = Some(new_window);
 }
-```
+```text
 
 **Visual representation:**
-```
+```text
 Before Alt+J:                  After Alt+J:
 ┌─────────────┬─────┐         ┌─────────────┬─────┐
 │             │     │         │             │═════│ ← Red border
@@ -333,7 +332,7 @@ Before Alt+J:                  After Alt+J:
 │═════════════│     │         │             ║     ║
 └─────────────┴─────┘         └─────────────┴═════┘
   ↑ Red border moved                        ↑ Focus moved here
-```
+```text
 
 ---
 
@@ -343,7 +342,7 @@ Before Alt+J:                  After Alt+J:
 
 These are the core shortcuts you need to know:
 
-```
+```text
 🎯 FOCUS (Which window gets your typing):
 Alt + J     ➤  Focus next window (clockwise)
 Alt + K     ➤  Focus previous window (counter-clockwise)
@@ -358,7 +357,7 @@ Shift + Alt + Q  ➤  Close focused window
 
 🚀 LAUNCH:
 Super + Return   ➤  Open terminal
-```
+```text
 
 ### 🎮 Try It Yourself
 
@@ -375,7 +374,7 @@ Super + Return   ➤  Open terminal
 4. Try `Shift + Alt + M` (swap with master)
 
 **Exercise 3: Master Window**
-```
+```text
 Initial Layout:           After Shift+Alt+M:
 ┌─────────────┬─────┐    ┌─────────────┬─────┐
 │             │  B  │    │             │  A  │
@@ -384,7 +383,7 @@ Initial Layout:           After Shift+Alt+M:
 │             │     │    │             │     │
 └─────────────┴─────┘    └─────────────┴─────┘
                            * = focused window
-```
+```text
 
 ---
 
@@ -406,11 +405,11 @@ border_width = 2             # 2 pixel thick borders
 "Alt+j" = "focus_next"       # Define what Alt+J does
 "Alt+k" = "focus_prev"       # Define what Alt+K does
 "Super+Return" = "xterm"     # Super+Enter opens terminal
-```
+```text
 
 ### 🎨 Visual Settings Explained
 
-```
+```text
 border_width = 3, gap = 10:
 
 +-------------------------------------------------------------+
@@ -425,94 +424,13 @@ border_width = 3, gap = 10:
 |  +=======================+      +=======================+  |
 |                                                             |
 +-------------------------------------------------------------+
-```
-
-### 🧪 Safe Experimentation
-
-**Start with small changes:**
-```toml
-[layout]
-gap = 5          # Try smaller gaps
-master_ratio = 0.7   # Make master window bigger
-
-[shortcuts]
-"Super+b" = "firefox"  # Add custom browser shortcut
-```
-
-**What happens if you mess up?**
-- Rustile uses safe defaults if config is invalid
-- Check terminal for helpful error messages
-- Copy from `config.example.toml` to reset
-
----
-
-## 7. 🚀 Your First Session
-
-### 📋 Step-by-Step Walkthrough
-
-**1. Starting Rustile (Test Environment):**
-```bash
-# Start test environment (safe to experiment)
-./scripts/dev-tools.sh layout
-```
-
-**2. Open Some Apps:**
-```bash
-# In the test window, open:
-xterm &          # Terminal
-xlogo &          # Simple logo app  
-xclock &         # Clock
-```
-
-**3. Practice Focus Movement:**
-- Press `Alt + J` - see red border move
-- Press `Alt + K` - border moves backwards  
-- Notice: windows stay in same positions
-
-**4. Try Window Swapping:**
-- Focus middle window (`Alt + J` until red border is on it)
-- Press `Shift + Alt + J` - windows swap positions!
-- Press `Shift + Alt + M` - focused window becomes master
-
-**5. Close a Window:**
-- Focus any window
-- Press `Shift + Alt + Q` - window closes
-- Remaining windows automatically expand
-
-### 🐛 Common Beginner Mistakes
-
-**❌ "Nothing happens when I press shortcuts"**
-- ✅ Make sure the test window has focus (click on it)
-- ✅ Try clicking inside the window first
-
-**❌ "I can't tell which window is focused"**  
-- ✅ Look for the red border (vs gray borders)
-- ✅ Try typing - characters appear in focused window
-
-**❌ "Windows are too small"**
-- ✅ Adjust `master_ratio` in config (try 0.7 or 0.8)
-- ✅ Reduce `gap` size (try 5 instead of 10)
-
-**❌ "I'm confused about focus vs swap"**
-- ✅ `Alt + J/K` = red border moves, windows stay put
-- ✅ `Shift + Alt + J/K` = windows change positions
+```text
 
 ---
 
 ## 8. 📚 Key Concepts & Glossary
 
-### 🧠 Rust Concepts You Learned
-
-| Concept | Definition | Rustile Example |
-|---------|------------|-----------------|
-| **Struct** | Container for related data | `WindowManager` holds windows, focus, config |
-| **Enum** | One choice from several options | `Layout` can be `MasterStack` or `Bsp` |
-| **Pattern Matching** | Handle different cases | `match event` handles KeyPress, NewWindow, etc. |
-| **Option** | Value that might not exist | `focused_window: Option<Window>` (might be None) |
-| **Vector** | Growable list | `windows: Vec<Window>` (list of open windows) |
-| **Memory Safety** | No crashes from bad pointers | Rust prevents accessing deleted windows |
-
-### 🪟 Window Manager Concepts You Learned
+### 🪟 Window Manager Concepts
 
 | Term | Definition | Visual Example |
 |------|------------|----------------|
@@ -525,27 +443,6 @@ xclock &         # Clock
 | **Event** | Message from X11 (key press, new window, etc.) | User presses key → Event → Action |
 | **X11** | Graphics system on Linux that manages windows | "Postal service" between apps and window manager |
 
-### 🔑 Essential Shortcuts Reference
-
-```
-FOCUS MOVEMENT:
-Alt + J         Focus next window (clockwise)
-Alt + K         Focus previous window
-
-WINDOW SWAPPING:  
-Shift + Alt + J   Swap focused with next window
-Shift + Alt + K   Swap focused with previous window
-Shift + Alt + M   Swap focused with master window
-
-WINDOW MANAGEMENT:
-Shift + Alt + Q   Close focused window
-
-APPLICATION LAUNCHING:
-Super + Return    Open terminal
-```
-
----
-
 ## 🎓 What's Next?
 
 ### 🌟 You Now Understand:
@@ -557,29 +454,11 @@ Super + Return    Open terminal
 
 ### 🚀 Ready for More?
 
-**Continue Learning Rust:**
-- [The Rust Book](https://doc.rust-lang.org/book/) - Official Rust tutorial
-- Practice with small projects using structs and enums
-
 **Dive Deeper into Rustile:**
 - [TECHNICAL_DEEP_DIVE.md](TECHNICAL_DEEP_DIVE.md) - Advanced implementation details
 - Try customizing layouts and adding new shortcuts
 - Contribute to the Rustile project on GitHub
 
-**Explore Other Window Managers:**
-- i3wm - Popular tiling window manager
-- dwm - Minimal window manager
-- Compare different approaches to tiling
-
-### 🎯 Practice Projects
-
-1. **Customize Your Config** - Create your perfect layout settings
-2. **Add New Shortcuts** - Define shortcuts for your favorite apps
-3. **Study the Code** - Read through `src/main.rs` and understand the main loop
-4. **Try BSP Layout** - Experiment with binary space partitioning
-
 ---
-
-🎉 **Congratulations!** You've learned window manager fundamentals while getting your first taste of Rust programming. The combination of Rust's safety, clear code structure, and Rustile's elegant design makes this a perfect introduction to both concepts.
 
 *Happy tiling!* 🪟✨

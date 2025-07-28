@@ -47,6 +47,8 @@ Rustile currently supports:
   - Move windows between monitors
 
 - **Advanced Features**
+  - App launcher integration
+  - Screen shot
   - Custom status bar
   - Mouse support
 
