@@ -123,30 +123,13 @@ Follow [SemVer](https://semver.org/) (MAJOR.MINOR.PATCH):
 source ~/.cargo/env  # Ensure Rust toolchain is available
 ```
 
-**Using the Development Tools Script:**
+**Using the Simple Test Scripts:**
 ```bash
-# Initial setup
-./scripts/dev-tools.sh setup
+# Interactive testing with Xephyr
+./test.sh
 
-# Run comprehensive tests in Xephyr
-./scripts/dev-tools.sh test
-
-# Test layout switching interactively
-./scripts/dev-tools.sh layout
-
-# Switch between layouts
-./scripts/dev-tools.sh switch bsp    # Switch to BSP
-./scripts/dev-tools.sh switch master # Switch to Master-Stack
-./scripts/dev-tools.sh switch        # Toggle between layouts
-
-# Run all quality checks
-./scripts/dev-tools.sh check
-
-# Clean build artifacts
-./scripts/dev-tools.sh clean
-
-# Build release binary
-./scripts/dev-tools.sh release
+# Code quality checks (formatting, clippy, tests, docs)
+./check.sh
 ```
 
 **Manual Development Commands:**
@@ -200,15 +183,13 @@ rustile/
 │   ├── keyboard.rs          # Keyboard shortcut handling
 │   └── keys.rs              # Key parsing utilities
 │
-├── scripts/
-│   └── dev-tools.sh         # Consolidated development utilities
-│
 ├── docs/
-│   ├── ARCHITECTURE.md      # Technical architecture details
-│   ├── BEGINNER_GUIDE.md    # Guide for Rust newcomers
-│   ├── TECHNICAL_DEEP_DIVE.md # Advanced implementation details
+│   ├── BEGINNER_GUIDE.md    # Guide for first-time users
+│   ├── TECHNICAL_DEEP_DIVE.md # Advanced implementation details (merged from ARCHITECTURE.md)
 │   └── ROADMAP.md           # Development roadmap
 │
+├── test.sh                  # Simple interactive testing script
+├── check.sh                 # Simple code quality checker  
 ├── config.example.toml      # Example configuration
 ├── CLAUDE.md                # This file
 └── README.md                # User documentation
@@ -272,8 +253,8 @@ unfocused_border_color = 0x808080  # Gray
 
 ### Test Environment Setup
 ```bash
-# Use the development tools script (recommended)
-./scripts/dev-tools.sh layout
+# Use the simple test script (recommended)
+./test.sh
 
 # This opens 4 test applications:
 # 1. xterm (running top)

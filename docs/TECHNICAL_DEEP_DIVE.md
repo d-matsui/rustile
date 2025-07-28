@@ -81,8 +81,8 @@ rustile/
 │   ├── keyboard.rs                # Keyboard shortcut handling
 │   └── keys.rs                    # Key parsing utilities
 │
-├── scripts/                       # Development tools
-│   └── dev-tools.sh              # Unified dev utility
+├── test.sh                        # Simple test script with Xephyr
+├── check.sh                       # Code quality checker
 ├── docs/                          # Documentation
 │   ├── TECHNICAL_DEEP_DIVE.md    # This file
 │   ├── BEGINNER_GUIDE.md         # User-friendly guide
@@ -1069,7 +1069,7 @@ Rustile employs a multi-layered testing approach:
 
 ```bash
 # Comprehensive testing script
-./scripts/dev-tools.sh test
+./test.sh
 ```
 
 **Test Execution Flow:**
@@ -1178,22 +1178,22 @@ wait
 
 ```bash
 # Setup development environment
-./scripts/dev-tools.sh setup
+# Setup: Ensure cargo is available\nsource ~/.cargo/env
 
 # Run comprehensive tests
-./scripts/dev-tools.sh test
+./test.sh
 
 # Interactive layout testing
-./scripts/dev-tools.sh layout
+./test.sh
 
 # Quality checks (fmt, clippy, test, docs)
-./scripts/dev-tools.sh check
+./check.sh
 
 # Clean build artifacts
-./scripts/dev-tools.sh clean
+cargo clean
 
 # Build release binary
-./scripts/dev-tools.sh release
+cargo build --release
 ```
 
 ### ✅ Code Quality Standards
@@ -1253,7 +1253,7 @@ cargo test -- --nocapture
 **Integration Testing:**
 ```bash
 # Start test environment
-./scripts/dev-tools.sh layout
+./test.sh
 
 # In another terminal, test features:
 DISPLAY=:10 xterm &  # Test window creation
@@ -1268,10 +1268,11 @@ DISPLAY=:10 xlogo &  # Test multiple windows
 
 **Manual Testing Scripts:**
 ```bash
-# Test specific layout
-./scripts/dev-tools.sh switch bsp
-./scripts/dev-tools.sh switch master_stack
-./scripts/dev-tools.sh switch  # Toggle between layouts
+# Test rustile in isolated environment
+./test.sh
+
+# Check code quality  
+./check.sh
 ```
 
 ### 📋 Commit Guidelines

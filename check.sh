@@ -16,7 +16,7 @@ echo ""
 
 # Clippy check
 echo "Running clippy..."
-if cargo clippy -- -D warnings; then
+if cargo clippy --all-targets --all-features -- -D warnings; then
     echo "✓ Clippy OK"
 else
     echo "✗ Clippy warnings found"

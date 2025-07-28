@@ -61,7 +61,7 @@ Rustile currently supports:
 
 Interested in helping with any of these features? Check out:
 - [CONTRIBUTING.md](../CONTRIBUTING.md) (to be created)
-- [Architecture documentation](ARCHITECTURE.md)
+- [Technical Deep Dive](TECHNICAL_DEEP_DIVE.md)
 - [Development guide](../CLAUDE.md)
 
 ## 📅 Version Planning
