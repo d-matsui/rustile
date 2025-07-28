@@ -117,7 +117,6 @@ Without Window Manager:          With Rustile:
 
 ---
 
-<FIXME: We dont need rust concepts. But explaing with codes are good for beginners.>
 ## 3. 🦀 How Rustile is Built
 
 ### 📦 Understanding the Code Structure
