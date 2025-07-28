@@ -15,8 +15,8 @@ Rustile currently supports:
 ## 📋 Roadmap (~v1.0.0)
 
 - [ ] **Basic Window Features**
-  - [ ] Destroy window
-  - [ ] Switch window
+  - [x] Destroy window
+  - [x] Switch window
   - [ ] Rotate window
   - [ ] Auto-balance window
   - [ ] Resize Window (full width/height, full screen)
@@ -35,9 +35,9 @@ Rustile currently supports:
   - [ ] Float rules for specific applications
 
 - [ ] **Refactoring/Misc**
-  - [ ] Avoid using X11 mock in tests (use docker container with X11?)
+  - [ ] Change default layout to bsp (master-stack is just for early development)
+  - [ ] Remove unnecessary features (swap master, X, etc.)
   - [ ] Simplify key management (use xmodmap command?)
-  - [ ] Remove master stack layout (only used for early development)
   - [ ] Comprehensive testing
   - [ ] Comprehensive docs
 
@@ -47,6 +47,8 @@ Rustile currently supports:
   - Move windows between monitors
 
 - **Advanced Features**
+  - App launcher integration
+  - Screen shot
   - Custom status bar
   - Mouse support
 
@@ -59,7 +61,7 @@ Rustile currently supports:
 
 Interested in helping with any of these features? Check out:
 - [CONTRIBUTING.md](../CONTRIBUTING.md) (to be created)
-- [Architecture documentation](ARCHITECTURE.md)
+- [Technical Deep Dive](TECHNICAL_DEEP_DIVE.md)
 - [Development guide](../CLAUDE.md)
 
 ## 📅 Version Planning

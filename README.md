@@ -1,6 +1,6 @@
 # Rustile
 
-A lightweight tiling window manager written in Rust, designed to be simple, efficient, and extensible.
+An X11 tiling window manager written in Rust, inspired by [yabai](https://github.com/koekeishiya/yabai) and [xpywm](https://github.com/h-ohsaki/xpywm).
 
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 ![X11](https://img.shields.io/badge/X11-Window%20Manager-orange)
@@ -8,65 +8,55 @@ A lightweight tiling window manager written in Rust, designed to be simple, effi
 
 ![Example](<Screenshot from 2025-07-23 15-14-27.png>)
 
-## Features
+## Key Features
 
-- **Automatic Tiling**: Windows are automatically arranged without overlapping
-- **Multiple Layouts**: Master-Stack and BSP (Binary Space Partitioning) layouts
-- **Configurable Gaps**: Customizable spacing between windows and screen edges
-- **Visual Focus Management**: Colored borders and keyboard navigation
-- **TOML Configuration**: Easy-to-edit configuration with validation
-- **Keyboard-Driven**: Control windows without touching the mouse
-- **Lightweight**: Minimal resource usage and fast performance
+- **Automatic Window Tiling** - No manual window arrangement needed
+- **Keyboard-Driven Workflow** - Efficient control without mouse dependency
+- **Easy TOML Configuration** - Simple, readable config files
+- **Lightweight Performance** - Minimal resource usage, fast startup
+- **Extensible & Customizable** - Adapt to your workflow needs
 
 ## Installation
 
-### Prerequisites
+### Build from Source or Download from [GitHub Releases](https://github.com/d-matsui/rustile/releases)
 
-- Rust 1.70 or later
-- X11 development libraries
-
-#### On Debian/Ubuntu:
+**Build from source:**
 ```bash
+# Install build dependencies (Debian/Ubuntu)
 sudo apt-get install build-essential libx11-dev libxcb1-dev
-```
 
-### Building from Source
-
-```bash
+# Clone and build
 git clone https://github.com/d-matsui/rustile.git
 cd rustile
 cargo build --release
-cp target/release/rustile ~/.local/bin/  # or /usr/local/bin/
 ```
 
-### Pre-built Binaries
-
-Download from [GitHub Releases](https://github.com/d-matsui/rustile/releases)
-
-## Quick Start
-
-### 1. Setup Configuration
+### Install the Binary
 ```bash
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
+# Copy to system PATH
+sudo cp target/release/rustile /usr/local/bin/  # or from downloaded binary
+chmod +x /usr/local/bin/rustile
 ```
 
-### 2. Test with Xephyr (Recommended)
+## Setup
+
+### Stop Existing Window Manager
+**On Debian/Ubuntu with GNOME:**
 ```bash
-# Use the development script
-./scripts/dev-tools.sh layout
+# Check current session type
+echo $XDG_SESSION_TYPE  # "x11" = OK, "wayland" = Not compatible
+
+# If running Wayland:
+# - Log out and choose "GNOME on Xorg" at login screen
+# - XWayland won't work - rustile needs real X11
+
+# For X11 sessions, stop GNOME temporarily for testing:
+sudo systemctl stop gdm3  # Warning: This stops your entire desktop!
 ```
 
-Or manually:
-```bash
-Xephyr :10 -screen 1280x720 &
-DISPLAY=:10 rustile &
-DISPLAY=:10 xterm &  # Open test applications
-```
+### Make Rustile Your Default Window Manager
 
-### 3. Start Rustile
-
-**Option A: Display Manager**
+**Option A: Choose at Login (Recommended)**
 Create `/usr/share/xsessions/rustile.desktop`:
 ```ini
 [Desktop Entry]
@@ -75,96 +65,70 @@ Comment=Tiling window manager written in Rust
 Exec=rustile
 Type=Application
 ```
+Then log out and select "Rustile" from the login screen.
 
-**Option B: Using xinit**
+**Option B: Using startx**
 Add to `~/.xinitrc`:
 ```bash
 exec rustile
 ```
-
-## Configuration
-
-Edit `~/.config/rustile/config.toml`:
-
-```toml
-[layout]
-layout_algorithm = "master_stack"  # or "bsp"
-master_ratio = 0.5                 # Master window width ratio
-gap = 10                           # Pixels between windows
-border_width = 5                   # Window border thickness
-focused_border_color = 0xFF0000    # Red for focused window
-unfocused_border_color = 0x808080  # Gray for unfocused
-
-[shortcuts]
-# Application shortcuts
-"Shift+Alt+1" = "xterm"
-"Super+Return" = "xterm"  # Alternative terminal shortcut
-
-# Window management
-"Alt+j" = "focus_next"             # Focus next window
-"Alt+k" = "focus_prev"             # Focus previous window  
-"Shift+Alt+m" = "swap_with_master" # Swap with master window
-```
+Then use `startx` to launch.
 
 ## Basic Usage
 
-### Window Management
-- **First window** becomes the master (left side in master-stack)
-- **Additional windows** stack on the right or split recursively (BSP)
-- **Closing a window** triggers automatic re-tiling
-
-### Keyboard Navigation
-- `Alt+j/k` - Cycle through windows
-- `Shift+Alt+m` - Swap focused window with master
-- Custom shortcuts for launching applications
-
-### Layout Switching
 ```bash
-# Switch between layouts
-./scripts/dev-tools.sh switch bsp         # Switch to BSP
-./scripts/dev-tools.sh switch master      # Switch to Master-Stack  
-./scripts/dev-tools.sh switch             # Toggle between layouts
+# Window Navigation
+Alt+j/k              Focus next/previous window
+Shift+Alt+j/k        Swap window positions
+Shift+Alt+m          Swap with master window
+
+# Window Control  
+Shift+Alt+q          Close window
+Shift+Alt+1          Open terminal
 ```
+
+## Configuration (Optional)
+
+Rustile works out of the box, but you can customize it:
+
+**Create config file:**
+```bash
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+```
+
+**Example customizations:**
+```toml
+[layout]
+gap = 15                           # Spacing between windows
+border_width = 3                   # Window border thickness
+focused_border_color = 0x00FF00    # Green borders for focused window
+
+[shortcuts]
+"Super+Return" = "xterm"           # Terminal with Super+Enter
+"Super+d" = "rofi -show run"       # Application launcher
+```
+
+See [config.example.toml](config.example.toml) for all available options.
 
 ## Troubleshooting
 
-### "Another window manager is already running"
-- Log out of current desktop session
-- Stop any running window manager
-- Use Xephyr for testing: `./scripts/dev-tools.sh layout`
-
 ### Configuration Issues
-- Check syntax: `RUST_LOG=info rustile`
-- Reset to defaults: `rm ~/.config/rustile/config.toml`
 
-### Debug Mode
 ```bash
-RUST_LOG=debug rustile
+# Check for errors (logs to stderr):
+RUST_LOG=debug rustile 2>&1 | tee rustile.log
+
+# Reset to defaults:
+rm ~/.config/rustile/config.toml
 ```
 
 ## Documentation
 
-### 📚 Learning Resources
-- **[Beginner's Guide](docs/BEGINNER_GUIDE.md)** - Perfect for first-time Rust programmers and window manager newcomers
-- **[Technical Deep Dive](docs/TECHNICAL_DEEP_DIVE.md)** - Advanced implementation details and algorithms
-
-### 📖 Reference Guides  
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical details and code structure
-- **[Development Roadmap](docs/ROADMAP.md)** - Planned features and timeline
-- **[Development Guide](CLAUDE.md)** - Contributing and development workflow
-
-## Contributing
-
-Contributions welcome! Please:
-1. Use conventional commit messages (`feat:`, `fix:`, etc.)
-2. Run `cargo fmt` and `cargo clippy` before committing
-3. Add tests for new functionality
-4. Check existing issues and PRs
+- **[Beginner Guide](docs/BEGINNER_GUIDE.md)** - Learn window managers and how Rustile works
+- **[Technical Deep Dive](docs/TECHNICAL_DEEP_DIVE.md)** - Implementation details for developers
+- **[Roadmap](docs/ROADMAP.md)** - Planned features and development timeline
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-Inspired by existing tiling window managers like [yabai](https://github.com/koekeishiya/yabai) and [xpywm](https://github.com/h-ohsaki/xpywm).
