@@ -18,8 +18,6 @@ Rustile currently supports:
   - [x] Destroy window
   - [x] Switch window
   - [ ] Resize Window (full width/height, full screen)
-  - [ ] Rotate window
-  - [ ] Auto-balance window
 
 - [ ] **Workspace Features**
   - [ ] Workspace creation/deletion
@@ -47,6 +45,8 @@ Rustile currently supports:
   - Move windows between monitors
 
 - **Advanced Features**
+  - insert window (yabai-like)
+  - Auto-balance window
   - App launcher integration
   - Screen shot
   - Custom status bar

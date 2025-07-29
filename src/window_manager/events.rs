@@ -105,7 +105,17 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Unmapping window: {:?}", window);
 
-        // Remove from managed windows
+        // Check if this was intentionally unmapped (during fullscreen)
+        if self.intentionally_unmapped.contains(&window) {
+            info!("Window {:?} was intentionally unmapped, ignoring", window);
+            return Ok(());
+        }
+
+        // Only remove from managed windows if NOT intentionally unmapped
+        info!(
+            "Window {:?} closed by user, removing from management",
+            window
+        );
         self.windows.retain(|&w| w != window);
         self.window_stack.retain(|&w| w != window);
 
@@ -144,6 +154,9 @@ impl<C: Connection> WindowManager<C> {
         // Remove from managed windows
         self.windows.retain(|&w| w != window);
         self.window_stack.retain(|&w| w != window);
+
+        // Clean up intentionally unmapped set to prevent memory leaks
+        self.intentionally_unmapped.remove(&window);
 
         // Clear fullscreen if fullscreen window was destroyed
         if self.fullscreen_window == Some(window) {

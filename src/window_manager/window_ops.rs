@@ -3,7 +3,7 @@
 use anyhow::Result;
 use tracing::info;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, InputFocus, StackMode};
+use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, StackMode};
 
 use super::core::WindowManager;
 
@@ -29,9 +29,17 @@ impl<C: Connection> WindowManager<C> {
         let setup = self.conn.setup();
         let screen = &setup.roots[self.screen_num];
 
-        // Ensure all windows are mapped (visible) when not in fullscreen
+        // Ensure all windows are mapped (visible) and have borders when not in fullscreen
+        let border_width = self.config.border_width();
         for &window in &self.windows {
             self.conn.map_window(window)?;
+            // Remove from intentionally unmapped set when restoring
+            self.intentionally_unmapped.remove(&window);
+            // Restore border width
+            self.conn.configure_window(
+                window,
+                &ConfigureWindowAux::new().border_width(border_width),
+            )?;
         }
 
         self.layout_manager.apply_layout(
@@ -56,6 +64,12 @@ impl<C: Connection> WindowManager<C> {
     pub fn swap_with_master(&mut self) -> Result<()> {
         if self.windows.len() < 2 {
             return Ok(());
+        }
+
+        // Exit fullscreen if active, then perform swap
+        if self.fullscreen_window.is_some() {
+            info!("Exiting fullscreen for window swap");
+            self.fullscreen_window = None;
         }
 
         if let Some(focused) = self.focused_window {
@@ -160,6 +174,12 @@ impl<C: Connection> WindowManager<C> {
             return Ok(());
         }
 
+        // Exit fullscreen if active, then perform swap
+        if self.fullscreen_window.is_some() {
+            info!("Exiting fullscreen for window swap");
+            self.fullscreen_window = None;
+        }
+
         if let Some(focused) = self.focused_window {
             if let Some(focused_idx) = self.windows.iter().position(|&w| w == focused) {
                 let target_idx = match direction {
@@ -208,8 +228,6 @@ impl<C: Connection> WindowManager<C> {
                 // Exit fullscreen mode
                 info!("Exiting fullscreen mode for window {:?}", focused);
                 self.fullscreen_window = None;
-
-                // Restore normal layout
                 self.apply_layout()?;
             } else {
                 // Different window wants fullscreen, switch to it
@@ -236,8 +254,6 @@ impl<C: Connection> WindowManager<C> {
             let setup = self.conn.setup();
             let screen = &setup.roots[self.screen_num];
 
-            info!("Applying fullscreen layout for window {:?}", fullscreen);
-
             // Ensure the fullscreen window is mapped (visible)
             self.conn.map_window(fullscreen)?;
 
@@ -251,22 +267,20 @@ impl<C: Connection> WindowManager<C> {
 
             self.conn.configure_window(fullscreen, &config)?;
 
-            // Hide all other windows
+            // Hide all other windows (mark as intentionally unmapped)
             for &window in &self.windows {
                 if window != fullscreen {
+                    // Mark as intentionally unmapped BEFORE unmapping
+                    self.intentionally_unmapped.insert(window);
                     self.conn.unmap_window(window)?;
                 }
             }
 
-            // Ensure fullscreen window is on top and has focus
+            // Ensure fullscreen window is on top
             self.conn.configure_window(
                 fullscreen,
                 &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
             )?;
-
-            // Set focus to fullscreen window
-            self.conn
-                .set_input_focus(InputFocus::POINTER_ROOT, fullscreen, x11rb::CURRENT_TIME)?;
 
             self.conn.flush()?;
         }
