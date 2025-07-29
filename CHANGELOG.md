@@ -1,3 +1,19 @@
+## [0.6.0](https://github.com/d-matsui/rustile/compare/v0.5.1...v0.6.0) (2025-07-29)
+
+### 🚀 Features
+
+* change fullscreen shortcut to AltGr+f (Right Alt) ([b007c87](https://github.com/d-matsui/rustile/commit/b007c87f5e853bbb846ad04f0496b085a54b1038))
+* implement complete fullscreen toggle functionality ([f3369e3](https://github.com/d-matsui/rustile/commit/f3369e34b501c8e52ce1fe6abb6474fc054cc0de))
+* implement fullscreen toggle feature ([4d9b1b6](https://github.com/d-matsui/rustile/commit/4d9b1b63baf87c063e92f394cf7cede473beb635))
+
+### 🐛 Bug Fixes
+
+* fullscreen mode now properly handles focus changes ([50ecc00](https://github.com/d-matsui/rustile/commit/50ecc00e2b552436905c72fef211ef774754f54e))
+
+### 🧪 Tests
+
+* add comprehensive fullscreen state transition tests ([348a8c5](https://github.com/d-matsui/rustile/commit/348a8c585758a6aac9e0c5bebb6db3fab22e687f))
+
 ## [0.5.1](https://github.com/d-matsui/rustile/compare/v0.5.0...v0.5.1) (2025-07-28)
 
 ### 🐛 Bug Fixes
