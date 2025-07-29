@@ -75,6 +75,13 @@ impl<C: Connection> WindowManager<C> {
             self.windows[0]
         };
 
+        // Exit fullscreen if trying to focus a different window
+        if self.fullscreen_window.is_some() && self.fullscreen_window != Some(next_window) {
+            info!("Exiting fullscreen mode to focus different window");
+            self.fullscreen_window = None;
+            self.apply_layout()?;
+        }
+
         self.set_focus(next_window)?;
         info!("Focused next window: {:?}", next_window);
         Ok(())
@@ -101,6 +108,13 @@ impl<C: Connection> WindowManager<C> {
         } else {
             self.windows[0]
         };
+
+        // Exit fullscreen if trying to focus a different window
+        if self.fullscreen_window.is_some() && self.fullscreen_window != Some(prev_window) {
+            info!("Exiting fullscreen mode to focus different window");
+            self.fullscreen_window = None;
+            self.apply_layout()?;
+        }
 
         self.set_focus(prev_window)?;
         info!("Focused previous window: {:?}", prev_window);

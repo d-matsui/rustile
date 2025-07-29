@@ -3,7 +3,7 @@
 use anyhow::Result;
 use tracing::info;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, StackMode};
+use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, InputFocus, StackMode};
 
 use super::core::WindowManager;
 
@@ -236,6 +236,11 @@ impl<C: Connection> WindowManager<C> {
             let setup = self.conn.setup();
             let screen = &setup.roots[self.screen_num];
 
+            info!("Applying fullscreen layout for window {:?}", fullscreen);
+
+            // Ensure the fullscreen window is mapped (visible)
+            self.conn.map_window(fullscreen)?;
+
             // Configure fullscreen window to cover entire screen (no gaps, no borders)
             let config = ConfigureWindowAux::new()
                 .x(0)
@@ -253,11 +258,15 @@ impl<C: Connection> WindowManager<C> {
                 }
             }
 
-            // Ensure fullscreen window is on top
+            // Ensure fullscreen window is on top and has focus
             self.conn.configure_window(
                 fullscreen,
                 &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
             )?;
+
+            // Set focus to fullscreen window
+            self.conn
+                .set_input_focus(InputFocus::POINTER_ROOT, fullscreen, x11rb::CURRENT_TIME)?;
 
             self.conn.flush()?;
         }

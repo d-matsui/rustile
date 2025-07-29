@@ -10,7 +10,7 @@ default_display = ":10"
 # Options: "master_stack" (default) or "bsp" (binary space partitioning)
 # master_stack: Traditional tiling with one master + stack
 # bsp: Recursive splitting of screen space (binary space partitioning)
-layout_algorithm = "master_stack"
+layout_algorithm = "bsp"
 
 # Master window ratio (0.0 to 1.0) - applies to master_stack layout
 # 0.5 means master window takes 50% of screen width
