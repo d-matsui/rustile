@@ -6,7 +6,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, StackMode};
 
 use super::core::WindowManager;
-use crate::layout::{LayoutParams, LayoutRatios, ScreenParams, WindowConstraints, bsp};
+use crate::layout::bsp;
 
 /// Direction for window swapping operations
 #[derive(Debug, Clone, Copy)]
@@ -51,34 +51,25 @@ impl<C: Connection> WindowManager<C> {
             self.config.bsp_split_ratio(),
         );
 
-        // Apply the BSP layout
-        let params = LayoutParams {
-            screen: ScreenParams {
-                width: screen.width_in_pixels,
-                height: screen.height_in_pixels,
-                gap: self.config.gap(),
-            },
-            constraints: WindowConstraints {
-                min_width: self.config.min_window_width(),
-                min_height: self.config.min_window_height(),
-            },
-            ratios: LayoutRatios {
-                bsp_split_ratio: self.config.bsp_split_ratio(),
-            },
-        };
-
-        bsp::tile_bsp_windows(
-            &self.conn,
+        // Calculate window geometries (pure calculation, no X11 calls)
+        let geometries = bsp::calculate_bsp_geometries(
             &self.bsp_tree,
-            &self.windows,
-            self.focused_window,
-            params.screen.width,
-            params.screen.height,
-            params.ratios.bsp_split_ratio,
-            params.constraints.min_width,
-            params.constraints.min_height,
-            params.screen.gap,
-        )?;
+            screen.width_in_pixels,
+            screen.height_in_pixels,
+            self.config.min_window_width(),
+            self.config.min_window_height(),
+            self.config.gap(),
+        );
+
+        // Apply the calculated geometries (X11 operations)
+        for geom in geometries {
+            let config = ConfigureWindowAux::new()
+                .x(geom.x)
+                .y(geom.y)
+                .width(geom.width)
+                .height(geom.height);
+            self.conn.configure_window(geom.window, &config)?;
+        }
 
         #[cfg(debug_assertions)]
         tracing::debug!("Applied layout to {} windows", self.windows.len());
