@@ -27,6 +27,10 @@ pub struct WindowManager<C: Connection> {
     pub(super) keyboard_manager: KeyboardManager,
     /// Configuration
     pub(super) config: Config,
+    /// Currently fullscreen window (if any)
+    pub(super) fullscreen_window: Option<Window>,
+    /// Windows we intentionally unmapped (to distinguish from user-closed windows)
+    pub(super) intentionally_unmapped: std::collections::HashSet<Window>,
 }
 
 impl<C: Connection> WindowManager<C> {
@@ -85,6 +89,8 @@ impl<C: Connection> WindowManager<C> {
             layout_manager,
             keyboard_manager,
             config,
+            fullscreen_window: None,
+            intentionally_unmapped: std::collections::HashSet::new(),
         })
     }
 

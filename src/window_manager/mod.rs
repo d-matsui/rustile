@@ -240,6 +240,175 @@ mod tests {
         assert_eq!(windows, vec![1, 2, 3, 4, 5]);
     }
 
+    /// Helper to test fullscreen toggle logic
+    fn test_toggle_fullscreen_logic(
+        fullscreen_window: Option<Window>,
+        focused_window: Option<Window>,
+    ) -> Option<Window> {
+        match (fullscreen_window, focused_window) {
+            (None, Some(focused)) => {
+                // Enter fullscreen mode
+                Some(focused)
+            }
+            (Some(current_fs), Some(focused)) if current_fs == focused => {
+                // Exit fullscreen mode (same window)
+                None
+            }
+            (Some(_), Some(focused)) => {
+                // Switch fullscreen to different window
+                Some(focused)
+            }
+            (Some(_), None) => {
+                // No focused window, can't toggle
+                fullscreen_window
+            }
+            (None, None) => {
+                // No focused window, can't enter fullscreen
+                None
+            }
+        }
+    }
+
+    /// Helper to test auto-exit fullscreen when focusing different window
+    fn test_focus_exit_fullscreen_logic(
+        fullscreen_window: Option<Window>,
+        target_window: Window,
+    ) -> Option<Window> {
+        if fullscreen_window.is_some() && fullscreen_window != Some(target_window) {
+            // Exit fullscreen when focusing different window
+            None
+        } else {
+            fullscreen_window
+        }
+    }
+
+    #[test]
+    fn test_toggle_fullscreen_enter_mode() {
+        // Test entering fullscreen mode
+        let result = test_toggle_fullscreen_logic(None, Some(10));
+        assert_eq!(result, Some(10));
+    }
+
+    #[test]
+    fn test_toggle_fullscreen_exit_mode() {
+        // Test exiting fullscreen mode (same window)
+        let result = test_toggle_fullscreen_logic(Some(10), Some(10));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_toggle_fullscreen_switch_window() {
+        // Test switching fullscreen to different window
+        let result = test_toggle_fullscreen_logic(Some(10), Some(20));
+        assert_eq!(result, Some(20));
+    }
+
+    #[test]
+    fn test_toggle_fullscreen_no_focused_window() {
+        // Test toggle with no focused window
+        let result = test_toggle_fullscreen_logic(None, None);
+        assert_eq!(result, None);
+
+        // Test with fullscreen active but no focused window
+        let result = test_toggle_fullscreen_logic(Some(10), None);
+        assert_eq!(result, Some(10)); // Should remain in fullscreen
+    }
+
+    #[test]
+    fn test_focus_auto_exit_fullscreen() {
+        // Test auto-exit when focusing different window
+        let result = test_focus_exit_fullscreen_logic(Some(10), 20);
+        assert_eq!(result, None);
+
+        // Test no auto-exit when focusing same window
+        let result = test_focus_exit_fullscreen_logic(Some(10), 10);
+        assert_eq!(result, Some(10));
+
+        // Test no change when not in fullscreen
+        let result = test_focus_exit_fullscreen_logic(None, 10);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_fullscreen_state_consistency() {
+        // Test multiple state transitions
+        let mut fs_state = None;
+
+        // Enter fullscreen
+        fs_state = test_toggle_fullscreen_logic(fs_state, Some(10));
+        assert_eq!(fs_state, Some(10));
+
+        // Try to focus different window (should exit fullscreen)
+        fs_state = test_focus_exit_fullscreen_logic(fs_state, 20);
+        assert_eq!(fs_state, None);
+
+        // Enter fullscreen for different window
+        fs_state = test_toggle_fullscreen_logic(fs_state, Some(20));
+        assert_eq!(fs_state, Some(20));
+
+        // Switch fullscreen to third window
+        fs_state = test_toggle_fullscreen_logic(fs_state, Some(30));
+        assert_eq!(fs_state, Some(30));
+
+        // Exit fullscreen
+        fs_state = test_toggle_fullscreen_logic(fs_state, Some(30));
+        assert_eq!(fs_state, None);
+    }
+
+    /// Helper to test window swap with fullscreen auto-exit
+    fn test_swap_exit_fullscreen_logic(
+        fullscreen_window: Option<Window>,
+        will_swap: bool,
+    ) -> Option<Window> {
+        if will_swap && fullscreen_window.is_some() {
+            // Exit fullscreen before performing swap
+            None
+        } else {
+            fullscreen_window
+        }
+    }
+
+    #[test]
+    fn test_swap_operations_exit_fullscreen() {
+        // Test that window swaps exit fullscreen mode
+        let result = test_swap_exit_fullscreen_logic(Some(10), true);
+        assert_eq!(result, None);
+
+        // Test no change when swap doesn't occur
+        let result = test_swap_exit_fullscreen_logic(Some(10), false);
+        assert_eq!(result, Some(10));
+
+        // Test no change when not in fullscreen
+        let result = test_swap_exit_fullscreen_logic(None, true);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_fullscreen_edge_cases() {
+        // Test various edge cases for fullscreen functionality
+
+        // Multiple consecutive toggles
+        let mut fs_state = None;
+        for _ in 0..3 {
+            fs_state = test_toggle_fullscreen_logic(fs_state, Some(10));
+            fs_state = test_toggle_fullscreen_logic(fs_state, Some(10));
+        }
+        assert_eq!(fs_state, None); // Should end up not in fullscreen
+
+        // Rapid window switching
+        fs_state = test_toggle_fullscreen_logic(None, Some(10));
+        assert_eq!(fs_state, Some(10));
+
+        for window in 20..25 {
+            fs_state = test_toggle_fullscreen_logic(fs_state, Some(window));
+            assert_eq!(fs_state, Some(window));
+        }
+
+        // Focus different window should exit
+        fs_state = test_focus_exit_fullscreen_logic(fs_state, 100);
+        assert_eq!(fs_state, None);
+    }
+
     /// Helper to test destroy window logic
     fn test_destroy_window_logic(windows: &mut Vec<Window>, focused: Option<Window>) -> bool {
         if let Some(focused) = focused {
