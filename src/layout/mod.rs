@@ -3,11 +3,12 @@
 //! This module provides BSP (Binary Space Partitioning) layout algorithm
 
 // Re-export the main public interface
-pub use manager::LayoutManager;
+pub use bsp::{BspTree, rebuild_bsp_tree, tile_bsp_windows};
 pub use types::{LayoutParams, LayoutRatios, ScreenParams, SplitDirection, WindowConstraints};
 
+// Public modules for direct access
+pub mod bsp;
+
 // Internal modules
-mod bsp;
 mod constants;
-mod manager;
 mod types;

@@ -6,6 +6,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, StackMode};
 
 use super::core::WindowManager;
+use crate::layout::{LayoutParams, LayoutRatios, ScreenParams, WindowConstraints, bsp};
 
 /// Direction for window swapping operations
 #[derive(Debug, Clone, Copy)]
@@ -42,16 +43,41 @@ impl<C: Connection> WindowManager<C> {
             )?;
         }
 
-        self.layout_manager.apply_layout(
-            &self.conn,
+        // Rebuild BSP tree from current windows
+        bsp::rebuild_bsp_tree(
+            &mut self.bsp_tree,
             &self.windows,
             self.focused_window,
-            screen.width_in_pixels,
-            screen.height_in_pixels,
             self.config.bsp_split_ratio(),
-            self.config.min_window_width(),
-            self.config.min_window_height(),
-            self.config.gap(),
+        );
+
+        // Apply the BSP layout
+        let params = LayoutParams {
+            screen: ScreenParams {
+                width: screen.width_in_pixels,
+                height: screen.height_in_pixels,
+                gap: self.config.gap(),
+            },
+            constraints: WindowConstraints {
+                min_width: self.config.min_window_width(),
+                min_height: self.config.min_window_height(),
+            },
+            ratios: LayoutRatios {
+                bsp_split_ratio: self.config.bsp_split_ratio(),
+            },
+        };
+
+        bsp::tile_bsp_windows(
+            &self.conn,
+            &self.bsp_tree,
+            &self.windows,
+            self.focused_window,
+            params.screen.width,
+            params.screen.height,
+            params.ratios.bsp_split_ratio,
+            params.constraints.min_width,
+            params.constraints.min_height,
+            params.screen.gap,
         )?;
 
         #[cfg(debug_assertions)]
