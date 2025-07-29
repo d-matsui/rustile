@@ -27,6 +27,8 @@ pub struct WindowManager<C: Connection> {
     pub(super) keyboard_manager: KeyboardManager,
     /// Configuration
     pub(super) config: Config,
+    /// Currently fullscreen window (if any)
+    pub(super) fullscreen_window: Option<Window>,
 }
 
 impl<C: Connection> WindowManager<C> {
@@ -85,6 +87,7 @@ impl<C: Connection> WindowManager<C> {
             layout_manager,
             keyboard_manager,
             config,
+            fullscreen_window: None,
         })
     }
 

@@ -17,9 +17,9 @@ Rustile currently supports:
 - [ ] **Basic Window Features**
   - [x] Destroy window
   - [x] Switch window
+  - [ ] Resize Window (full width/height, full screen)
   - [ ] Rotate window
   - [ ] Auto-balance window
-  - [ ] Resize Window (full width/height, full screen)
 
 - [ ] **Workspace Features**
   - [ ] Workspace creation/deletion

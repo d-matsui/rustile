@@ -44,6 +44,7 @@ impl<C: Connection> WindowManager<C> {
                 "swap_window_next" => return self.swap_window_next(),
                 "swap_window_prev" => return self.swap_window_prev(),
                 "destroy_window" => return self.destroy_focused_window(),
+                "toggle_fullscreen" => return self.toggle_fullscreen(),
                 _ => {
                     // Handle regular application commands
                     let parts: Vec<&str> = command.split_whitespace().collect();
@@ -143,6 +144,12 @@ impl<C: Connection> WindowManager<C> {
         // Remove from managed windows
         self.windows.retain(|&w| w != window);
         self.window_stack.retain(|&w| w != window);
+
+        // Clear fullscreen if fullscreen window was destroyed
+        if self.fullscreen_window == Some(window) {
+            info!("Fullscreen window destroyed, exiting fullscreen mode");
+            self.fullscreen_window = None;
+        }
 
         // Update focus if focused window was destroyed
         if self.focused_window == Some(window) {
