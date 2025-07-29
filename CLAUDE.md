@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a tiling window manager written in Rust using x11rb for X11 window management. The project implements both master-stack and BSP (Binary Space Partitioning) layouts with configurable gaps, focus management, and keyboard shortcuts.
+This is a tiling window manager written in Rust using x11rb for X11 window management. The project implements BSP (Binary Space Partitioning) layout with configurable gaps, focus management, and keyboard shortcuts.
 
 ## Development Rules and Standards
 
@@ -166,15 +166,11 @@ rustile/
 │   │   ├── focus.rs         # Focus management
 │   │   └── window_ops.rs    # Window operations
 │   │
-│   ├── layout/              # Tiling algorithms
+│   ├── layout/              # BSP tiling algorithm
 │   │   ├── mod.rs           # Layout module interface
-│   │   ├── manager.rs       # Layout coordination
-│   │   ├── master_stack.rs  # Master-stack algorithm
-│   │   ├── bsp.rs           # BSP tree algorithm
+│   │   ├── bsp.rs           # BSP tree algorithm & geometry calculation
 │   │   ├── types.rs         # Data structures
-│   │   ├── traits.rs        # Layout trait system
-│   │   ├── constants.rs     # Extracted magic numbers
-│   │   └── algorithms.rs    # Trait implementations
+│   │   └── constants.rs     # Layout constants
 │   │
 │   ├── config/              # Configuration system
 │   │   ├── mod.rs           # Config structures
@@ -198,7 +194,7 @@ rustile/
 ## Current Features
 
 ### Window Management
-- **Dual Layout Support**: Master-Stack and BSP (Binary Space Partitioning)
+- **BSP Layout**: Binary Space Partitioning for flexible window arrangement
 - **Focus Management**: Visual borders (red=focused, gray=unfocused)
 - **Gap System**: Configurable spacing between windows and screen edges
 - **Keyboard Navigation**: Alt+j/k (focus), Shift+Alt+m (swap with master)
@@ -208,7 +204,7 @@ rustile/
 - **TOML Configuration**: `~/.config/rustile/config.toml`
 - **Runtime Validation**: Input validation with helpful error messages
 - **Flexible Shortcuts**: Support for complex key combinations
-- **Layout-specific Options**: master_ratio, bsp_split_ratio
+- **Layout Options**: bsp_split_ratio, minimum window sizes
 
 ### Testing Infrastructure
 - **Unit Tests**: 49 tests covering all major components
@@ -232,8 +228,6 @@ rustile/
 default_display = ":10"  # For Xephyr testing
 
 [layout]
-layout_algorithm = "master_stack"  # or "bsp"
-master_ratio = 0.5      # 50% screen width for master
 bsp_split_ratio = 0.5   # Equal splits for BSP
 gap = 10                # 10px comfortable spacing
 border_width = 5        # 5px visible borders
@@ -412,6 +406,12 @@ If CI fails but local tests pass, ensure you're running the exact same commands 
 - Added BEGINNER_GUIDE.md with visual diagrams
 - Created TECHNICAL_DEEP_DIVE.md for advanced topics
 - Updated all docs to use GitHub-friendly ASCII art
+
+### Phase 5: Architecture Simplification (Latest)
+- **Removed master-stack layout**: Simplified to BSP-only (~564 lines removed)
+- **Eliminated LayoutManager abstraction**: Direct BSP tree usage (~176 lines removed)
+- **Separated X11 from layout calculations**: Pure geometry calculation functions
+- **Total reduction**: ~740 lines while maintaining all functionality
 
 ## Future Development Priorities
 

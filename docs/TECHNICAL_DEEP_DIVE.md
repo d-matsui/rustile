@@ -25,7 +25,7 @@ This document provides comprehensive technical documentation for developers, con
 Rustile is a tiling window manager for X11 written in Rust. It automatically arranges windows without overlapping, providing keyboard-driven window management with configurable layouts.
 
 ### 🔑 Key Features
-- Master-Stack and BSP (Binary Space Partitioning) layouts
+- BSP (Binary Space Partitioning) layout with flexible window arrangement
 - Configurable gaps and window borders with robust validation
 - Window focus management with visual indicators
 - Window swapping operations (next/prev/master)
@@ -65,14 +65,11 @@ rustile/
 │   │   ├── focus.rs               # Focus state management
 │   │   └── window_ops.rs          # Window operations & layout
 │   │
-│   ├── layout/                    # Tiling layout algorithms
+│   ├── layout/                    # BSP tiling layout algorithm
 │   │   ├── mod.rs                 # Layout system interface
-│   │   ├── manager.rs             # Layout coordination
-│   │   ├── master_stack.rs        # Master-stack algorithm
-│   │   ├── bsp.rs                 # BSP algorithm
+│   │   ├── bsp.rs                 # BSP tree algorithm & geometry calculation
 │   │   ├── types.rs               # Data structures
-│   │   ├── traits.rs              # Layout interfaces
-│   │   └── constants.rs           # Configuration constants
+│   │   └── constants.rs           # Layout constants
 │   │
 │   ├── config/                    # Configuration system
 │   │   ├── mod.rs                 # Configuration main
@@ -288,8 +285,8 @@ if gap + border_width > MAX_COMBINED_GAP_BORDER {
 **Validation Examples:**
 - ✅ `gap = 10, border_width = 5` → Valid
 - ❌ `gap = 400, border_width = 300` → Exceeds combined limit
-- ✅ `master_ratio = 0.7` → Valid
-- ❌ `master_ratio = 1.5` → Outside valid range
+- ✅ `bsp_split_ratio = 0.7` → Valid
+- ❌ `bsp_split_ratio = 1.5` → Outside valid range
 
 ### 🔄 Configuration Loading Process
 
