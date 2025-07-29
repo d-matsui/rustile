@@ -6,6 +6,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ConfigureWindowAux, ConnectionExt, StackMode};
 
 use super::core::WindowManager;
+use crate::layout::bsp;
 
 /// Direction for window swapping operations
 #[derive(Debug, Clone, Copy)]
@@ -42,18 +43,33 @@ impl<C: Connection> WindowManager<C> {
             )?;
         }
 
-        self.layout_manager.apply_layout(
-            &self.conn,
+        // Rebuild BSP tree from current windows
+        bsp::rebuild_bsp_tree(
+            &mut self.bsp_tree,
             &self.windows,
             self.focused_window,
+            self.config.bsp_split_ratio(),
+        );
+
+        // Calculate window geometries (pure calculation, no X11 calls)
+        let geometries = bsp::calculate_bsp_geometries(
+            &self.bsp_tree,
             screen.width_in_pixels,
             screen.height_in_pixels,
-            self.config.master_ratio(),
-            self.config.bsp_split_ratio(),
             self.config.min_window_width(),
             self.config.min_window_height(),
             self.config.gap(),
-        )?;
+        );
+
+        // Apply the calculated geometries (X11 operations)
+        for geom in geometries {
+            let config = ConfigureWindowAux::new()
+                .x(geom.x)
+                .y(geom.y)
+                .width(geom.width)
+                .height(geom.height);
+            self.conn.configure_window(geom.window, &config)?;
+        }
 
         #[cfg(debug_assertions)]
         tracing::debug!("Applied layout to {} windows", self.windows.len());

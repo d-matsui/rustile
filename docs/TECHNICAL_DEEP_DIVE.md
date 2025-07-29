@@ -6,26 +6,27 @@ This document provides comprehensive technical documentation for developers, con
 
 1. [Project Overview](#project-overview)
 2. [Project Structure](#project-structure)
-3. [Core Components](#core-components)
-4. [Event Flow](#event-flow)
-5. [Memory Layout and Data Structures](#memory-layout-and-data-structures)
-6. [X11 Protocol Deep Dive](#x11-protocol-deep-dive)
-7. [Layout Algorithm Mathematics](#layout-algorithm-mathematics)
-8. [Configuration System](#configuration-system)
-9. [Keyboard Handling](#keyboard-handling)
-10. [Window Operations](#window-operations)
-11. [Performance Analysis](#performance-analysis)
-12. [Rust Safety and Error Handling](#rust-safety-and-error-handling)
-13. [Testing Architecture](#testing-architecture)
-14. [Development Workflow](#development-workflow)
-15. [Future Architecture Considerations](#future-architecture-considerations)
+3. [Architecture Overview](#architecture-overview)
+4. [Core Components](#core-components)
+5. [Event Flow](#event-flow)
+6. [Memory Layout and Data Structures](#memory-layout-and-data-structures)
+7. [X11 Protocol Deep Dive](#x11-protocol-deep-dive)
+8. [Layout Algorithm Mathematics](#layout-algorithm-mathematics)
+9. [Configuration System](#configuration-system)
+10. [Keyboard Handling](#keyboard-handling)
+11. [Window Operations](#window-operations)
+12. [Performance Analysis](#performance-analysis)
+13. [Rust Safety and Error Handling](#rust-safety-and-error-handling)
+14. [Testing Architecture](#testing-architecture)
+15. [Development Workflow](#development-workflow)
+16. [Future Architecture Considerations](#future-architecture-considerations)
 
 ## 🏗️ Project Overview
 
 Rustile is a tiling window manager for X11 written in Rust. It automatically arranges windows without overlapping, providing keyboard-driven window management with configurable layouts.
 
 ### 🔑 Key Features
-- Master-Stack and BSP (Binary Space Partitioning) layouts
+- BSP (Binary Space Partitioning) layout with flexible window arrangement
 - Configurable gaps and window borders with robust validation
 - Window focus management with visual indicators
 - Window swapping operations (next/prev/master)
@@ -65,14 +66,11 @@ rustile/
 │   │   ├── focus.rs               # Focus state management
 │   │   └── window_ops.rs          # Window operations & layout
 │   │
-│   ├── layout/                    # Tiling layout algorithms
+│   ├── layout/                    # BSP tiling layout algorithm
 │   │   ├── mod.rs                 # Layout system interface
-│   │   ├── manager.rs             # Layout coordination
-│   │   ├── master_stack.rs        # Master-stack algorithm
-│   │   ├── bsp.rs                 # BSP algorithm
+│   │   ├── bsp.rs                 # BSP tree algorithm & geometry calculation
 │   │   ├── types.rs               # Data structures
-│   │   ├── traits.rs              # Layout interfaces
-│   │   └── constants.rs           # Configuration constants
+│   │   └── constants.rs           # Layout constants
 │   │
 │   ├── config/                    # Configuration system
 │   │   ├── mod.rs                 # Configuration main
@@ -91,6 +89,206 @@ rustile/
 ├── config.example.toml            # Example configuration
 └── CLAUDE.md                     # Development guidelines
 ```
+
+## 🏛️ Architecture Overview
+
+Rustile follows a **layered, responsibility-driven architecture** with clear separation between concerns. The design emphasizes **pure functions**, **single responsibility**, and **testability**.
+
+### 📐 Architectural Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        main.rs                              │
+│                    (Entry Point)                            │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────┐
+│                 WindowManager                               │
+│              (Coordination Layer)                           │
+│  ┌─────────────┬─────────────┬─────────────┬─────────────┐  │
+│  │   Events    │   Focus     │ Window Ops  │    Core     │  │
+│  │ (X11 Input) │ (Visual)    │ (Layout)    │ (Main Loop) │  │
+│  └─────────────┴─────────────┴─────────────┴─────────────┘  │
+└─────┬─────────────┬─────────────────┬─────────────────────┬─┘
+      │             │                 │                     │
+┌─────┴─────┐ ┌─────┴─────┐ ┌─────────┴─────────┐ ┌─────────┴─────┐
+│  Config   │ │ Keyboard  │ │     Layout        │ │     Keys      │
+│ (Settings)│ │(Shortcuts)│ │  (BSP Algorithm)  │ │  (Parsing)    │  
+└───────────┘ └───────────┘ └───────────────────┘ └───────────────┘
+```
+
+### 🎯 Core Design Principles
+
+#### 1. **Single Responsibility Principle**
+Each module has one clear purpose:
+- **WindowManager**: Coordinates state and delegates operations
+- **Layout**: Pure mathematical calculations for window positioning
+- **Config**: Settings validation and type-safe access
+- **Events**: X11 event handling and command dispatch
+- **Keyboard**: Key combination parsing and shortcut mapping
+
+#### 2. **Separation of Concerns** 
+Critical separations maintained:
+```rust
+// PURE FUNCTIONS (no side effects, testable)
+calculate_bsp_geometries(tree, params) -> Vec<WindowGeometry>
+rebuild_bsp_tree(windows, focused, ratio) -> ()
+
+// IMPURE FUNCTIONS (X11 side effects)
+conn.configure_window(window, config) -> Result<()>
+conn.map_window(window) -> Result<()>
+```
+
+#### 3. **Clear Data Flow**
+```
+X11 Event → WindowManager → Handler → State Change → Layout Calculation → X11 Operations
+```
+
+### 🔄 Data Flow & Interactions
+
+#### **Event Processing Pipeline:**
+```
+1. X11 Event → WindowManager.handle_event()
+2. Event → Specific Handler (events.rs, focus.rs, etc.)
+3. Handler → Modifies WindowManager state
+4. Handler → Calls apply_layout()
+5. apply_layout() → rebuild_bsp_tree() + calculate_bsp_geometries()
+6. Geometries → X11 configure_window() calls
+```
+
+#### **State Ownership Model:**
+```rust
+WindowManager owns:         │ Other modules access via:
+├── windows: Vec<Window>    │ ├── &self.windows (read-only)
+├── bsp_tree: BspTree      │ ├── &mut self.bsp_tree (rebuild only)
+├── focused_window         │ ├── self.focused_window (direct)
+└── config: Config         │ └── self.config.method() (getters)
+```
+
+### 🎨 Abstraction Boundaries
+
+#### **Pure vs Impure Function Separation:**
+The architecture maintains strict separation between pure calculations and side effects:
+
+```rust
+// PURE: Layout calculations (testable without X11)
+pub fn calculate_bsp_geometries(
+    bsp_tree: &BspTree,
+    screen_width: u16,
+    screen_height: u16,
+    min_window_width: u32,
+    min_window_height: u32,
+    gap: u32,
+) -> Vec<WindowGeometry> {
+    // Pure mathematical calculation
+    // No X11 calls, no side effects
+    // Easily unit testable
+}
+
+// IMPURE: X11 operations (side effects)
+for geom in geometries {
+    let config = ConfigureWindowAux::new()
+        .x(geom.x).y(geom.y)
+        .width(geom.width).height(geom.height);
+    self.conn.configure_window(geom.window, &config)?;
+}
+```
+
+#### **Type-Safe Configuration:**
+```rust
+pub struct Config {
+    layout: LayoutConfig,     // Layout-specific settings
+    shortcuts: HashMap<...>,  // Keyboard bindings  
+    general: GeneralConfig,   // General settings
+}
+
+impl Validate for Config {
+    fn validate(&self) -> Result<()> {
+        // Fail-fast validation at startup
+        // No runtime config parsing errors
+    }
+}
+```
+
+### 🚀 Architectural Benefits
+
+#### **1. Testability**
+```rust
+#[test]
+fn test_bsp_layout_calculation() {
+    // Can test layout math without X11 connection
+    let mut tree = BspTree::new();
+    tree.add_window(1, None, 0.5);
+    tree.add_window(2, Some(1), 0.5);
+    
+    let geometries = calculate_bsp_geometries(&tree, 1920, 1080, 100, 50, 10);
+    
+    assert_eq!(geometries.len(), 2);
+    assert_eq!(geometries[0].width, 955); // (1920-30)/2
+}
+```
+
+#### **2. Maintainability**
+- Clear module boundaries make changes predictable
+- Single responsibility reduces coupling
+- Pure functions are easier to reason about
+
+#### **3. Extensibility**
+```rust
+// Adding new layout algorithm:
+pub fn calculate_spiral_geometries(...) -> Vec<WindowGeometry> { 
+    // Pure calculation function
+}
+
+// Adding new command:
+"rotate_windows" => self.rotate_windows()?,
+```
+
+#### **4. Performance**
+- **Minimal X11 calls**: Only configure windows when layout changes
+- **Efficient data structures**: BSP tree provides O(log n) operations
+- **No unnecessary allocations**: Reuse data structures where possible
+
+### 🔄 Recent Architectural Evolution
+
+#### **Phase 5: Architecture Simplification (Latest)**
+The architecture was recently simplified through three major refactoring phases:
+
+1. **Removed Master-Stack Layout** (~564 lines removed)
+   - Eliminated runtime algorithm switching
+   - Simplified to flexible BSP-only approach
+   - Removed `master_ratio` configuration complexity
+
+2. **Eliminated LayoutManager Abstraction** (~176 lines removed)
+   - Removed unnecessary forwarding layer
+   - WindowManager uses BspTree directly
+   - Cleaner, more direct data flow
+
+3. **Separated X11 from Layout Calculations** 
+   - Pure `calculate_bsp_geometries()` functions
+   - X11 operations isolated to WindowManager
+   - Enables testing without X11 dependencies
+
+**Total Impact**: ~740 lines removed while maintaining all functionality and improving architecture quality.
+
+### 🎯 Design Trade-offs Made
+
+#### **Simplicity vs Flexibility**
+- **Chose**: BSP-only layout for simplicity
+- **Trade-off**: Less layout variety, but more maintainable code
+- **Benefit**: BSP is more flexible than master-stack anyway
+
+#### **Performance vs Readability**  
+- **Chose**: Clear separation of pure/impure functions
+- **Trade-off**: Some function call overhead
+- **Benefit**: Much easier to test and maintain
+
+#### **Type Safety vs Runtime Flexibility**
+- **Chose**: Compile-time configuration validation
+- **Trade-off**: Can't change some settings at runtime
+- **Benefit**: Fail-fast, no runtime config errors
+
+This architecture makes Rustile **maintainable**, **testable**, and **extensible** while keeping the codebase focused on its core purpose: efficient window management.
 
 ## 🔧 Core Components
 
@@ -288,8 +486,8 @@ if gap + border_width > MAX_COMBINED_GAP_BORDER {
 **Validation Examples:**
 - ✅ `gap = 10, border_width = 5` → Valid
 - ❌ `gap = 400, border_width = 300` → Exceeds combined limit
-- ✅ `master_ratio = 0.7` → Valid
-- ❌ `master_ratio = 1.5` → Outside valid range
+- ✅ `bsp_split_ratio = 0.7` → Valid
+- ❌ `bsp_split_ratio = 1.5` → Outside valid range
 
 ### 🔄 Configuration Loading Process
 

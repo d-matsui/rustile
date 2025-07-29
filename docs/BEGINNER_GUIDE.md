@@ -396,7 +396,7 @@ TOML is a simple format for configuration files, like a recipe:
 # ~/.config/rustile/config.toml
 
 [layout]
-master_ratio = 0.6           # Master window takes 60% of screen width
+bsp_split_ratio = 0.5        # Equal 50/50 splits for new windows
 gap = 10                     # 10 pixels between windows
 border_width = 2             # 2 pixel thick borders
 
@@ -435,9 +435,9 @@ border_width = 3, gap = 10:
 |------|------------|----------------|
 | **Window** | Rectangular area where an app displays content | `+-----+`<br>`| App |`<br>`+-----+` |
 | **Focus** | Which window receives keyboard input (red border) | `+=====+` ← Focused<br>`‖ App ‖`<br>`+=====+` |
-| **Master** | Main window (usually largest) in master-stack layout | `+-------+ +---+`<br>`|Master | |Stk|`<br>`+-------+ +---+` |
-| **Stack** | Secondary windows arranged vertically | `+---+ +---+`<br>`|Mst| |St1|`<br>`+---+ +---+`<br>`      |St2|`<br>`      +---+` |
-| **Layout** | Algorithm for arranging windows | Master-Stack vs BSP |
+| **Master** | First window in BSP tree (top-left position) | `+-------+ +---+`<br>`|  1st  | |2nd|`<br>`+-------+ +---+` |
+| **BSP** | Binary Space Partitioning - divides screen into halves | `+---+---+`<br>`| A | B |` → vertical split<br>`+---+---+` |
+| **Layout** | Algorithm for arranging windows | BSP (Binary Space Partitioning) |
 | **Tiling** | Automatic window arrangement (no overlapping) | All windows visible, organized |
 | **Event** | Message from X11 (key press, new window, etc.) | User presses key → Event → Action |
 | **X11** | Graphics system on Linux that manages windows | "Postal service" between apps and window manager |

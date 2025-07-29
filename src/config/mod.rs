@@ -23,11 +23,6 @@ pub struct Config {
 /// Layout-related configuration
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LayoutConfig {
-    /// Layout algorithm to use ("master_stack" or "bsp")
-    #[serde(default = "default_layout_algorithm")]
-    pub layout_algorithm: String,
-    /// Master window ratio (0.0 to 1.0)
-    pub master_ratio: f32,
     /// BSP split ratio (0.0 to 1.0) - applies to BSP layout
     #[serde(default = "default_bsp_split_ratio")]
     pub bsp_split_ratio: f32,
@@ -45,10 +40,6 @@ pub struct LayoutConfig {
     pub focused_border_color: u32,
     /// Unfocused window border color (hex format, e.g., 0x808080 for gray)
     pub unfocused_border_color: u32,
-}
-
-fn default_layout_algorithm() -> String {
-    "master_stack".to_string()
 }
 
 fn default_bsp_split_ratio() -> f32 {
@@ -90,8 +81,6 @@ impl Default for Config {
 impl Default for LayoutConfig {
     fn default() -> Self {
         Self {
-            layout_algorithm: default_layout_algorithm(),
-            master_ratio: 0.5,
             bsp_split_ratio: default_bsp_split_ratio(),
             min_window_width: default_min_window_width(),
             min_window_height: default_min_window_height(),
@@ -116,7 +105,6 @@ impl Default for GeneralConfig {
 impl Validate for LayoutConfig {
     fn validate(&self) -> Result<()> {
         // Validate ratios
-        validators::validate_ratio(self.master_ratio, "master_ratio")?;
         validators::validate_ratio(self.bsp_split_ratio, "bsp_split_ratio")?;
 
         // Validate dimensions
@@ -133,13 +121,6 @@ impl Validate for LayoutConfig {
             "border_width",
             600,
             "600px total",
-        )?;
-
-        // Validate layout algorithm choice
-        validators::validate_choice(
-            &self.layout_algorithm,
-            "layout_algorithm",
-            &["master_stack", "bsp"],
         )?;
 
         Ok(())
@@ -230,10 +211,6 @@ impl Config {
     }
 
     /// Gets the master ratio for layout calculations
-    pub fn master_ratio(&self) -> f32 {
-        self.layout.master_ratio
-    }
-
     /// Gets the default display for launching applications
     pub fn default_display(&self) -> &str {
         &self.general.default_display
@@ -265,10 +242,6 @@ impl Config {
     }
 
     /// Gets the layout algorithm to use
-    pub fn layout_algorithm(&self) -> &str {
-        &self.layout.layout_algorithm
-    }
-
     /// Gets the minimum window width
     pub fn min_window_width(&self) -> u32 {
         self.layout.min_window_width
@@ -292,8 +265,8 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert!(config.layout.master_ratio > 0.0);
-        assert!(config.layout.master_ratio <= 1.0);
+        assert!(config.layout.bsp_split_ratio > 0.0);
+        assert!(config.layout.bsp_split_ratio <= 1.0);
         assert!(!config.shortcuts.is_empty());
     }
 
@@ -304,12 +277,12 @@ mod tests {
         // Valid config should pass
         assert!(config.validate().is_ok());
 
-        // Invalid master ratio should fail
-        config.layout.master_ratio = 1.5;
+        // Invalid bsp split ratio should fail
+        config.layout.bsp_split_ratio = 1.5;
         assert!(config.validate().is_err());
 
         // Reset and test empty shortcut
-        config.layout.master_ratio = 0.5;
+        config.layout.bsp_split_ratio = 0.5;
         config.shortcuts.insert("".to_string(), "test".to_string());
         assert!(config.validate().is_err());
     }
@@ -394,7 +367,6 @@ mod tests {
     #[test]
     fn test_config_accessors() {
         let config = Config::default();
-        assert_eq!(config.master_ratio(), 0.5);
         assert_eq!(config.default_display(), ":10");
         assert_eq!(config.gap(), 0);
         assert_eq!(config.border_width(), 2);

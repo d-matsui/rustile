@@ -5,7 +5,7 @@ This document outlines the planned features and development direction for Rustil
 ## 🎯 Current Status: v0.3.0
 
 Rustile currently supports:
-- ✅ Master-Stack and BSP layouts
+- ✅ BSP (Binary Space Partitioning) layout
 - ✅ Configurable gaps and borders
 - ✅ Window focus management with visual indication
 - ✅ Keyboard navigation and shortcuts
@@ -33,8 +33,9 @@ Rustile currently supports:
   - [ ] Float rules for specific applications
 
 - [ ] **Refactoring/Misc**
-  - [ ] Change default layout to bsp (master-stack is just for early development)
-  - [ ] Remove unnecessary features (swap master, X, etc.)
+  - [x] Simplified to BSP-only layout (removed master-stack)
+  - [x] Eliminated LayoutManager abstraction
+  - [x] Separated X11 operations from layout calculations
   - [ ] Simplify key management (use xmodmap command?)
   - [ ] Comprehensive testing
   - [ ] Comprehensive docs

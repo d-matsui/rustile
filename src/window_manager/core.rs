@@ -7,7 +7,7 @@ use x11rb::protocol::xproto::*;
 
 use crate::config::Config;
 use crate::keyboard::KeyboardManager;
-use crate::layout::LayoutManager;
+use crate::layout::bsp::BspTree;
 
 /// Main window manager structure
 pub struct WindowManager<C: Connection> {
@@ -21,8 +21,8 @@ pub struct WindowManager<C: Connection> {
     pub(super) focused_window: Option<Window>,
     /// Window stack for focus ordering (most recently used first)
     pub(super) window_stack: Vec<Window>,
-    /// Layout manager for window arrangement
-    pub(super) layout_manager: LayoutManager,
+    /// BSP tree for window arrangement
+    pub(super) bsp_tree: BspTree,
     /// Keyboard manager for shortcuts
     pub(super) keyboard_manager: KeyboardManager,
     /// Configuration
@@ -66,19 +66,9 @@ impl<C: Connection> WindowManager<C> {
         // Register keyboard shortcuts from config
         keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
-        // Create layout manager with configured algorithm
-        let mut layout_manager = LayoutManager::new();
-        let layout = match config.layout_algorithm() {
-            "bsp" => {
-                info!("Using BSP layout algorithm");
-                crate::layout::Layout::Bsp
-            }
-            _ => {
-                info!("Using Master-Stack layout algorithm (default)");
-                crate::layout::Layout::MasterStack
-            }
-        };
-        layout_manager.set_layout(layout);
+        // Create BSP tree for window layout
+        let bsp_tree = BspTree::new();
+        info!("Using BSP layout algorithm");
 
         Ok(Self {
             conn,
@@ -86,7 +76,7 @@ impl<C: Connection> WindowManager<C> {
             windows: Vec::new(),
             focused_window: None,
             window_stack: Vec::new(),
-            layout_manager,
+            bsp_tree,
             keyboard_manager,
             config,
             fullscreen_window: None,
