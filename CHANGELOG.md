@@ -1,3 +1,16 @@
+## [0.6.1](https://github.com/d-matsui/rustile/compare/v0.6.0...v0.6.1) (2025-07-29)
+
+### 📖 Documentation
+
+* add comprehensive architecture explanation to technical guide ([48def8c](https://github.com/d-matsui/rustile/commit/48def8cd15ff89cba97001fcdee860f1093fc85f))
+* update documentation to reflect BSP-only architecture ([8800c4b](https://github.com/d-matsui/rustile/commit/8800c4bba1678b07f34d277f73d5365209353397))
+
+### ♻️ Refactor
+
+* remove LayoutManager abstraction ([3dad536](https://github.com/d-matsui/rustile/commit/3dad536bcef42a129dd7d60b7ce8e525c60c0807))
+* separate X11 operations from layout calculations ([cd914d4](https://github.com/d-matsui/rustile/commit/cd914d4efbb52fc6829f9d5ba644bf2d69d20773))
+* simplify to BSP-only layout algorithm ([006e430](https://github.com/d-matsui/rustile/commit/006e430fbb3013aa679c52e7f58b4a600aa142f4))
+
 ## [0.6.0](https://github.com/d-matsui/rustile/compare/v0.5.1...v0.6.0) (2025-07-29)
 
 ### 🚀 Features
