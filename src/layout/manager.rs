@@ -5,65 +5,30 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
 use super::bsp::BspTree;
-use super::types::{Layout, LayoutParams, LayoutRatios, ScreenParams, WindowConstraints};
+use super::types::{LayoutParams, LayoutRatios, ScreenParams, WindowConstraints};
 
-/// Window layout manager
-///
-/// Future enhancements could include:
-/// - Dynamic minimum sizes based on screen resolution
-/// - Per-application minimum size rules
-/// - Adaptive layout switching based on window count
+/// Window layout manager for BSP layout
 pub struct LayoutManager {
-    current_layout: Layout,
     bsp_tree: BspTree,
 }
 
 impl LayoutManager {
-    /// Creates a new layout manager with default master-stack layout
+    /// Creates a new layout manager with BSP layout
     pub fn new() -> Self {
         Self {
-            current_layout: Layout::MasterStack,
             bsp_tree: BspTree::new(),
         }
     }
 
-    /// Switches to a different layout algorithm
-    pub fn set_layout(&mut self, layout: Layout) {
-        self.current_layout = layout;
-        // Reset BSP tree when switching layouts
-        if matches!(layout, Layout::Bsp) {
-            self.bsp_tree = BspTree::new();
-        }
-    }
-
-    /// Gets the current layout type
-    pub fn current_layout(&self) -> Layout {
-        self.current_layout
-    }
-
-    /// Adds a window to the current layout
+    /// Adds a window to the BSP tree
     pub fn add_window(&mut self, window: Window, focused_window: Option<Window>, split_ratio: f32) {
-        match self.current_layout {
-            Layout::MasterStack => {
-                // Master-stack doesn't need tree management
-            }
-            Layout::Bsp => {
-                self.bsp_tree
-                    .add_window(window, focused_window, split_ratio);
-            }
-        }
+        self.bsp_tree
+            .add_window(window, focused_window, split_ratio);
     }
 
-    /// Removes a window from the current layout
+    /// Removes a window from the BSP tree
     pub fn remove_window(&mut self, window: Window) {
-        match self.current_layout {
-            Layout::MasterStack => {
-                // Master-stack doesn't need tree management
-            }
-            Layout::Bsp => {
-                self.bsp_tree.remove_window(window);
-            }
-        }
+        self.bsp_tree.remove_window(window);
     }
 
     /// Applies the current layout to arrange windows (legacy interface)
@@ -75,7 +40,6 @@ impl LayoutManager {
         focused_window: Option<Window>,
         screen_width: u16,
         screen_height: u16,
-        master_ratio: f32,
         bsp_split_ratio: f32,
         min_window_width: u32,
         min_window_height: u32,
@@ -92,10 +56,7 @@ impl LayoutManager {
                 min_width: min_window_width,
                 min_height: min_window_height,
             },
-            ratios: LayoutRatios {
-                master_ratio,
-                bsp_split_ratio,
-            },
+            ratios: LayoutRatios { bsp_split_ratio },
         };
 
         self.apply_layout_with_params(conn, windows, focused_window, params)
@@ -113,25 +74,7 @@ impl LayoutManager {
             return Ok(());
         }
 
-        match self.current_layout {
-            Layout::MasterStack => {
-                super::master_stack::tile_master_stack(
-                    conn,
-                    windows,
-                    params.screen.width,
-                    params.screen.height,
-                    params.ratios.master_ratio,
-                    params.constraints.min_width,
-                    params.constraints.min_height,
-                    params.screen.gap,
-                )?;
-            }
-            Layout::Bsp => {
-                self.tile_bsp_with_params(conn, windows, focused_window, params)?;
-            }
-        }
-
-        Ok(())
+        self.tile_bsp_with_params(conn, windows, focused_window, params)
     }
 
     /// Rebuild BSP tree from window list and apply layout (legacy interface)
@@ -159,7 +102,6 @@ impl LayoutManager {
                 min_height: min_window_height,
             },
             ratios: LayoutRatios {
-                master_ratio: 0.5, // Not used in BSP
                 bsp_split_ratio: split_ratio,
             },
         };
@@ -212,22 +154,8 @@ mod tests {
     #[test]
     fn test_layout_manager_default() {
         let layout_manager = LayoutManager::default();
-        match layout_manager.current_layout {
-            Layout::MasterStack => (),
-            Layout::Bsp => panic!("Default should be MasterStack"),
-        }
-    }
-
-    #[test]
-    fn test_layout_manager_set_bsp() {
-        let mut layout_manager = LayoutManager::new();
-        assert!(matches!(
-            layout_manager.current_layout(),
-            Layout::MasterStack
-        ));
-
-        layout_manager.set_layout(Layout::Bsp);
-        assert!(matches!(layout_manager.current_layout(), Layout::Bsp));
+        // BSP tree should be initialized empty
+        assert!(layout_manager.bsp_tree.root.is_none());
     }
 
     #[test]

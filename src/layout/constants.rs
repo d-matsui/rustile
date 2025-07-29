@@ -18,24 +18,9 @@ pub mod dimensions {
 
 /// Layout calculations and spacing
 pub mod layout {
-    /// Number of gaps in master-stack layout (left + center + right)
-    pub const MASTER_STACK_GAP_COUNT: i16 = 3;
-
-    /// Number of edge gaps in single window layout (left + right)
-    pub const SINGLE_WINDOW_GAP_COUNT: i16 = 2;
-
-    /// Fallback screen division ratio when space is constrained
-    pub const FALLBACK_SCREEN_RATIO: i16 = 2;
-
     /// Threshold for gap fallback decisions (pixels) - for future use
     #[allow(dead_code)]
     pub const GAP_FALLBACK_THRESHOLD: i16 = 150;
-
-    /// First window index in array
-    pub const FIRST_WINDOW_INDEX: usize = 0;
-
-    /// Minimum array size for multi-window calculations
-    pub const MIN_MULTI_WINDOW_COUNT: i16 = 1;
 }
 
 /// BSP tree configuration
@@ -62,9 +47,6 @@ pub mod test_values {
 
     /// Default test gap size (pixels)
     pub const TEST_GAP: u32 = 10;
-
-    /// Default test master ratio
-    pub const TEST_MASTER_RATIO: f32 = 0.5;
 
     /// Test BSP split ratio
     pub const TEST_BSP_SPLIT_RATIO: f32 = 0.5;

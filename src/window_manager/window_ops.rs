@@ -48,7 +48,6 @@ impl<C: Connection> WindowManager<C> {
             self.focused_window,
             screen.width_in_pixels,
             screen.height_in_pixels,
-            self.config.master_ratio(),
             self.config.bsp_split_ratio(),
             self.config.min_window_width(),
             self.config.min_window_height(),

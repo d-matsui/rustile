@@ -1,13 +1,6 @@
 //! Core types for the layout system
 
-/// Represents different tiling layouts
-#[derive(Debug, Clone, Copy)]
-pub enum Layout {
-    /// Master-stack layout: one master window on the left, stack on the right
-    MasterStack,
-    /// Binary Space Partitioning layout: recursive splitting of space
-    Bsp,
-}
+// Layout enum removed - using BSP only
 
 /// Represents a split direction in BSP layout
 #[derive(Debug, Clone, Copy)]
@@ -43,7 +36,6 @@ pub struct WindowConstraints {
 /// Layout ratios and split configuration
 #[derive(Debug, Clone, Copy)]
 pub struct LayoutRatios {
-    pub master_ratio: f32,
     pub bsp_split_ratio: f32,
 }
 

@@ -66,19 +66,9 @@ impl<C: Connection> WindowManager<C> {
         // Register keyboard shortcuts from config
         keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
-        // Create layout manager with configured algorithm
-        let mut layout_manager = LayoutManager::new();
-        let layout = match config.layout_algorithm() {
-            "bsp" => {
-                info!("Using BSP layout algorithm");
-                crate::layout::Layout::Bsp
-            }
-            _ => {
-                info!("Using Master-Stack layout algorithm (default)");
-                crate::layout::Layout::MasterStack
-            }
-        };
-        layout_manager.set_layout(layout);
+        // Create layout manager (BSP only)
+        let layout_manager = LayoutManager::new();
+        info!("Using BSP layout algorithm");
 
         Ok(Self {
             conn,
