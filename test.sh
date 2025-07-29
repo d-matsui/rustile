@@ -39,7 +39,7 @@ echo "  Alt+j/k         - Focus next/previous"
 echo "  Shift+Alt+j/k   - Swap with next/previous"
 echo "  Shift+Alt+m     - Swap with master"
 echo "  Shift+Alt+q     - Close window"
-echo "  Alt+f           - Toggle fullscreen"
+echo "  AltGr+f         - Toggle fullscreen (Right Alt)"
 echo ""
 echo "Close Xephyr window to exit"
 
