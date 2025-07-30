@@ -1,3 +1,23 @@
+## [0.7.1](https://github.com/d-matsui/rustile/compare/v0.7.0...v0.7.1) (2025-07-30)
+
+### 🐛 Bug Fixes
+
+* correct rotation example in ADR-001 ([608a98a](https://github.com/d-matsui/rustile/commit/608a98a6fae5282c4451d221a50f87f27b07aef5))
+
+### 📖 Documentation
+
+* add ADR-002 for single source of truth architecture ([94c4f38](https://github.com/d-matsui/rustile/commit/94c4f382460514a23303de378e93e3d2ee86e30c))
+* add concise example to ADR-001 for clarity ([11dc392](https://github.com/d-matsui/rustile/commit/11dc39242b935fffbb17f631a1e1d1dcecd874ef))
+* improve ADR-001 to follow best practices ([bece083](https://github.com/d-matsui/rustile/commit/bece08341082d06488764964c2717af2c2b2ff19))
+* improve ADR-002 to follow best practices ([518bcf6](https://github.com/d-matsui/rustile/commit/518bcf6b3c0276896164885fbc717b665a655ffd))
+
+### ♻️ Refactor
+
+* enhance BspTree API with window management methods ([8991a62](https://github.com/d-matsui/rustile/commit/8991a625bc3dab0123216efe0d97cfa5f07d3c97))
+* remove master window concept and swap_with_master feature ([ceefc6f](https://github.com/d-matsui/rustile/commit/ceefc6fa914aaabbeb81c96adf44ac042526bf58))
+* remove windows vector and achieve single source of truth ([adc0b1b](https://github.com/d-matsui/rustile/commit/adc0b1bee0dc3071b2de279b88e5d4d4ad453121))
+* use intuitive SplitDirection terminology ([313d881](https://github.com/d-matsui/rustile/commit/313d881ec6b7323556fafa7421f71cf3e4baf3b2))
+
 ## [0.7.0](https://github.com/d-matsui/rustile/compare/v0.6.1...v0.7.0) (2025-07-30)
 
 ### 🚀 Features
