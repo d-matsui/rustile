@@ -89,7 +89,7 @@ impl<C: Connection> WindowManager<C> {
         self.conn.map_window(window)?;
 
         // Add to managed windows
-        self.windows.push(window);
+        self.add_window_to_layout(window);
 
         // Set focus to new window
         self.set_focus(window)?;
@@ -116,7 +116,7 @@ impl<C: Connection> WindowManager<C> {
             "Window {:?} closed by user, removing from management",
             window
         );
-        self.windows.retain(|&w| w != window);
+        self.remove_window_from_layout(window);
         self.window_stack.retain(|&w| w != window);
 
         // Update focus if focused window was unmapped
@@ -152,7 +152,7 @@ impl<C: Connection> WindowManager<C> {
         info!("Window destroyed: {:?}", window);
 
         // Remove from managed windows
-        self.windows.retain(|&w| w != window);
+        self.remove_window_from_layout(window);
         self.window_stack.retain(|&w| w != window);
 
         // Clean up intentionally unmapped set to prevent memory leaks
@@ -199,7 +199,7 @@ impl<C: Connection> WindowManager<C> {
         debug!("Mouse entered window: {:?}", window);
 
         // Only focus if it's a managed window
-        if self.windows.contains(&window) {
+        if self.has_window(window) {
             self.set_focus(window)?;
         }
         Ok(())
