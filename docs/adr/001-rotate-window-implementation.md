@@ -19,14 +19,23 @@ When user presses Alt+r on focused window:
 - Flip split direction: Horizontal ↔ Vertical
 - Reapply layout with modified tree structure
 
-### Example
+### Examples
 ```
-Before (A focused):          After (Root V→H):
+Before (A focused):          After (Root H→V):
 ┌─────┬─────────┐           ┌───────────────┐
 │  A  │    B    │           │       A       │
-│     ├─────────┤    →      ├───────┬───────┤
-│     │    C    │           │   B   │   C   │
-└─────┴─────────┘           └───────┴───────┘
+│     ├─────────┤    →      ├───────────────┤
+│     │    C    │           │       B       │
+└─────┴─────────┘           ├───────────────┤
+                            │       C       │
+                            └───────────────┘
+
+Before (B focused):          After (B's parent V→H):
+┌─────┬─────────┐           ┌─────┬───┬───┐
+│  A  │    B    │           │  A  │ B │ C │
+│     ├─────────┤    →      │     │   │   │
+│     │    C    │           │     │   │   │
+└─────┴─────────┘           └─────┴───┴───┘
 ```
 
 ## Consequences

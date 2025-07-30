@@ -169,9 +169,9 @@ impl BspTree {
                 if *existing_window == target_window {
                     // Found target - split this leaf
                     let direction = if split_count % bsp::SPLIT_DIRECTION_MODULUS == 0 {
-                        SplitDirection::Vertical
-                    } else {
                         SplitDirection::Horizontal
+                    } else {
+                        SplitDirection::Vertical
                     };
 
                     let old_leaf = BspNode::Leaf(*existing_window);
@@ -528,8 +528,8 @@ fn calculate_bsp_recursive(
         } => {
             let gap_i32 = gap as i32;
             let (left_rect, right_rect) = match direction {
-                SplitDirection::Vertical => {
-                    // Split left/right
+                SplitDirection::Horizontal => {
+                    // Split left/right (horizontal arrangement)
                     let split_pos = (rect.width as f32 * ratio) as i32;
                     let left_rect = BspRect {
                         x: rect.x,
@@ -545,8 +545,8 @@ fn calculate_bsp_recursive(
                     };
                     (left_rect, right_rect)
                 }
-                SplitDirection::Horizontal => {
-                    // Split top/bottom
+                SplitDirection::Vertical => {
+                    // Split top/bottom (vertical arrangement)
                     let split_pos = (rect.height as f32 * ratio) as i32;
                     let top_rect = BspRect {
                         x: rect.x,
@@ -622,8 +622,8 @@ fn apply_bsp_recursive<C: Connection>(
         } => {
             let gap_i32 = gap as i32;
             let (left_rect, right_rect) = match direction {
-                SplitDirection::Vertical => {
-                    // Split left/right
+                SplitDirection::Horizontal => {
+                    // Split left/right (horizontal arrangement)
                     let split_pos = (rect.width as f32 * ratio) as i32;
                     let left_rect = BspRect {
                         x: rect.x,
@@ -639,8 +639,8 @@ fn apply_bsp_recursive<C: Connection>(
                     };
                     (left_rect, right_rect)
                 }
-                SplitDirection::Horizontal => {
-                    // Split top/bottom
+                SplitDirection::Vertical => {
+                    // Split top/bottom (vertical arrangement)
                     let split_pos = (rect.height as f32 * ratio) as i32;
                     let left_rect = BspRect {
                         x: rect.x,
@@ -768,7 +768,7 @@ mod tests {
             right,
         }) = &bsp_tree.root
         {
-            assert!(matches!(direction, SplitDirection::Vertical));
+            assert!(matches!(direction, SplitDirection::Horizontal));
             assert!((ratio - 0.5).abs() < f32::EPSILON);
 
             // Left should be window1, right should be window2
@@ -835,20 +835,20 @@ mod tests {
     fn test_bsp_split_direction_alternation() {
         let mut bsp_tree = BspTree::new();
 
-        // Test that splits alternate V→H→V→H
+        // Test that splits alternate H→V→H→V
         bsp_tree.add_window(1, None, 0.5); // Root
-        bsp_tree.add_window(2, Some(1), 0.5); // Split 0 (even) = Vertical
+        bsp_tree.add_window(2, Some(1), 0.5); // Split 0 (even) = Horizontal
 
         if let Some(BspNode::Split { direction, .. }) = &bsp_tree.root {
-            assert!(matches!(direction, SplitDirection::Vertical));
+            assert!(matches!(direction, SplitDirection::Horizontal));
         }
 
-        bsp_tree.add_window(3, Some(2), 0.5); // Split 1 (odd) = Horizontal
+        bsp_tree.add_window(3, Some(2), 0.5); // Split 1 (odd) = Vertical
 
-        // Navigate to the right child which should be horizontal
+        // Navigate to the right child which should be vertical
         if let Some(BspNode::Split { right, .. }) = &bsp_tree.root {
             if let BspNode::Split { direction, .. } = right.as_ref() {
-                assert!(matches!(direction, SplitDirection::Horizontal));
+                assert!(matches!(direction, SplitDirection::Vertical));
             }
         }
     }
