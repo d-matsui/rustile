@@ -52,6 +52,86 @@ impl BspTree {
         }
     }
 
+    /// Returns all windows in the tree in left-to-right, depth-first order
+    pub fn all_windows(&self) -> Vec<Window> {
+        let mut windows = Vec::new();
+        if let Some(ref root) = self.root {
+            Self::collect_windows_ordered(root, &mut windows);
+        }
+        windows
+    }
+
+    /// Helper to collect windows in order (left-to-right, depth-first)
+    fn collect_windows_ordered(node: &BspNode, windows: &mut Vec<Window>) {
+        match node {
+            BspNode::Leaf(window) => {
+                windows.push(*window);
+            }
+            BspNode::Split { left, right, .. } => {
+                Self::collect_windows_ordered(left, windows);
+                Self::collect_windows_ordered(right, windows);
+            }
+        }
+    }
+
+    /// Returns the total number of windows in the tree
+    pub fn window_count(&self) -> usize {
+        match &self.root {
+            Some(root) => Self::count_windows(root),
+            None => 0,
+        }
+    }
+
+    /// Helper to count windows recursively
+    fn count_windows(node: &BspNode) -> usize {
+        match node {
+            BspNode::Leaf(_) => 1,
+            BspNode::Split { left, right, .. } => {
+                Self::count_windows(left) + Self::count_windows(right)
+            }
+        }
+    }
+
+    /// Checks if the tree contains a specific window
+    pub fn has_window(&self, target_window: Window) -> bool {
+        match &self.root {
+            Some(root) => Self::contains_window(root, target_window),
+            None => false,
+        }
+    }
+
+    /// Returns the next window in order after the given window (wraps around)
+    pub fn next_window(&self, current: Window) -> Option<Window> {
+        let windows = self.all_windows();
+        if windows.is_empty() {
+            return None;
+        }
+
+        if let Some(pos) = windows.iter().position(|&w| w == current) {
+            let next_pos = (pos + 1) % windows.len();
+            Some(windows[next_pos])
+        } else {
+            // If current window not found, return first window
+            Some(windows[0])
+        }
+    }
+
+    /// Returns the previous window in order before the given window (wraps around)
+    pub fn prev_window(&self, current: Window) -> Option<Window> {
+        let windows = self.all_windows();
+        if windows.is_empty() {
+            return None;
+        }
+
+        if let Some(pos) = windows.iter().position(|&w| w == current) {
+            let prev_pos = if pos == 0 { windows.len() - 1 } else { pos - 1 };
+            Some(windows[prev_pos])
+        } else {
+            // If current window not found, return first window
+            Some(windows[0])
+        }
+    }
+
     /// Adds a window to the BSP tree using the simplest algorithm
     pub fn add_window(&mut self, window: Window, focused_window: Option<Window>, split_ratio: f32) {
         if self.root.is_none() {
@@ -89,9 +169,9 @@ impl BspTree {
                 if *existing_window == target_window {
                     // Found target - split this leaf
                     let direction = if split_count % bsp::SPLIT_DIRECTION_MODULUS == 0 {
-                        SplitDirection::Vertical
-                    } else {
                         SplitDirection::Horizontal
+                    } else {
+                        SplitDirection::Vertical
                     };
 
                     let old_leaf = BspNode::Leaf(*existing_window);
@@ -448,8 +528,8 @@ fn calculate_bsp_recursive(
         } => {
             let gap_i32 = gap as i32;
             let (left_rect, right_rect) = match direction {
-                SplitDirection::Vertical => {
-                    // Split left/right
+                SplitDirection::Horizontal => {
+                    // Split left/right (horizontal arrangement)
                     let split_pos = (rect.width as f32 * ratio) as i32;
                     let left_rect = BspRect {
                         x: rect.x,
@@ -465,8 +545,8 @@ fn calculate_bsp_recursive(
                     };
                     (left_rect, right_rect)
                 }
-                SplitDirection::Horizontal => {
-                    // Split top/bottom
+                SplitDirection::Vertical => {
+                    // Split top/bottom (vertical arrangement)
                     let split_pos = (rect.height as f32 * ratio) as i32;
                     let top_rect = BspRect {
                         x: rect.x,
@@ -542,8 +622,8 @@ fn apply_bsp_recursive<C: Connection>(
         } => {
             let gap_i32 = gap as i32;
             let (left_rect, right_rect) = match direction {
-                SplitDirection::Vertical => {
-                    // Split left/right
+                SplitDirection::Horizontal => {
+                    // Split left/right (horizontal arrangement)
                     let split_pos = (rect.width as f32 * ratio) as i32;
                     let left_rect = BspRect {
                         x: rect.x,
@@ -559,8 +639,8 @@ fn apply_bsp_recursive<C: Connection>(
                     };
                     (left_rect, right_rect)
                 }
-                SplitDirection::Horizontal => {
-                    // Split top/bottom
+                SplitDirection::Vertical => {
+                    // Split top/bottom (vertical arrangement)
                     let split_pos = (rect.height as f32 * ratio) as i32;
                     let left_rect = BspRect {
                         x: rect.x,
@@ -688,7 +768,7 @@ mod tests {
             right,
         }) = &bsp_tree.root
         {
-            assert!(matches!(direction, SplitDirection::Vertical));
+            assert!(matches!(direction, SplitDirection::Horizontal));
             assert!((ratio - 0.5).abs() < f32::EPSILON);
 
             // Left should be window1, right should be window2
@@ -755,20 +835,20 @@ mod tests {
     fn test_bsp_split_direction_alternation() {
         let mut bsp_tree = BspTree::new();
 
-        // Test that splits alternate V→H→V→H
+        // Test that splits alternate H→V→H→V
         bsp_tree.add_window(1, None, 0.5); // Root
-        bsp_tree.add_window(2, Some(1), 0.5); // Split 0 (even) = Vertical
+        bsp_tree.add_window(2, Some(1), 0.5); // Split 0 (even) = Horizontal
 
         if let Some(BspNode::Split { direction, .. }) = &bsp_tree.root {
-            assert!(matches!(direction, SplitDirection::Vertical));
+            assert!(matches!(direction, SplitDirection::Horizontal));
         }
 
-        bsp_tree.add_window(3, Some(2), 0.5); // Split 1 (odd) = Horizontal
+        bsp_tree.add_window(3, Some(2), 0.5); // Split 1 (odd) = Vertical
 
-        // Navigate to the right child which should be horizontal
+        // Navigate to the right child which should be vertical
         if let Some(BspNode::Split { right, .. }) = &bsp_tree.root {
             if let BspNode::Split { direction, .. } = right.as_ref() {
-                assert!(matches!(direction, SplitDirection::Horizontal));
+                assert!(matches!(direction, SplitDirection::Vertical));
             }
         }
     }
@@ -794,5 +874,59 @@ mod tests {
         } else {
             panic!("Single window should create a leaf node");
         }
+    }
+
+    #[test]
+    fn test_bsp_tree_api_methods() {
+        let mut bsp_tree = BspTree::new();
+
+        // Test empty tree
+        assert_eq!(bsp_tree.window_count(), 0);
+        assert_eq!(bsp_tree.all_windows(), Vec::<Window>::new());
+        assert!(!bsp_tree.has_window(1));
+        assert_eq!(bsp_tree.next_window(1), None);
+        assert_eq!(bsp_tree.prev_window(1), None);
+
+        // Add first window
+        bsp_tree.add_window(10, None, 0.5);
+        assert_eq!(bsp_tree.window_count(), 1);
+        assert_eq!(bsp_tree.all_windows(), vec![10]);
+        assert!(bsp_tree.has_window(10));
+        assert!(!bsp_tree.has_window(20));
+
+        // Single window navigation should return self
+        assert_eq!(bsp_tree.next_window(10), Some(10));
+        assert_eq!(bsp_tree.prev_window(10), Some(10));
+
+        // Add second window
+        bsp_tree.add_window(20, Some(10), 0.5);
+        assert_eq!(bsp_tree.window_count(), 2);
+        assert_eq!(bsp_tree.all_windows(), vec![10, 20]);
+        assert!(bsp_tree.has_window(10));
+        assert!(bsp_tree.has_window(20));
+
+        // Two window navigation should wrap around
+        assert_eq!(bsp_tree.next_window(10), Some(20));
+        assert_eq!(bsp_tree.next_window(20), Some(10));
+        assert_eq!(bsp_tree.prev_window(10), Some(20));
+        assert_eq!(bsp_tree.prev_window(20), Some(10));
+
+        // Add third window
+        bsp_tree.add_window(30, Some(20), 0.5);
+        assert_eq!(bsp_tree.window_count(), 3);
+        assert_eq!(bsp_tree.all_windows(), vec![10, 20, 30]);
+
+        // Three window navigation
+        assert_eq!(bsp_tree.next_window(10), Some(20));
+        assert_eq!(bsp_tree.next_window(20), Some(30));
+        assert_eq!(bsp_tree.next_window(30), Some(10)); // Wrap to first
+
+        assert_eq!(bsp_tree.prev_window(10), Some(30)); // Wrap to last
+        assert_eq!(bsp_tree.prev_window(20), Some(10));
+        assert_eq!(bsp_tree.prev_window(30), Some(20));
+
+        // Non-existent window should return first window
+        assert_eq!(bsp_tree.next_window(999), Some(10));
+        assert_eq!(bsp_tree.prev_window(999), Some(10));
     }
 }

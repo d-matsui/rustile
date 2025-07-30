@@ -1,12 +1,10 @@
 //! Window operations and layout integration
 
 use anyhow::Result;
-#[cfg(debug_assertions)]
-use tracing::debug;
 use tracing::info;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{
-    ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, StackMode,
+    ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, StackMode, Window,
 };
 
 use super::core::WindowManager;
@@ -20,9 +18,35 @@ enum SwapDirection {
 }
 
 impl<C: Connection> WindowManager<C> {
-    /// Applies the current layout to arrange windows
+    /// Adds a window to the layout manager
+    pub(super) fn add_window_to_layout(&mut self, window: Window) {
+        self.bsp_tree
+            .add_window(window, self.focused_window, self.config.bsp_split_ratio());
+    }
+
+    /// Removes a window from the layout manager
+    pub(super) fn remove_window_from_layout(&mut self, window: Window) {
+        self.bsp_tree.remove_window(window);
+    }
+
+    /// Gets all windows currently managed by the layout
+    pub(super) fn get_all_windows(&self) -> Vec<Window> {
+        self.bsp_tree.all_windows()
+    }
+
+    /// Gets the total number of windows in the layout
+    pub(super) fn window_count(&self) -> usize {
+        self.bsp_tree.window_count()
+    }
+
+    /// Checks if a window is managed by the layout
+    pub(super) fn has_window(&self, window: Window) -> bool {
+        self.bsp_tree.has_window(window)
+    }
+
+    /// Applies the current BSP tree layout without rebuilding the tree
     pub(super) fn apply_layout(&mut self) -> Result<()> {
-        if self.windows.is_empty() {
+        if self.window_count() == 0 {
             return Ok(());
         }
 
@@ -36,7 +60,7 @@ impl<C: Connection> WindowManager<C> {
 
         // Ensure all windows are mapped (visible) and have borders when not in fullscreen
         let border_width = self.config.border_width();
-        for &window in &self.windows {
+        for &window in &self.get_all_windows() {
             self.conn.map_window(window)?;
             // Remove from intentionally unmapped set when restoring
             self.intentionally_unmapped.remove(&window);
@@ -47,15 +71,7 @@ impl<C: Connection> WindowManager<C> {
             )?;
         }
 
-        // Rebuild BSP tree from current windows
-        bsp::rebuild_bsp_tree(
-            &mut self.bsp_tree,
-            &self.windows,
-            self.focused_window,
-            self.config.bsp_split_ratio(),
-        );
-
-        // Calculate window geometries (pure calculation, no X11 calls)
+        // Calculate window geometries from existing BSP tree (preserves tree structure)
         let geometries = bsp::calculate_bsp_geometries(
             &self.bsp_tree,
             screen.width_in_pixels,
@@ -65,53 +81,51 @@ impl<C: Connection> WindowManager<C> {
             self.config.gap(),
         );
 
-        // Apply the calculated geometries (X11 operations)
-        for geom in geometries {
-            let config = ConfigureWindowAux::new()
-                .x(geom.x)
-                .y(geom.y)
-                .width(geom.width)
-                .height(geom.height);
-            self.conn.configure_window(geom.window, &config)?;
+        // Update window borders based on focus
+        let focused_color = self.config.focused_border_color();
+        let unfocused_color = self.config.unfocused_border_color();
+
+        // Apply calculated geometries and update borders
+        for geometry in &geometries {
+            let is_focused = Some(geometry.window) == self.focused_window;
+            let border_color = if is_focused {
+                focused_color
+            } else {
+                unfocused_color
+            };
+
+            self.conn.change_window_attributes(
+                geometry.window,
+                &ChangeWindowAttributesAux::new().border_pixel(border_color),
+            )?;
+
+            self.conn.configure_window(
+                geometry.window,
+                &ConfigureWindowAux::new()
+                    .x(geometry.x)
+                    .y(geometry.y)
+                    .width(geometry.width)
+                    .height(geometry.height)
+                    .border_width(border_width),
+            )?;
         }
+
+        // Update focus hints and raise focused window
+        if let Some(focused) = self.focused_window {
+            self.conn.configure_window(
+                focused,
+                &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
+            )?;
+        }
+
+        self.conn.flush()?;
 
         #[cfg(debug_assertions)]
-        tracing::debug!("Applied layout to {} windows", self.windows.len());
-        Ok(())
-    }
+        tracing::debug!(
+            "Applied existing BSP tree layout to {} windows",
+            geometries.len()
+        );
 
-    /// Swaps the currently focused window with the master window
-    pub fn swap_with_master(&mut self) -> Result<()> {
-        if self.windows.len() < 2 {
-            return Ok(());
-        }
-
-        // Exit fullscreen if active, then perform swap
-        if self.fullscreen_window.is_some() {
-            info!("Exiting fullscreen for window swap");
-            self.fullscreen_window = None;
-        }
-
-        if let Some(focused) = self.focused_window {
-            if let Some(focused_idx) = self.windows.iter().position(|&w| w == focused) {
-                if focused_idx != 0 {
-                    // Swap with master (index 0)
-                    let master_window = self.windows[0];
-                    self.windows.swap(0, focused_idx);
-
-                    // Also swap in the BSP tree to preserve structure
-                    self.bsp_tree.swap_windows(focused, master_window);
-
-                    info!(
-                        "Swapped window {:?} with master {:?}",
-                        focused, master_window
-                    );
-
-                    // Apply existing layout without rebuilding the tree
-                    self.apply_existing_layout()?;
-                }
-            }
-        }
         Ok(())
     }
 
@@ -198,7 +212,7 @@ impl<C: Connection> WindowManager<C> {
 
     /// Helper method to swap windows in a given direction
     fn swap_window_direction(&mut self, direction: SwapDirection) -> Result<()> {
-        if self.windows.len() < 2 {
+        if self.window_count() < 2 {
             return Ok(());
         }
 
@@ -209,22 +223,13 @@ impl<C: Connection> WindowManager<C> {
         }
 
         if let Some(focused) = self.focused_window {
-            if let Some(focused_idx) = self.windows.iter().position(|&w| w == focused) {
-                let target_idx = match direction {
-                    SwapDirection::Next => (focused_idx + 1) % self.windows.len(),
-                    SwapDirection::Previous => {
-                        if focused_idx == 0 {
-                            self.windows.len() - 1
-                        } else {
-                            focused_idx - 1
-                        }
-                    }
-                };
+            let target_window = match direction {
+                SwapDirection::Next => self.bsp_tree.next_window(focused),
+                SwapDirection::Previous => self.bsp_tree.prev_window(focused),
+            };
 
-                let target_window = self.windows[target_idx];
-                self.windows.swap(focused_idx, target_idx);
-
-                // Also swap in the BSP tree to preserve structure
+            if let Some(target_window) = target_window {
+                // Swap windows in the BSP tree
                 self.bsp_tree.swap_windows(focused, target_window);
 
                 let direction_str = match direction {
@@ -237,8 +242,8 @@ impl<C: Connection> WindowManager<C> {
                     focused, direction_str, target_window
                 );
 
-                // Apply existing layout without rebuilding the tree
-                self.apply_existing_layout()?;
+                // Apply layout
+                self.apply_layout()?;
             }
         }
         Ok(())
@@ -260,7 +265,7 @@ impl<C: Connection> WindowManager<C> {
                 // Exit fullscreen mode
                 info!("Exiting fullscreen mode for window {:?}", focused);
                 self.fullscreen_window = None;
-                self.apply_existing_layout()?;
+                self.apply_layout()?;
             } else {
                 // Different window wants fullscreen, switch to it
                 info!(
@@ -300,7 +305,7 @@ impl<C: Connection> WindowManager<C> {
             self.conn.configure_window(fullscreen, &config)?;
 
             // Hide all other windows (mark as intentionally unmapped)
-            for &window in &self.windows {
+            for &window in &self.get_all_windows() {
                 if window != fullscreen {
                     // Mark as intentionally unmapped BEFORE unmapping
                     self.intentionally_unmapped.insert(window);
@@ -316,92 +321,6 @@ impl<C: Connection> WindowManager<C> {
 
             self.conn.flush()?;
         }
-
-        Ok(())
-    }
-
-    /// Applies the current BSP tree layout without rebuilding the tree
-    fn apply_existing_layout(&mut self) -> Result<()> {
-        if self.windows.is_empty() {
-            return Ok(());
-        }
-
-        // If we're in fullscreen mode, apply fullscreen layout instead
-        if self.fullscreen_window.is_some() {
-            return self.apply_fullscreen_layout();
-        }
-
-        let setup = self.conn.setup();
-        let screen = &setup.roots[self.screen_num];
-
-        // Ensure all windows are mapped (visible) and have borders when not in fullscreen
-        let border_width = self.config.border_width();
-        for &window in &self.windows {
-            self.conn.map_window(window)?;
-            // Remove from intentionally unmapped set when restoring
-            self.intentionally_unmapped.remove(&window);
-            // Restore border width
-            self.conn.configure_window(
-                window,
-                &ConfigureWindowAux::new().border_width(border_width),
-            )?;
-        }
-
-        // Calculate window geometries from existing BSP tree
-        let geometries = bsp::calculate_bsp_geometries(
-            &self.bsp_tree,
-            screen.width_in_pixels,
-            screen.height_in_pixels,
-            self.config.min_window_width(),
-            self.config.min_window_height(),
-            self.config.gap(),
-        );
-
-        // Update window borders based on focus
-        let border_width = self.config.border_width();
-        let focused_color = self.config.focused_border_color();
-        let unfocused_color = self.config.unfocused_border_color();
-
-        // Apply calculated geometries and update borders
-        for geometry in &geometries {
-            let is_focused = Some(geometry.window) == self.focused_window;
-            let border_color = if is_focused {
-                focused_color
-            } else {
-                unfocused_color
-            };
-
-            self.conn.change_window_attributes(
-                geometry.window,
-                &ChangeWindowAttributesAux::new().border_pixel(border_color),
-            )?;
-
-            self.conn.configure_window(
-                geometry.window,
-                &ConfigureWindowAux::new()
-                    .x(geometry.x)
-                    .y(geometry.y)
-                    .width(geometry.width)
-                    .height(geometry.height)
-                    .border_width(border_width),
-            )?;
-        }
-
-        // Update focus hints and raise focused window
-        if let Some(focused) = self.focused_window {
-            self.conn.configure_window(
-                focused,
-                &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
-            )?;
-        }
-
-        self.conn.flush()?;
-
-        #[cfg(debug_assertions)]
-        debug!(
-            "Applied existing BSP tree layout to {} windows",
-            geometries.len()
-        );
 
         Ok(())
     }
@@ -423,7 +342,7 @@ impl<C: Connection> WindowManager<C> {
         }
 
         // Need at least 2 windows to rotate
-        if self.windows.len() < 2 {
+        if self.window_count() < 2 {
             info!("Not enough windows to rotate (need at least 2)");
             return Ok(());
         }
@@ -444,7 +363,7 @@ impl<C: Connection> WindowManager<C> {
             tracing::info!("BSP tree after rotation: {:?}", self.bsp_tree);
 
             // Apply the existing rotated tree layout (without rebuilding)
-            self.apply_existing_layout()?;
+            self.apply_layout()?;
             info!("Window rotation completed for window {:?}", focused);
         } else {
             info!(

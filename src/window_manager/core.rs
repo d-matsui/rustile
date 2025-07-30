@@ -15,13 +15,11 @@ pub struct WindowManager<C: Connection> {
     pub(super) conn: C,
     /// Screen information
     pub(super) screen_num: usize,
-    /// Currently managed windows
-    pub(super) windows: Vec<Window>,
     /// Currently focused window
     pub(super) focused_window: Option<Window>,
     /// Window stack for focus ordering (most recently used first)
     pub(super) window_stack: Vec<Window>,
-    /// BSP tree for window arrangement
+    /// BSP tree for window arrangement (single source of truth for window layout)
     pub(super) bsp_tree: BspTree,
     /// Keyboard manager for shortcuts
     pub(super) keyboard_manager: KeyboardManager,
@@ -73,7 +71,6 @@ impl<C: Connection> WindowManager<C> {
         Ok(Self {
             conn,
             screen_num,
-            windows: Vec::new(),
             focused_window: None,
             window_stack: Vec::new(),
             bsp_tree,

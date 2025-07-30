@@ -5,7 +5,9 @@
 /// Represents a split direction in BSP layout
 #[derive(Debug, Clone, Copy)]
 pub enum SplitDirection {
+    /// Horizontal arrangement: windows placed left-to-right
     Horizontal,
+    /// Vertical arrangement: windows placed top-to-bottom  
     Vertical,
 }
 
