@@ -143,6 +143,129 @@ impl BspTree {
         }
     }
 
+    /// Rotates the parent split direction of the specified window
+    pub fn rotate_window(&mut self, window: Window) -> bool {
+        match &mut self.root {
+            Some(root) => {
+                tracing::info!("Attempting to rotate window {:?} in BSP tree", window);
+                Self::rotate_window_recursive(root, window)
+            }
+            None => {
+                tracing::info!("Cannot rotate: BSP tree is empty");
+                false
+            }
+        }
+    }
+
+    /// Recursively finds and rotates the parent split of the target window
+    fn rotate_window_recursive(node: &mut BspNode, target_window: Window) -> bool {
+        match node {
+            BspNode::Leaf(window) => {
+                // Found the target window as a leaf
+                let found = *window == target_window;
+                if found {
+                    tracing::info!(
+                        "Found target window {:?} as a leaf node (cannot rotate leaf)",
+                        target_window
+                    );
+                }
+                found
+            }
+            BspNode::Split {
+                direction,
+                left,
+                right,
+                ..
+            } => {
+                // Check if target window is in left subtree
+                if Self::contains_window(left, target_window) {
+                    // If left child is the target window (direct child), rotate this split
+                    if let BspNode::Leaf(window) = left.as_ref() {
+                        if *window == target_window {
+                            // Flip this split's direction
+                            let old_direction = *direction;
+                            *direction = direction.opposite();
+                            tracing::info!(
+                                "Rotated parent split from {:?} to {:?} for window {:?}",
+                                old_direction,
+                                direction,
+                                target_window
+                            );
+                            return true;
+                        }
+                    }
+                    // Otherwise, recurse into left subtree
+                    return Self::rotate_window_recursive(left, target_window);
+                }
+
+                // Check if target window is in right subtree
+                if Self::contains_window(right, target_window) {
+                    // If right child is the target window (direct child), rotate this split
+                    if let BspNode::Leaf(window) = right.as_ref() {
+                        if *window == target_window {
+                            // Flip this split's direction
+                            let old_direction = *direction;
+                            *direction = direction.opposite();
+                            tracing::info!(
+                                "Rotated parent split from {:?} to {:?} for window {:?}",
+                                old_direction,
+                                direction,
+                                target_window
+                            );
+                            return true;
+                        }
+                    }
+                    // Otherwise, recurse into right subtree
+                    return Self::rotate_window_recursive(right, target_window);
+                }
+
+                false
+            }
+        }
+    }
+
+    /// Helper function to check if a subtree contains a specific window
+    fn contains_window(node: &BspNode, target_window: Window) -> bool {
+        match node {
+            BspNode::Leaf(window) => *window == target_window,
+            BspNode::Split { left, right, .. } => {
+                Self::contains_window(left, target_window)
+                    || Self::contains_window(right, target_window)
+            }
+        }
+    }
+
+    /// Swaps two windows in the BSP tree while preserving the tree structure
+    pub fn swap_windows(&mut self, window1: Window, window2: Window) -> bool {
+        if let Some(root) = &mut self.root {
+            Self::swap_windows_recursive(root, window1, window2)
+        } else {
+            false
+        }
+    }
+
+    /// Recursively swaps two windows in the tree
+    fn swap_windows_recursive(node: &mut BspNode, window1: Window, window2: Window) -> bool {
+        match node {
+            BspNode::Leaf(window) => {
+                if *window == window1 {
+                    *window = window2;
+                    true
+                } else if *window == window2 {
+                    *window = window1;
+                    true
+                } else {
+                    false
+                }
+            }
+            BspNode::Split { left, right, .. } => {
+                let swapped_left = Self::swap_windows_recursive(left, window1, window2);
+                let swapped_right = Self::swap_windows_recursive(right, window1, window2);
+                swapped_left || swapped_right
+            }
+        }
+    }
+
     /// Remove a window from the BSP tree
     pub fn remove_window(&mut self, window: Window) {
         if let Some(root_node) = self.root.take() {

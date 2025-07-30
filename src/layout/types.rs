@@ -9,6 +9,16 @@ pub enum SplitDirection {
     Vertical,
 }
 
+impl SplitDirection {
+    /// Returns the opposite split direction
+    pub fn opposite(self) -> Self {
+        match self {
+            SplitDirection::Horizontal => SplitDirection::Vertical,
+            SplitDirection::Vertical => SplitDirection::Horizontal,
+        }
+    }
+}
+
 /// Rectangle for BSP layout calculations
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BspRect {
