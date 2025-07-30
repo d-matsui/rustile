@@ -45,6 +45,7 @@ impl<C: Connection> WindowManager<C> {
                 "swap_window_prev" => return self.swap_window_prev(),
                 "destroy_window" => return self.destroy_focused_window(),
                 "toggle_fullscreen" => return self.toggle_fullscreen(),
+                "rotate_windows" => return self.rotate_windows(),
                 _ => {
                     // Handle regular application commands
                     let parts: Vec<&str> = command.split_whitespace().collect();

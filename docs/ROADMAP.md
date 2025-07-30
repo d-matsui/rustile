@@ -38,7 +38,6 @@ Rustile currently supports:
   - [x] Simplified to BSP-only layout (removed master-stack)
   - [x] Eliminated LayoutManager abstraction
   - [x] Separated X11 operations from layout calculations
-  - [ ] Simplify key management (use xmodmap command?)
   - [ ] Comprehensive testing
   - [ ] Comprehensive docs
 
@@ -46,6 +45,10 @@ Rustile currently supports:
 
 - **Multi-Monitor Features**
   - Move windows between monitors
+
+- **Simple and Usefull Key Management**
+  - [ ] Distinguish Alt, AltGr (doesnt work only in Xepher?)
+  - [ ] Simplify key management (use xmodmap command?)
 
 - **Advanced Features**
   - insert window (yabai-like)

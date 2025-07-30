@@ -53,3 +53,4 @@ unfocused_border_color = 0x808080 # Gray color for unfocused windows (hex format
 "Shift+Alt+k" = "swap_window_prev"  # Swap focused window with previous window
 "Shift+Alt+q" = "destroy_window"    # Close/destroy focused window
 "Alt+f" = "toggle_fullscreen"       # Toggle fullscreen for focused window
+"Alt+r" = "rotate_windows"          # Rotate focused window's parent split direction

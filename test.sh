@@ -5,9 +5,14 @@
 pkill -f "Xephyr :10" 2>/dev/null
 pkill -f "rustile.*:10" 2>/dev/null
 
-# Build rustile
+# Setup clean config from example
+echo "Setting up config..."
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+
+# Build rustile (debug mode for better logging)
 echo "Building rustile..."
-cargo build --release || exit 1
+cargo build || exit 1
 
 # Start test X server
 echo "Starting test window..."
@@ -15,9 +20,9 @@ Xephyr :10 -screen 1200x800 &
 XEPHYR_PID=$!
 sleep 2
 
-# Run rustile
+# Run rustile (debug build)
 echo "Starting rustile..."
-DISPLAY=:10 ./target/release/rustile &
+DISPLAY=:10 ./target/debug/rustile &
 RUSTILE_PID=$!
 sleep 1
 
@@ -39,7 +44,8 @@ echo "  Alt+j/k         - Focus next/previous"
 echo "  Shift+Alt+j/k   - Swap with next/previous"
 echo "  Shift+Alt+m     - Swap with master"
 echo "  Shift+Alt+q     - Close window"
-echo "  AltGr+f         - Toggle fullscreen (Right Alt)"
+echo "  Alt+f           - Toggle fullscreen"
+echo "  Alt+r           - Rotate window (flip parent split direction)"
 echo ""
 echo "Close Xephyr window to exit"
 
