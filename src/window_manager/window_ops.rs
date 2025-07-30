@@ -80,41 +80,6 @@ impl<C: Connection> WindowManager<C> {
         Ok(())
     }
 
-    /// Swaps the currently focused window with the master window
-    pub fn swap_with_master(&mut self) -> Result<()> {
-        if self.windows.len() < 2 {
-            return Ok(());
-        }
-
-        // Exit fullscreen if active, then perform swap
-        if self.fullscreen_window.is_some() {
-            info!("Exiting fullscreen for window swap");
-            self.fullscreen_window = None;
-        }
-
-        if let Some(focused) = self.focused_window {
-            if let Some(focused_idx) = self.windows.iter().position(|&w| w == focused) {
-                if focused_idx != 0 {
-                    // Swap with master (index 0)
-                    let master_window = self.windows[0];
-                    self.windows.swap(0, focused_idx);
-
-                    // Also swap in the BSP tree to preserve structure
-                    self.bsp_tree.swap_windows(focused, master_window);
-
-                    info!(
-                        "Swapped window {:?} with master {:?}",
-                        focused, master_window
-                    );
-
-                    // Apply existing layout without rebuilding the tree
-                    self.apply_existing_layout()?;
-                }
-            }
-        }
-        Ok(())
-    }
-
     /// Destroys (closes) the currently focused window
     pub fn destroy_focused_window(&mut self) -> Result<()> {
         if let Some(focused) = self.focused_window {

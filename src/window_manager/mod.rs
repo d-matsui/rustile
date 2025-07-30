@@ -62,23 +62,6 @@ mod tests {
         }
     }
 
-    /// Helper to test swap_with_master logic
-    fn test_swap_with_master_logic(windows: &mut [Window], focused: Option<Window>) -> bool {
-        if windows.len() < 2 {
-            return false;
-        }
-
-        if let Some(focused) = focused {
-            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
-                if focused_idx != 0 {
-                    windows.swap(0, focused_idx);
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     #[test]
     fn test_focus_next_empty_windows() {
         let windows = vec![];
@@ -170,49 +153,6 @@ mod tests {
     }
 
     #[test]
-    fn test_swap_with_master_empty_windows() {
-        let mut windows = vec![];
-        let result = test_swap_with_master_logic(&mut windows, None);
-        assert!(!result); // No swap should occur
-        assert!(windows.is_empty());
-    }
-
-    #[test]
-    fn test_swap_with_master_single_window() {
-        let mut windows = vec![10];
-        let result = test_swap_with_master_logic(&mut windows, Some(10));
-        assert!(!result); // No swap should occur
-        assert_eq!(windows, vec![10]);
-    }
-
-    #[test]
-    fn test_swap_with_master_multiple_windows() {
-        // Test swapping non-master with master
-        let mut windows = vec![10, 20, 30];
-        let result = test_swap_with_master_logic(&mut windows, Some(30));
-        assert!(result); // Swap should occur
-        assert_eq!(windows, vec![30, 20, 10]);
-
-        // Test swapping master with master (no-op)
-        let mut windows = vec![10, 20, 30];
-        let result = test_swap_with_master_logic(&mut windows, Some(10));
-        assert!(!result); // No swap should occur
-        assert_eq!(windows, vec![10, 20, 30]);
-
-        // Test swapping middle window with master
-        let mut windows = vec![10, 20, 30];
-        let result = test_swap_with_master_logic(&mut windows, Some(20));
-        assert!(result); // Swap should occur
-        assert_eq!(windows, vec![20, 10, 30]);
-
-        // Test non-existent focused window
-        let mut windows = vec![10, 20, 30];
-        let result = test_swap_with_master_logic(&mut windows, Some(999));
-        assert!(!result); // No swap should occur
-        assert_eq!(windows, vec![10, 20, 30]);
-    }
-
-    #[test]
     fn test_focus_cycling_edge_cases() {
         // Test with duplicate windows (should still work)
         let windows = vec![10, 10, 20];
@@ -231,12 +171,18 @@ mod tests {
         // Test that window order is preserved correctly during swaps
         let mut windows = vec![1, 2, 3, 4, 5];
 
-        // Swap last with master
-        test_swap_with_master_logic(&mut windows, Some(5));
-        assert_eq!(windows, vec![5, 2, 3, 4, 1]);
+        // Test swap next logic (swap with next element)
+        if let Some(pos) = windows.iter().position(|&w| w == 2) {
+            let next_pos = (pos + 1) % windows.len();
+            windows.swap(pos, next_pos);
+        }
+        assert_eq!(windows, vec![1, 3, 2, 4, 5]);
 
         // Swap back
-        test_swap_with_master_logic(&mut windows, Some(1));
+        if let Some(pos) = windows.iter().position(|&w| w == 2) {
+            let prev_pos = if pos == 0 { windows.len() - 1 } else { pos - 1 };
+            windows.swap(pos, prev_pos);
+        }
         assert_eq!(windows, vec![1, 2, 3, 4, 5]);
     }
 
