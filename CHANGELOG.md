@@ -1,3 +1,10 @@
+## [0.7.0](https://github.com/d-matsui/rustile/compare/v0.6.1...v0.7.0) (2025-07-30)
+
+### 🚀 Features
+
+* implement window rotation functionality with BSP tree preservation ([0525642](https://github.com/d-matsui/rustile/commit/05256423acbc2aaa1d5510c09c81ee39613ddff8))
+* update keyboard shortcuts and roadmap for rotate feature ([7a92f60](https://github.com/d-matsui/rustile/commit/7a92f605ed4c337d3d0c39a92f5f8f7fa1e219f0))
+
 ## [0.6.1](https://github.com/d-matsui/rustile/compare/v0.6.0...v0.6.1) (2025-07-29)
 
 ### 📖 Documentation
