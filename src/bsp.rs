@@ -471,31 +471,37 @@ impl BspTree {
     }
 }
 
+/// Layout parameters bundle to reduce parameter passing
+#[derive(Debug, Clone, Copy)]
+pub struct LayoutParams {
+    pub min_window_width: u32,
+    pub min_window_height: u32,
+    pub gap: u32,
+}
+
 /// Calculate window geometries without applying them (pure calculation)
 pub fn calculate_bsp_geometries(
     bsp_tree: &BspTree,
     screen_width: u16,
     screen_height: u16,
-    min_window_width: u32,
-    min_window_height: u32,
-    gap: u32,
+    params: LayoutParams,
 ) -> Vec<WindowGeometry> {
     let mut geometries = Vec::new();
 
     if let Some(ref root) = bsp_tree.root {
         let screen_rect = BspRect {
-            x: gap as i32,
-            y: gap as i32,
-            width: (screen_width as i32 - 2 * gap as i32).max(min_window_width as i32),
-            height: (screen_height as i32 - 2 * gap as i32).max(min_window_height as i32),
+            x: params.gap as i32,
+            y: params.gap as i32,
+            width: (screen_width as i32 - 2 * params.gap as i32).max(params.min_window_width as i32),
+            height: (screen_height as i32 - 2 * params.gap as i32).max(params.min_window_height as i32),
         };
 
         calculate_bsp_recursive(
             root,
             screen_rect,
-            min_window_width,
-            min_window_height,
-            gap,
+            params.min_window_width,
+            params.min_window_height,
+            params.gap,
             &mut geometries,
         );
     }

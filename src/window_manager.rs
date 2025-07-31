@@ -16,7 +16,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
-use crate::bsp::BspTree;
+use crate::bsp::{BspTree, LayoutParams};
 use crate::config::Config;
 use crate::keyboard::KeyboardManager;
 
@@ -411,6 +411,15 @@ impl<C: Connection> WindowManager<C> {
 
         Ok(())
     }
+
+    /// Creates layout parameters bundle from config - helper to reduce parameter duplication
+    fn layout_params(&self) -> LayoutParams {
+        LayoutParams {
+            min_window_width: self.config.min_window_width(),
+            min_window_height: self.config.min_window_height(),
+            gap: self.config.gap(),
+        }
+    }
 }
 
 // =============================================================================
@@ -479,13 +488,12 @@ impl<C: Connection> WindowManager<C> {
         }
 
         // Calculate window geometries from existing BSP tree (preserves tree structure)
+        let params = self.layout_params();
         let geometries = crate::bsp::calculate_bsp_geometries(
             &self.bsp_tree,
             screen.width_in_pixels,
             screen.height_in_pixels,
-            self.config.min_window_width(),
-            self.config.min_window_height(),
-            self.config.gap(),
+            params,
         );
 
         // Update window borders based on focus
