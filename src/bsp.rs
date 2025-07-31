@@ -492,8 +492,10 @@ pub fn calculate_bsp_geometries(
         let screen_rect = BspRect {
             x: params.gap as i32,
             y: params.gap as i32,
-            width: (screen_width as i32 - 2 * params.gap as i32).max(params.min_window_width as i32),
-            height: (screen_height as i32 - 2 * params.gap as i32).max(params.min_window_height as i32),
+            width: (screen_width as i32 - 2 * params.gap as i32)
+                .max(params.min_window_width as i32),
+            height: (screen_height as i32 - 2 * params.gap as i32)
+                .max(params.min_window_height as i32),
         };
 
         calculate_bsp_recursive(

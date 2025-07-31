@@ -337,13 +337,7 @@ impl<C: Connection> WindowManager<C> {
     /// Updates window borders based on focus state
     fn update_window_borders(&self) -> Result<()> {
         for &window in &self.get_all_windows() {
-            let is_focused = self.focused_window == Some(window);
-            let border_color = if is_focused {
-                self.config.focused_border_color()
-            } else {
-                self.config.unfocused_border_color()
-            };
-
+            let border_color = self.border_color_for_window(window);
             self.configure_window_border(window, border_color)?;
         }
         Ok(())
@@ -418,6 +412,15 @@ impl<C: Connection> WindowManager<C> {
             min_window_width: self.config.min_window_width(),
             min_window_height: self.config.min_window_height(),
             gap: self.config.gap(),
+        }
+    }
+
+    /// Returns appropriate border color based on window focus state - helper to reduce duplication
+    fn border_color_for_window(&self, window: Window) -> u32 {
+        if Some(window) == self.focused_window {
+            self.config.focused_border_color()
+        } else {
+            self.config.unfocused_border_color()
         }
     }
 }
@@ -496,18 +499,9 @@ impl<C: Connection> WindowManager<C> {
             params,
         );
 
-        // Update window borders based on focus
-        let focused_color = self.config.focused_border_color();
-        let unfocused_color = self.config.unfocused_border_color();
-
         // Apply calculated geometries and update borders
         for geometry in &geometries {
-            let is_focused = Some(geometry.window) == self.focused_window;
-            let border_color = if is_focused {
-                focused_color
-            } else {
-                unfocused_color
-            };
+            let border_color = self.border_color_for_window(geometry.window);
 
             // Set border color
             self.conn.change_window_attributes(
