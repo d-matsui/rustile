@@ -11,9 +11,7 @@ pub mod dimensions {
 
     /// Minimum window height to ensure usability (pixels)
     pub const MIN_WINDOW_HEIGHT: u32 = 50;
-
 }
-
 
 /// BSP tree configuration
 pub mod bsp_constants {
@@ -22,9 +20,7 @@ pub mod bsp_constants {
 
     /// Modulus for alternating split directions (even=vertical, odd=horizontal)
     pub const SPLIT_DIRECTION_MODULUS: usize = 2;
-
 }
-
 
 // === Types ===
 
@@ -55,7 +51,6 @@ pub(crate) struct BspRect {
     pub width: i32,
     pub height: i32,
 }
-
 
 /// Represents a calculated window position and size
 #[derive(Debug, Clone, Copy)]
@@ -476,7 +471,6 @@ impl BspTree {
     }
 }
 
-
 /// Calculate window geometries without applying them (pure calculation)
 pub fn calculate_bsp_geometries(
     bsp_tree: &BspTree,
@@ -593,8 +587,6 @@ fn calculate_bsp_recursive(
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -730,7 +722,6 @@ mod tests {
             }
         }
     }
-
 
     #[test]
     fn test_bsp_tree_api_methods() {

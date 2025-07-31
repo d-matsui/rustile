@@ -117,7 +117,6 @@ impl KeyParser {
 
         Err(anyhow::anyhow!("Unknown key name: {}", key_name))
     }
-
 }
 
 impl Default for KeyParser {
@@ -268,7 +267,6 @@ impl KeyboardManager {
         }
         None
     }
-
 }
 
 #[cfg(test)]
