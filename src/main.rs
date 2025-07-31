@@ -3,8 +3,15 @@
 //! Entry point for the window manager. Initializes logging and starts the window manager.
 
 use anyhow::Result;
-use rustile::window_manager::WindowManager;
 use tracing::info;
+
+// Module declarations
+mod bsp;
+mod config;
+mod keyboard;
+mod window_manager;
+
+use window_manager::WindowManager;
 
 fn main() -> Result<()> {
     // Initialize logging
