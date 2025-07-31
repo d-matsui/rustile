@@ -32,8 +32,6 @@ pub struct WindowManager<C: Connection> {
     screen_num: usize,
     /// Currently focused window
     focused_window: Option<Window>,
-    /// Window stack for focus ordering (most recently used first)
-    window_stack: Vec<Window>,
     /// BSP tree for window arrangement (single source of truth for window layout)
     bsp_tree: BspTree,
     /// Keyboard manager for shortcuts
@@ -87,7 +85,6 @@ impl<C: Connection> WindowManager<C> {
             conn,
             screen_num,
             focused_window: None,
-            window_stack: Vec::new(),
             bsp_tree,
             keyboard_manager,
             config,
@@ -215,11 +212,11 @@ impl<C: Connection> WindowManager<C> {
             window
         );
         self.remove_window_from_layout(window);
-        self.window_stack.retain(|&w| w != window);
 
         // Update focus if focused window was unmapped
         if self.focused_window == Some(window) {
-            self.focused_window = self.window_stack.first().copied();
+            // Focus first remaining window in BSP tree order
+            self.focused_window = self.get_all_windows().first().copied();
             if let Some(next_focus) = self.focused_window {
                 self.set_focus(next_focus)?;
             }
@@ -251,7 +248,6 @@ impl<C: Connection> WindowManager<C> {
 
         // Remove from managed windows
         self.remove_window_from_layout(window);
-        self.window_stack.retain(|&w| w != window);
 
         // Clean up intentionally unmapped set to prevent memory leaks
         self.intentionally_unmapped.remove(&window);
@@ -264,7 +260,8 @@ impl<C: Connection> WindowManager<C> {
 
         // Update focus if focused window was destroyed
         if self.focused_window == Some(window) {
-            self.focused_window = self.window_stack.first().copied();
+            // Focus first remaining window in BSP tree order
+            self.focused_window = self.get_all_windows().first().copied();
             if let Some(next_focus) = self.focused_window {
                 self.set_focus(next_focus)?;
             }
@@ -321,10 +318,6 @@ impl<C: Connection> WindowManager<C> {
 
         // Update focus state
         self.focused_window = Some(window);
-
-        // Update window stack (MRU order)
-        self.window_stack.retain(|&w| w != window);
-        self.window_stack.insert(0, window);
 
         // Update window borders
         self.update_window_borders()?;
