@@ -1,3 +1,14 @@
+## [0.7.2](https://github.com/d-matsui/rustile/compare/v0.7.1...v0.7.2) (2025-07-31)
+
+### 💎 Style
+
+* apply cargo fmt formatting ([d90f40d](https://github.com/d-matsui/rustile/commit/d90f40d39b20aaf9584d75a5969a93903a2a7c02))
+
+### ♻️ Refactor
+
+* remove all dead code and unused functionality ([707547a](https://github.com/d-matsui/rustile/commit/707547aad2e9b908701ee32a5d200f2bfb8884b7))
+* simplify file structure to flat organization ([3ca39f6](https://github.com/d-matsui/rustile/commit/3ca39f69aa72a2773cb08fc257da36326377250c))
+
 ## [0.7.1](https://github.com/d-matsui/rustile/compare/v0.7.0...v0.7.1) (2025-07-30)
 
 ### 🐛 Bug Fixes
