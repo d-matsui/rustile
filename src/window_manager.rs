@@ -181,14 +181,7 @@ impl<C: Connection> WindowManager<C> {
         info!("Mapping window: {:?}", window);
 
         // Set initial border attributes before mapping
-        let border_aux =
-            ChangeWindowAttributesAux::new().border_pixel(self.config.unfocused_border_color());
-
-        self.conn.change_window_attributes(window, &border_aux)?;
-
-        let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
-
-        self.conn.configure_window(window, &config_aux)?;
+        self.configure_window_border(window, self.config.unfocused_border_color())?;
 
         // Map the window
         self.conn.map_window(window)?;
@@ -351,13 +344,7 @@ impl<C: Connection> WindowManager<C> {
                 self.config.unfocused_border_color()
             };
 
-            let aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
-
-            self.conn.change_window_attributes(window, &aux)?;
-
-            let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
-
-            self.conn.configure_window(window, &config_aux)?;
+            self.configure_window_border(window, border_color)?;
         }
         Ok(())
     }
@@ -411,6 +398,17 @@ impl<C: Connection> WindowManager<C> {
 
         self.set_focus(prev_window)?;
         info!("Focused previous window: {:?}", prev_window);
+        Ok(())
+    }
+
+    /// Configures window border color and width - helper to reduce duplication
+    fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
+        let border_aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
+        self.conn.change_window_attributes(window, &border_aux)?;
+
+        let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
+        self.conn.configure_window(window, &config_aux)?;
+
         Ok(())
     }
 }
@@ -503,11 +501,13 @@ impl<C: Connection> WindowManager<C> {
                 unfocused_color
             };
 
+            // Set border color
             self.conn.change_window_attributes(
                 geometry.window,
                 &ChangeWindowAttributesAux::new().border_pixel(border_color),
             )?;
 
+            // Set geometry and border width
             self.conn.configure_window(
                 geometry.window,
                 &ConfigureWindowAux::new()
