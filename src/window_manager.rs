@@ -16,7 +16,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
-use crate::bsp::BspTree;
+use crate::bsp::{BspTree, LayoutParams};
 use crate::config::Config;
 use crate::keyboard::KeyboardManager;
 
@@ -181,14 +181,7 @@ impl<C: Connection> WindowManager<C> {
         info!("Mapping window: {:?}", window);
 
         // Set initial border attributes before mapping
-        let border_aux =
-            ChangeWindowAttributesAux::new().border_pixel(self.config.unfocused_border_color());
-
-        self.conn.change_window_attributes(window, &border_aux)?;
-
-        let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
-
-        self.conn.configure_window(window, &config_aux)?;
+        self.configure_window_border(window, self.config.unfocused_border_color())?;
 
         // Map the window
         self.conn.map_window(window)?;
@@ -344,20 +337,8 @@ impl<C: Connection> WindowManager<C> {
     /// Updates window borders based on focus state
     fn update_window_borders(&self) -> Result<()> {
         for &window in &self.get_all_windows() {
-            let is_focused = self.focused_window == Some(window);
-            let border_color = if is_focused {
-                self.config.focused_border_color()
-            } else {
-                self.config.unfocused_border_color()
-            };
-
-            let aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
-
-            self.conn.change_window_attributes(window, &aux)?;
-
-            let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
-
-            self.conn.configure_window(window, &config_aux)?;
+            let border_color = self.border_color_for_window(window);
+            self.configure_window_border(window, border_color)?;
         }
         Ok(())
     }
@@ -412,6 +393,35 @@ impl<C: Connection> WindowManager<C> {
         self.set_focus(prev_window)?;
         info!("Focused previous window: {:?}", prev_window);
         Ok(())
+    }
+
+    /// Configures window border color and width - helper to reduce duplication
+    fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
+        let border_aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
+        self.conn.change_window_attributes(window, &border_aux)?;
+
+        let config_aux = ConfigureWindowAux::new().border_width(self.config.border_width());
+        self.conn.configure_window(window, &config_aux)?;
+
+        Ok(())
+    }
+
+    /// Creates layout parameters bundle from config - helper to reduce parameter duplication
+    fn layout_params(&self) -> LayoutParams {
+        LayoutParams {
+            min_window_width: self.config.min_window_width(),
+            min_window_height: self.config.min_window_height(),
+            gap: self.config.gap(),
+        }
+    }
+
+    /// Returns appropriate border color based on window focus state - helper to reduce duplication
+    fn border_color_for_window(&self, window: Window) -> u32 {
+        if Some(window) == self.focused_window {
+            self.config.focused_border_color()
+        } else {
+            self.config.unfocused_border_color()
+        }
     }
 }
 
@@ -481,33 +491,25 @@ impl<C: Connection> WindowManager<C> {
         }
 
         // Calculate window geometries from existing BSP tree (preserves tree structure)
+        let params = self.layout_params();
         let geometries = crate::bsp::calculate_bsp_geometries(
             &self.bsp_tree,
             screen.width_in_pixels,
             screen.height_in_pixels,
-            self.config.min_window_width(),
-            self.config.min_window_height(),
-            self.config.gap(),
+            params,
         );
-
-        // Update window borders based on focus
-        let focused_color = self.config.focused_border_color();
-        let unfocused_color = self.config.unfocused_border_color();
 
         // Apply calculated geometries and update borders
         for geometry in &geometries {
-            let is_focused = Some(geometry.window) == self.focused_window;
-            let border_color = if is_focused {
-                focused_color
-            } else {
-                unfocused_color
-            };
+            let border_color = self.border_color_for_window(geometry.window);
 
+            // Set border color
             self.conn.change_window_attributes(
                 geometry.window,
                 &ChangeWindowAttributesAux::new().border_pixel(border_color),
             )?;
 
+            // Set geometry and border width
             self.conn.configure_window(
                 geometry.window,
                 &ConfigureWindowAux::new()
