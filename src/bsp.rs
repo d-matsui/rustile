@@ -1,7 +1,5 @@
 //! Binary Space Partitioning (BSP) layout algorithm implementation
 
-use anyhow::Result;
-use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
 // === Constants ===
@@ -14,17 +12,8 @@ pub mod dimensions {
     /// Minimum window height to ensure usability (pixels)
     pub const MIN_WINDOW_HEIGHT: u32 = 50;
 
-    /// Minimum master window width (pixels) - for future use
-    #[allow(dead_code)]
-    pub const MIN_MASTER_WIDTH: u32 = 100;
 }
 
-/// Layout calculations and spacing
-pub mod layout {
-    /// Threshold for gap fallback decisions (pixels) - for future use
-    #[allow(dead_code)]
-    pub const GAP_FALLBACK_THRESHOLD: i16 = 150;
-}
 
 /// BSP tree configuration
 pub mod bsp_constants {
@@ -34,34 +23,8 @@ pub mod bsp_constants {
     /// Modulus for alternating split directions (even=vertical, odd=horizontal)
     pub const SPLIT_DIRECTION_MODULUS: usize = 2;
 
-    /// Target window offset for sequential BSP splitting
-    #[allow(dead_code)]
-    pub const TARGET_WINDOW_OFFSET: usize = 1;
 }
 
-/// Test values used in unit tests - reserved for future test refactoring
-#[cfg(test)]
-#[allow(dead_code)]
-pub mod test_values {
-    /// Standard test screen width (pixels)
-    pub const SCREEN_WIDTH: u16 = 1280;
-
-    /// Standard test screen height (pixels)
-    pub const SCREEN_HEIGHT: u16 = 720;
-
-    /// Default test gap size (pixels)
-    pub const TEST_GAP: u32 = 10;
-
-    /// Test BSP split ratio
-    pub const TEST_BSP_SPLIT_RATIO: f32 = 0.5;
-
-    /// Mock window IDs for testing
-    pub const MOCK_WINDOW_1: u32 = 1;
-    pub const MOCK_WINDOW_2: u32 = 2;
-    pub const MOCK_WINDOW_3: u32 = 3;
-    pub const MOCK_WINDOW_NONEXISTENT: u32 = 999;
-    pub const MOCK_WINDOW_SINGLE: u32 = 42;
-}
 
 // === Types ===
 
@@ -93,38 +56,6 @@ pub(crate) struct BspRect {
     pub height: i32,
 }
 
-/// Screen dimensions and constraints for layout calculations
-#[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
-pub struct ScreenParams {
-    pub width: u16,
-    pub height: u16,
-    pub gap: u32,
-}
-
-/// Window size constraints for layout calculations
-#[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
-pub struct WindowConstraints {
-    pub min_width: u32,
-    pub min_height: u32,
-}
-
-/// Layout ratios and split configuration
-#[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
-pub struct LayoutRatios {
-    pub bsp_split_ratio: f32,
-}
-
-/// Combined parameters for layout operations to reduce function signatures
-#[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
-pub struct LayoutParams {
-    pub screen: ScreenParams,
-    pub constraints: WindowConstraints,
-    pub ratios: LayoutRatios,
-}
 
 /// Represents a calculated window position and size
 #[derive(Debug, Clone, Copy)]
@@ -545,49 +476,6 @@ impl BspTree {
     }
 }
 
-/// Tiles windows using BSP layout algorithm
-#[allow(clippy::too_many_arguments)]
-#[allow(dead_code)]
-pub fn tile_bsp_windows<C: Connection>(
-    conn: &C,
-    bsp_tree: &BspTree,
-    _windows: &[Window],
-    _focused_window: Option<Window>,
-    screen_width: u16,
-    screen_height: u16,
-    _split_ratio: f32,
-    min_window_width: u32,
-    min_window_height: u32,
-    gap: u32,
-) -> Result<()> {
-    if let Some(ref root) = bsp_tree.root {
-        let screen_rect = BspRect {
-            x: gap as i32,
-            y: gap as i32,
-            width: (screen_width as i32 - 2 * gap as i32).max(min_window_width as i32),
-            height: (screen_height as i32 - 2 * gap as i32).max(min_window_height as i32),
-        };
-        #[cfg(debug_assertions)]
-        tracing::debug!(
-            "BSP: Applying layout to screen {}x{} with gap {}",
-            screen_width,
-            screen_height,
-            gap
-        );
-        apply_bsp_recursive(
-            conn,
-            root,
-            screen_rect,
-            min_window_width,
-            min_window_height,
-            gap,
-        )?;
-    } else {
-        #[cfg(debug_assertions)]
-        tracing::debug!("BSP: No root node, skipping layout");
-    }
-    Ok(())
-}
 
 /// Calculate window geometries without applying them (pure calculation)
 pub fn calculate_bsp_geometries(
@@ -706,139 +594,7 @@ fn calculate_bsp_recursive(
     }
 }
 
-/// Recursively apply BSP layout to nodes
-#[allow(dead_code)]
-fn apply_bsp_recursive<C: Connection>(
-    conn: &C,
-    node: &BspNode,
-    rect: BspRect,
-    min_window_width: u32,
-    min_window_height: u32,
-    gap: u32,
-) -> Result<()> {
-    match node {
-        BspNode::Leaf(window) => {
-            // Configure the window to fill the rect
-            #[cfg(debug_assertions)]
-            tracing::debug!(
-                "BSP: Positioning window {} at ({}, {}) with size {}x{}",
-                window,
-                rect.x,
-                rect.y,
-                rect.width,
-                rect.height
-            );
-            let config = ConfigureWindowAux::new()
-                .x(rect.x)
-                .y(rect.y)
-                .width(rect.width.max(dimensions::MIN_WINDOW_WIDTH as i32) as u32)
-                .height(rect.height.max(dimensions::MIN_WINDOW_HEIGHT as i32) as u32);
-            conn.configure_window(*window, &config)?;
-        }
-        BspNode::Split {
-            direction,
-            ratio,
-            left,
-            right,
-        } => {
-            let gap_i32 = gap as i32;
-            let (left_rect, right_rect) = match direction {
-                SplitDirection::Horizontal => {
-                    // Split left/right (horizontal arrangement)
-                    let split_pos = (rect.width as f32 * ratio) as i32;
-                    let left_rect = BspRect {
-                        x: rect.x,
-                        y: rect.y,
-                        width: split_pos.max(min_window_width as i32),
-                        height: rect.height,
-                    };
-                    let right_rect = BspRect {
-                        x: rect.x + split_pos + gap_i32,
-                        y: rect.y,
-                        width: (rect.width - split_pos - gap_i32).max(min_window_width as i32),
-                        height: rect.height,
-                    };
-                    (left_rect, right_rect)
-                }
-                SplitDirection::Vertical => {
-                    // Split top/bottom (vertical arrangement)
-                    let split_pos = (rect.height as f32 * ratio) as i32;
-                    let left_rect = BspRect {
-                        x: rect.x,
-                        y: rect.y,
-                        width: rect.width,
-                        height: split_pos.max(min_window_height as i32),
-                    };
-                    let right_rect = BspRect {
-                        x: rect.x,
-                        y: rect.y + split_pos + gap_i32,
-                        width: rect.width,
-                        height: (rect.height - split_pos - gap_i32).max(min_window_height as i32),
-                    };
-                    (left_rect, right_rect)
-                }
-            };
 
-            // Recursively apply layout to children
-            apply_bsp_recursive(
-                conn,
-                left,
-                left_rect,
-                min_window_width,
-                min_window_height,
-                gap,
-            )?;
-            apply_bsp_recursive(
-                conn,
-                right,
-                right_rect,
-                min_window_width,
-                min_window_height,
-                gap,
-            )?
-        }
-    }
-    Ok(())
-}
-
-/// Rebuild BSP tree from window list (simple approach for now)
-#[allow(dead_code)]
-pub fn rebuild_bsp_tree(
-    bsp_tree: &mut BspTree,
-    windows: &[Window],
-    _focused_window: Option<Window>,
-    bsp_split_ratio: f32,
-) {
-    #[cfg(debug_assertions)]
-    tracing::debug!(
-        "Rebuilding BSP tree with {} windows, focused: {:?}",
-        windows.len(),
-        _focused_window
-    );
-    *bsp_tree = BspTree::new();
-    for (index, &window) in windows.iter().enumerate() {
-        if index == bsp_constants::INITIAL_SPLIT_COUNT {
-            // First window becomes root
-            #[cfg(debug_assertions)]
-            tracing::debug!("BSP: Adding first window {} as root", window);
-            bsp_tree.add_window(window, None, bsp_split_ratio);
-        } else {
-            // For BSP, we want to split the most recently added window (not focused)
-            // This creates the typical BSP behavior
-            let target = Some(windows[index - bsp_constants::TARGET_WINDOW_OFFSET]);
-            #[cfg(debug_assertions)]
-            tracing::debug!("BSP: Adding window {} targeting {:?}", window, target);
-            bsp_tree.add_window(window, target, bsp_split_ratio);
-        }
-    }
-    // Debug print the tree structure (only in debug builds)
-    #[cfg(debug_assertions)]
-    if let Some(ref root) = bsp_tree.root {
-        tracing::debug!("BSP tree structure: {:?}", root);
-    } else {
-        tracing::debug!("BSP tree is empty");
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -975,28 +731,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_bsp_empty_window_list_rebuild() {
-        let mut bsp_tree = BspTree::new();
-
-        // Test rebuild with empty window list
-        rebuild_bsp_tree(&mut bsp_tree, &[], None, 0.5);
-        assert!(bsp_tree.root.is_none());
-    }
-
-    #[test]
-    fn test_bsp_single_window_rebuild() {
-        let mut bsp_tree = BspTree::new();
-
-        // Test rebuild with single window
-        rebuild_bsp_tree(&mut bsp_tree, &[42], None, 0.5);
-
-        if let Some(BspNode::Leaf(window)) = &bsp_tree.root {
-            assert_eq!(*window, 42);
-        } else {
-            panic!("Single window should create a leaf node");
-        }
-    }
 
     #[test]
     fn test_bsp_tree_api_methods() {

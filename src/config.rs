@@ -70,19 +70,6 @@ pub mod validators {
         Ok(())
     }
 
-    /// Validates that a string is one of the allowed values
-    #[allow(dead_code)]
-    pub fn validate_choice(value: &str, field_name: &str, allowed: &[&str]) -> Result<()> {
-        if !allowed.contains(&value) {
-            return Err(anyhow::anyhow!(
-                "{} must be one of {:?}, got: '{}'",
-                field_name,
-                allowed,
-                value
-            ));
-        }
-        Ok(())
-    }
 }
 
 // === Configuration Structures ===

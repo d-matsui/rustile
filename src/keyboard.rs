@@ -118,11 +118,6 @@ impl KeyParser {
         Err(anyhow::anyhow!("Unknown key name: {}", key_name))
     }
 
-    /// Adds a custom key mapping
-    #[allow(dead_code)]
-    pub fn add_key(&mut self, name: &str, keysym: u32) {
-        self.key_names.insert(name.to_string(), keysym);
-    }
 }
 
 impl Default for KeyParser {
@@ -274,11 +269,6 @@ impl KeyboardManager {
         None
     }
 
-    /// Gets all registered shortcuts
-    #[allow(dead_code)]
-    pub fn shortcuts(&self) -> &[Shortcut] {
-        &self.shortcuts
-    }
 }
 
 #[cfg(test)]
