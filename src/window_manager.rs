@@ -7,12 +7,15 @@
 //! - Window Operations: Window lifecycle and manipulation
 
 use anyhow::Result;
+use std::process::Command;
 use tracing::{error, info};
 use x11rb::connection::Connection;
+use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
 use crate::keyboard::KeyboardManager;
-use crate::window_operations::WindowOperations;
+use crate::window_renderer::WindowRenderer;
+use crate::window_state::WindowState;
 
 // =============================================================================
 // Core Window Manager Structure and Initialization
@@ -24,8 +27,10 @@ pub struct WindowManager<C: Connection> {
     pub(crate) conn: C,
     /// Keyboard manager for shortcuts
     pub(crate) keyboard_manager: KeyboardManager,
-    /// Window operations manager
-    pub(crate) window_operations: WindowOperations,
+    /// Window state tracking (Model)
+    pub(crate) window_state: WindowState,
+    /// X11 rendering operations (View)
+    pub(crate) window_renderer: WindowRenderer,
 }
 
 impl<C: Connection> WindowManager<C> {
@@ -61,14 +66,16 @@ impl<C: Connection> WindowManager<C> {
         // Register keyboard shortcuts from config
         keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
-        // Create window operations manager
-        let window_operations = WindowOperations::new(config, screen_num);
+        // Create new modules
+        let window_state = WindowState::new(config, screen_num);
+        let window_renderer = WindowRenderer::new();
         info!("Using BSP layout algorithm");
 
         Ok(Self {
             conn,
             keyboard_manager,
-            window_operations,
+            window_state,
+            window_renderer,
         })
     }
 
@@ -86,6 +93,200 @@ impl<C: Connection> WindowManager<C> {
             }
         }
     }
+
+    // =============================================================================
+    // Event Handling
+    // =============================================================================
+
+    /// Main event dispatcher
+    pub(crate) fn handle_event(&mut self, event: Event) -> Result<()> {
+        match event {
+            Event::KeyPress(ev) => self.handle_key_press(ev),
+            Event::MapRequest(ev) => self.handle_map_request(ev),
+            Event::UnmapNotify(ev) => self.handle_unmap_notify(ev),
+            Event::ConfigureRequest(ev) => self.handle_configure_request(ev),
+            Event::DestroyNotify(ev) => self.handle_destroy_notify(ev),
+            Event::FocusIn(ev) => self.handle_focus_in(ev),
+            Event::FocusOut(ev) => self.handle_focus_out(ev),
+            Event::EnterNotify(ev) => self.handle_enter_notify(ev),
+            _ => {
+                #[cfg(debug_assertions)]
+                tracing::debug!("Unhandled event: {:?}", event);
+                Ok(())
+            }
+        }
+    }
+
+    /// Handles key press events
+    fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
+        if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
+            info!("Shortcut pressed, executing: {}", command);
+
+            // Handle window management commands
+            match command {
+                "focus_next" => return self.focus_next(),
+                "focus_prev" => return self.focus_prev(),
+                "swap_window_next" => return self.swap_window_next(),
+                "swap_window_prev" => return self.swap_window_prev(),
+                "destroy_window" => return self.destroy_focused_window(),
+                "toggle_fullscreen" => return self.toggle_fullscreen(),
+                "rotate_windows" => return self.rotate_windows(),
+                _ => {
+                    // Handle regular application commands
+                    let parts: Vec<&str> = command.split_whitespace().collect();
+                    if let Some(program) = parts.first() {
+                        let mut cmd = Command::new(program);
+
+                        // Add arguments if any
+                        if parts.len() > 1 {
+                            cmd.args(&parts[1..]);
+                        }
+
+                        // Set display environment
+                        cmd.env("DISPLAY", self.window_state.default_display());
+
+                        match cmd.spawn() {
+                            Ok(_) => info!("Successfully launched: {}", command),
+                            Err(e) => error!("Failed to launch {}: {}", command, e),
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Handles window map requests
+    fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
+        let window = event.window;
+        info!("Mapping window: {:?}", window);
+
+        // Set initial border attributes before mapping
+        self.configure_window_border(window, self.window_state.unfocused_border_color())?;
+
+        // Map the window
+        self.conn.map_window(window)?;
+
+        // Add to managed windows
+        self.window_state.add_window_to_layout(window);
+
+        // Set focus to new window
+        self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, window)?;
+
+        // Apply layout
+        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)?;
+
+        Ok(())
+    }
+
+    /// Handles window unmap notifications
+    fn handle_unmap_notify(&mut self, event: UnmapNotifyEvent) -> Result<()> {
+        let window = event.window;
+        info!("Unmapping window: {:?}", window);
+
+        // Check if this was intentionally unmapped (during fullscreen)
+        if self.window_state.is_intentionally_unmapped(window) {
+            info!("Window {:?} was intentionally unmapped, ignoring", window);
+            return Ok(());
+        }
+
+        // Only remove from managed windows if NOT intentionally unmapped
+        info!(
+            "Window {:?} closed by user, removing from management",
+            window
+        );
+        self.window_state.remove_window_from_layout(window);
+
+        // Update focus if focused window was unmapped
+        if self.window_state.get_focused_window() == Some(window) {
+            // Focus first remaining window in BSP tree order
+            let next_focus = self.window_state.get_first_window();
+            if let Some(next_focus) = next_focus {
+                self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, next_focus)?;
+            } else {
+                self.window_state.clear_focus();
+            }
+        }
+
+        // Reapply layout
+        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)?;
+
+        Ok(())
+    }
+
+    /// Handles window configure requests
+    fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
+        tracing::debug!("Configure request for window: {:?}", event.window);
+
+        // For now, just honor the request
+        // In the future, we might want to be more selective
+        let values = ConfigureWindowAux::from_configure_request(&event);
+        self.conn.configure_window(event.window, &values)?;
+
+        Ok(())
+    }
+
+    /// Handles window destroy notifications
+    fn handle_destroy_notify(&mut self, event: DestroyNotifyEvent) -> Result<()> {
+        let window = event.window;
+        info!("Window destroyed: {:?}", window);
+
+        // Remove from managed windows
+        self.window_state.remove_window_from_layout(window);
+
+        // Clean up intentionally unmapped set to prevent memory leaks
+        self.window_state.remove_intentionally_unmapped(window);
+
+        // Clear fullscreen if fullscreen window was destroyed
+        if self.window_state.get_fullscreen_window() == Some(window) {
+            info!("Fullscreen window destroyed, exiting fullscreen mode");
+            self.window_state.clear_fullscreen();
+        }
+
+        // Update focus if focused window was destroyed
+        if self.window_state.get_focused_window() == Some(window) {
+            // Focus first remaining window in BSP tree order
+            let next_focus = self.window_state.get_first_window();
+            if let Some(next_focus) = next_focus {
+                self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, next_focus)?;
+            } else {
+                self.window_state.clear_focus();
+            }
+        }
+
+        // Reapply layout
+        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)?;
+
+        Ok(())
+    }
+
+    /// Handles focus in events
+    fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
+        tracing::debug!("Focus in event for window: {:?}", _event.event);
+        Ok(())
+    }
+
+    /// Handles focus out events
+    fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
+        tracing::debug!("Focus out event for window: {:?}", _event.event);
+        Ok(())
+    }
+
+    /// Handles mouse enter events
+    fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
+        let window = event.event;
+        #[cfg(debug_assertions)]
+        tracing::debug!("Mouse entered window: {:?}", window);
+
+        // Only focus if it's a managed window
+        if self.window_state.has_window(window) {
+            self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, window)?;
+        }
+        Ok(())
+    }
 }
 
 // =============================================================================
@@ -95,22 +296,22 @@ impl<C: Connection> WindowManager<C> {
 impl<C: Connection> WindowManager<C> {
     /// Sets focus to a specific window
     pub(crate) fn set_focus(&mut self, window: Window) -> Result<()> {
-        self.window_operations.set_focus(&mut self.conn, window)
+        self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, window)
     }
 
     /// Configures window border color and width - helper to reduce duplication
     pub(crate) fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
-        self.window_operations.configure_window_border(&self.conn, window, border_color)
+        self.window_renderer.configure_window_border(&self.conn, window, border_color, self.window_state.border_width())
     }
 
     /// Focuses the next window in the stack
     pub fn focus_next(&mut self) -> Result<()> {
-        self.window_operations.focus_next(&mut self.conn)
+        self.window_renderer.focus_next(&mut self.conn, &mut self.window_state)
     }
 
     /// Focuses the previous window in the stack  
     pub fn focus_prev(&mut self) -> Result<()> {
-        self.window_operations.focus_prev(&mut self.conn)
+        self.window_renderer.focus_prev(&mut self.conn, &mut self.window_state)
     }
 }
 
@@ -121,53 +322,53 @@ impl<C: Connection> WindowManager<C> {
 impl<C: Connection> WindowManager<C> {
     /// Adds a window to the layout manager
     pub(crate) fn add_window_to_layout(&mut self, window: Window) {
-        self.window_operations.add_window_to_layout(window);
+        self.window_state.add_window_to_layout(window);
     }
 
     /// Removes a window from the layout manager
     pub(crate) fn remove_window_from_layout(&mut self, window: Window) {
-        self.window_operations.remove_window_from_layout(window);
+        self.window_state.remove_window_from_layout(window);
     }
 
 
     /// Checks if a window is managed by the layout
     pub(crate) fn has_window(&self, window: Window) -> bool {
-        self.window_operations.has_window(window)
+        self.window_state.has_window(window)
     }
 
     /// Gets the first window in the layout, or None if empty
     pub(crate) fn get_first_window(&self) -> Option<Window> {
-        self.window_operations.get_first_window()
+        self.window_state.get_first_window()
     }
 
     /// Applies the current BSP tree layout without rebuilding the tree
     pub(crate) fn apply_layout(&mut self) -> Result<()> {
-        self.window_operations.apply_layout(&mut self.conn)
+        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)
     }
 
     /// Destroys (closes) the currently focused window
     pub fn destroy_focused_window(&mut self) -> Result<()> {
-        self.window_operations.destroy_focused_window(&mut self.conn)
+        self.window_renderer.destroy_focused_window(&mut self.conn, &mut self.window_state)
     }
 
     /// Swaps the currently focused window with the next window in the layout
     pub fn swap_window_next(&mut self) -> Result<()> {
-        self.window_operations.swap_window_next(&mut self.conn)
+        self.window_renderer.swap_window_next(&mut self.conn, &mut self.window_state)
     }
 
     /// Swaps the currently focused window with the previous window in the layout
     pub fn swap_window_prev(&mut self) -> Result<()> {
-        self.window_operations.swap_window_prev(&mut self.conn)
+        self.window_renderer.swap_window_prev(&mut self.conn, &mut self.window_state)
     }
 
     /// Toggles fullscreen mode for the focused window
     pub fn toggle_fullscreen(&mut self) -> Result<()> {
-        self.window_operations.toggle_fullscreen(&mut self.conn)
+        self.window_renderer.toggle_fullscreen(&mut self.conn, &mut self.window_state)
     }
 
     /// Rotates the focused window by flipping its parent split direction
     pub fn rotate_windows(&mut self) -> Result<()> {
-        self.window_operations.rotate_windows(&mut self.conn)
+        self.window_renderer.rotate_windows(&mut self.conn, &mut self.window_state)
     }
 }
 
