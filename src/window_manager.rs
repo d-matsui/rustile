@@ -7,13 +7,11 @@
 //! - Window Operations: Window lifecycle and manipulation
 
 use anyhow::Result;
-use std::process::Command;
 #[cfg(debug_assertions)]
 use tracing::debug;
 use tracing::{error, info};
 use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
-use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
 use crate::bsp::{BspTree, LayoutParams};
@@ -27,21 +25,21 @@ use crate::keyboard::KeyboardManager;
 /// Main window manager structure
 pub struct WindowManager<C: Connection> {
     /// X11 connection
-    conn: C,
+    pub(crate) conn: C,
     /// Screen information
-    screen_num: usize,
+    pub(crate) screen_num: usize,
     /// Currently focused window
-    focused_window: Option<Window>,
+    pub(crate) focused_window: Option<Window>,
     /// BSP tree for window arrangement (single source of truth for window layout)
-    bsp_tree: BspTree,
+    pub(crate) bsp_tree: BspTree,
     /// Keyboard manager for shortcuts
-    keyboard_manager: KeyboardManager,
+    pub(crate) keyboard_manager: KeyboardManager,
     /// Configuration
-    config: Config,
+    pub(crate) config: Config,
     /// Currently fullscreen window (if any)
-    fullscreen_window: Option<Window>,
+    pub(crate) fullscreen_window: Option<Window>,
     /// Windows we intentionally unmapped (to distinguish from user-closed windows)
-    intentionally_unmapped: std::collections::HashSet<Window>,
+    pub(crate) intentionally_unmapped: std::collections::HashSet<Window>,
 }
 
 impl<C: Connection> WindowManager<C> {
@@ -110,204 +108,12 @@ impl<C: Connection> WindowManager<C> {
 }
 
 // =============================================================================
-// Event Handling
-// =============================================================================
-
-impl<C: Connection> WindowManager<C> {
-    /// Main event dispatcher
-    fn handle_event(&mut self, event: Event) -> Result<()> {
-        match event {
-            Event::KeyPress(ev) => self.handle_key_press(ev),
-            Event::MapRequest(ev) => self.handle_map_request(ev),
-            Event::UnmapNotify(ev) => self.handle_unmap_notify(ev),
-            Event::ConfigureRequest(ev) => self.handle_configure_request(ev),
-            Event::DestroyNotify(ev) => self.handle_destroy_notify(ev),
-            Event::FocusIn(ev) => self.handle_focus_in(ev),
-            Event::FocusOut(ev) => self.handle_focus_out(ev),
-            Event::EnterNotify(ev) => self.handle_enter_notify(ev),
-            _ => {
-                #[cfg(debug_assertions)]
-                debug!("Unhandled event: {:?}", event);
-                Ok(())
-            }
-        }
-    }
-
-    /// Handles key press events
-    fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
-        if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
-            info!("Shortcut pressed, executing: {}", command);
-
-            // Handle window management commands
-            match command {
-                "focus_next" => return self.focus_next(),
-                "focus_prev" => return self.focus_prev(),
-                "swap_window_next" => return self.swap_window_next(),
-                "swap_window_prev" => return self.swap_window_prev(),
-                "destroy_window" => return self.destroy_focused_window(),
-                "toggle_fullscreen" => return self.toggle_fullscreen(),
-                "rotate_windows" => return self.rotate_windows(),
-                _ => {
-                    // Handle regular application commands
-                    let parts: Vec<&str> = command.split_whitespace().collect();
-                    if let Some(program) = parts.first() {
-                        let mut cmd = Command::new(program);
-
-                        // Add arguments if any
-                        if parts.len() > 1 {
-                            cmd.args(&parts[1..]);
-                        }
-
-                        // Set display environment
-                        cmd.env("DISPLAY", self.config.default_display());
-
-                        match cmd.spawn() {
-                            Ok(_) => info!("Successfully launched: {}", command),
-                            Err(e) => error!("Failed to launch {}: {}", command, e),
-                        }
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// Handles window map requests
-    fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
-        let window = event.window;
-        info!("Mapping window: {:?}", window);
-
-        // Set initial border attributes before mapping
-        self.configure_window_border(window, self.config.unfocused_border_color())?;
-
-        // Map the window
-        self.conn.map_window(window)?;
-
-        // Add to managed windows
-        self.add_window_to_layout(window);
-
-        // Set focus to new window
-        self.set_focus(window)?;
-
-        // Apply layout
-        self.apply_layout()?;
-
-        Ok(())
-    }
-
-    /// Handles window unmap notifications
-    fn handle_unmap_notify(&mut self, event: UnmapNotifyEvent) -> Result<()> {
-        let window = event.window;
-        info!("Unmapping window: {:?}", window);
-
-        // Check if this was intentionally unmapped (during fullscreen)
-        if self.intentionally_unmapped.contains(&window) {
-            info!("Window {:?} was intentionally unmapped, ignoring", window);
-            return Ok(());
-        }
-
-        // Only remove from managed windows if NOT intentionally unmapped
-        info!(
-            "Window {:?} closed by user, removing from management",
-            window
-        );
-        self.remove_window_from_layout(window);
-
-        // Update focus if focused window was unmapped
-        if self.focused_window == Some(window) {
-            // Focus first remaining window in BSP tree order
-            self.focused_window = self.get_first_window();
-            if let Some(next_focus) = self.focused_window {
-                self.set_focus(next_focus)?;
-            }
-        }
-
-        // Reapply layout
-        self.apply_layout()?;
-
-        Ok(())
-    }
-
-    /// Handles window configure requests
-    fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
-        #[cfg(debug_assertions)]
-        debug!("Configure request for window: {:?}", event.window);
-
-        // For now, just honor the request
-        // In the future, we might want to be more selective
-        let values = ConfigureWindowAux::from_configure_request(&event);
-        self.conn.configure_window(event.window, &values)?;
-
-        Ok(())
-    }
-
-    /// Handles window destroy notifications
-    fn handle_destroy_notify(&mut self, event: DestroyNotifyEvent) -> Result<()> {
-        let window = event.window;
-        info!("Window destroyed: {:?}", window);
-
-        // Remove from managed windows
-        self.remove_window_from_layout(window);
-
-        // Clean up intentionally unmapped set to prevent memory leaks
-        self.intentionally_unmapped.remove(&window);
-
-        // Clear fullscreen if fullscreen window was destroyed
-        if self.fullscreen_window == Some(window) {
-            info!("Fullscreen window destroyed, exiting fullscreen mode");
-            self.fullscreen_window = None;
-        }
-
-        // Update focus if focused window was destroyed
-        if self.focused_window == Some(window) {
-            // Focus first remaining window in BSP tree order
-            self.focused_window = self.get_first_window();
-            if let Some(next_focus) = self.focused_window {
-                self.set_focus(next_focus)?;
-            }
-        }
-
-        // Reapply layout
-        self.apply_layout()?;
-
-        Ok(())
-    }
-
-    /// Handles focus in events
-    fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
-        #[cfg(debug_assertions)]
-        debug!("Focus in event for window: {:?}", _event.event);
-        Ok(())
-    }
-
-    /// Handles focus out events
-    fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
-        #[cfg(debug_assertions)]
-        debug!("Focus out event for window: {:?}", _event.event);
-        Ok(())
-    }
-
-    /// Handles mouse enter events
-    fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
-        let window = event.event;
-        #[cfg(debug_assertions)]
-        debug!("Mouse entered window: {:?}", window);
-
-        // Only focus if it's a managed window
-        if self.has_window(window) {
-            self.set_focus(window)?;
-        }
-        Ok(())
-    }
-}
-
-// =============================================================================
 // Focus Management
 // =============================================================================
 
 impl<C: Connection> WindowManager<C> {
     /// Sets focus to a specific window
-    fn set_focus(&mut self, window: Window) -> Result<()> {
+    pub(crate) fn set_focus(&mut self, window: Window) -> Result<()> {
         if !self.has_window(window) {
             return Ok(());
         }
@@ -395,7 +201,7 @@ impl<C: Connection> WindowManager<C> {
     }
 
     /// Configures window border color and width - helper to reduce duplication
-    fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
+    pub(crate) fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
         let border_aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
         self.conn.change_window_attributes(window, &border_aux)?;
 
@@ -437,13 +243,13 @@ enum SwapDirection {
 
 impl<C: Connection> WindowManager<C> {
     /// Adds a window to the layout manager
-    fn add_window_to_layout(&mut self, window: Window) {
+    pub(crate) fn add_window_to_layout(&mut self, window: Window) {
         self.bsp_tree
             .add_window(window, self.focused_window, self.config.bsp_split_ratio());
     }
 
     /// Removes a window from the layout manager
-    fn remove_window_from_layout(&mut self, window: Window) {
+    pub(crate) fn remove_window_from_layout(&mut self, window: Window) {
         self.bsp_tree.remove_window(window);
     }
 
@@ -458,17 +264,17 @@ impl<C: Connection> WindowManager<C> {
     }
 
     /// Checks if a window is managed by the layout
-    fn has_window(&self, window: Window) -> bool {
+    pub(crate) fn has_window(&self, window: Window) -> bool {
         self.bsp_tree.has_window(window)
     }
 
     /// Gets the first window in the layout, or None if empty
-    fn get_first_window(&self) -> Option<Window> {
+    pub(crate) fn get_first_window(&self) -> Option<Window> {
         self.get_all_windows().first().copied()
     }
 
     /// Applies the current BSP tree layout without rebuilding the tree
-    fn apply_layout(&mut self) -> Result<()> {
+    pub(crate) fn apply_layout(&mut self) -> Result<()> {
         if self.window_count() == 0 {
             return Ok(());
         }

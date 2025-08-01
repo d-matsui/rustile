@@ -8,6 +8,7 @@ use tracing::info;
 // Module declarations
 mod bsp;
 mod config;
+mod event_handler;
 mod keyboard;
 mod window_manager;
 
