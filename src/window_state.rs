@@ -144,13 +144,10 @@ impl WindowState {
         self.config.unfocused_border_color()
     }
 
-
     /// Gets the border width from config
     pub fn border_width(&self) -> u32 {
         self.config.border_width()
     }
-
-
 
     /// Gets the default display from config
     pub fn default_display(&self) -> &str {

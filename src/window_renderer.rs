@@ -495,7 +495,6 @@ enum SwapDirection {
 mod tests {
     use super::*;
 
-
     #[test]
     fn test_window_renderer_creation() {
         let renderer = WindowRenderer::new();

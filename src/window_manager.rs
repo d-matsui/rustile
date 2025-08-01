@@ -307,7 +307,6 @@ impl<C: Connection> WindowManager<C> {
 // =============================================================================
 
 impl<C: Connection> WindowManager<C> {
-
     /// Configures window border color and width - helper to reduce duplication
     pub(crate) fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
         self.window_renderer.configure_window_border(
