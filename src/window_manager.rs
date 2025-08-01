@@ -216,7 +216,7 @@ impl<C: Connection> WindowManager<C> {
         // Update focus if focused window was unmapped
         if self.focused_window == Some(window) {
             // Focus first remaining window in BSP tree order
-            self.focused_window = self.get_all_windows().first().copied();
+            self.focused_window = self.get_first_window();
             if let Some(next_focus) = self.focused_window {
                 self.set_focus(next_focus)?;
             }
@@ -261,7 +261,7 @@ impl<C: Connection> WindowManager<C> {
         // Update focus if focused window was destroyed
         if self.focused_window == Some(window) {
             // Focus first remaining window in BSP tree order
-            self.focused_window = self.get_all_windows().first().copied();
+            self.focused_window = self.get_first_window();
             if let Some(next_focus) = self.focused_window {
                 self.set_focus(next_focus)?;
             }
@@ -347,7 +347,10 @@ impl<C: Connection> WindowManager<C> {
             self.bsp_tree.next_window(current).unwrap_or(current)
         } else {
             // Focus first window if none focused
-            self.get_all_windows().first().copied().unwrap_or(0)
+            match self.get_first_window() {
+                Some(window) => window,
+                None => return Ok(()), // No windows to focus
+            }
         };
 
         // Exit fullscreen if trying to focus a different window
@@ -373,7 +376,10 @@ impl<C: Connection> WindowManager<C> {
             self.bsp_tree.prev_window(current).unwrap_or(current)
         } else {
             // Focus first window if none focused
-            self.get_all_windows().first().copied().unwrap_or(0)
+            match self.get_first_window() {
+                Some(window) => window,
+                None => return Ok(()), // No windows to focus
+            }
         };
 
         // Exit fullscreen if trying to focus a different window
@@ -454,6 +460,11 @@ impl<C: Connection> WindowManager<C> {
     /// Checks if a window is managed by the layout
     fn has_window(&self, window: Window) -> bool {
         self.bsp_tree.has_window(window)
+    }
+
+    /// Gets the first window in the layout, or None if empty
+    fn get_first_window(&self) -> Option<Window> {
+        self.get_all_windows().first().copied()
     }
 
     /// Applies the current BSP tree layout without rebuilding the tree
