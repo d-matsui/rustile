@@ -171,10 +171,12 @@ impl<C: Connection> WindowManager<C> {
         self.window_state.add_window_to_layout(window);
 
         // Set focus to new window
-        self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, window)?;
+        self.window_renderer
+            .set_focus(&mut self.conn, &mut self.window_state, window)?;
 
         // Apply layout
-        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)?;
+        self.window_renderer
+            .apply_layout(&mut self.conn, &mut self.window_state)?;
 
         Ok(())
     }
@@ -202,14 +204,19 @@ impl<C: Connection> WindowManager<C> {
             // Focus first remaining window in BSP tree order
             let next_focus = self.window_state.get_first_window();
             if let Some(next_focus) = next_focus {
-                self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, next_focus)?;
+                self.window_renderer.set_focus(
+                    &mut self.conn,
+                    &mut self.window_state,
+                    next_focus,
+                )?;
             } else {
                 self.window_state.clear_focus();
             }
         }
 
         // Reapply layout
-        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)?;
+        self.window_renderer
+            .apply_layout(&mut self.conn, &mut self.window_state)?;
 
         Ok(())
     }
@@ -249,14 +256,19 @@ impl<C: Connection> WindowManager<C> {
             // Focus first remaining window in BSP tree order
             let next_focus = self.window_state.get_first_window();
             if let Some(next_focus) = next_focus {
-                self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, next_focus)?;
+                self.window_renderer.set_focus(
+                    &mut self.conn,
+                    &mut self.window_state,
+                    next_focus,
+                )?;
             } else {
                 self.window_state.clear_focus();
             }
         }
 
         // Reapply layout
-        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)?;
+        self.window_renderer
+            .apply_layout(&mut self.conn, &mut self.window_state)?;
 
         Ok(())
     }
@@ -283,7 +295,8 @@ impl<C: Connection> WindowManager<C> {
 
         // Only focus if it's a managed window
         if self.window_state.has_window(window) {
-            self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, window)?;
+            self.window_renderer
+                .set_focus(&mut self.conn, &mut self.window_state, window)?;
         }
         Ok(())
     }
@@ -294,24 +307,27 @@ impl<C: Connection> WindowManager<C> {
 // =============================================================================
 
 impl<C: Connection> WindowManager<C> {
-    /// Sets focus to a specific window
-    pub(crate) fn set_focus(&mut self, window: Window) -> Result<()> {
-        self.window_renderer.set_focus(&mut self.conn, &mut self.window_state, window)
-    }
 
     /// Configures window border color and width - helper to reduce duplication
     pub(crate) fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
-        self.window_renderer.configure_window_border(&self.conn, window, border_color, self.window_state.border_width())
+        self.window_renderer.configure_window_border(
+            &self.conn,
+            window,
+            border_color,
+            self.window_state.border_width(),
+        )
     }
 
     /// Focuses the next window in the stack
     pub fn focus_next(&mut self) -> Result<()> {
-        self.window_renderer.focus_next(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .focus_next(&mut self.conn, &mut self.window_state)
     }
 
     /// Focuses the previous window in the stack  
     pub fn focus_prev(&mut self) -> Result<()> {
-        self.window_renderer.focus_prev(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .focus_prev(&mut self.conn, &mut self.window_state)
     }
 }
 
@@ -320,55 +336,34 @@ impl<C: Connection> WindowManager<C> {
 // =============================================================================
 
 impl<C: Connection> WindowManager<C> {
-    /// Adds a window to the layout manager
-    pub(crate) fn add_window_to_layout(&mut self, window: Window) {
-        self.window_state.add_window_to_layout(window);
-    }
-
-    /// Removes a window from the layout manager
-    pub(crate) fn remove_window_from_layout(&mut self, window: Window) {
-        self.window_state.remove_window_from_layout(window);
-    }
-
-
-    /// Checks if a window is managed by the layout
-    pub(crate) fn has_window(&self, window: Window) -> bool {
-        self.window_state.has_window(window)
-    }
-
-    /// Gets the first window in the layout, or None if empty
-    pub(crate) fn get_first_window(&self) -> Option<Window> {
-        self.window_state.get_first_window()
-    }
-
-    /// Applies the current BSP tree layout without rebuilding the tree
-    pub(crate) fn apply_layout(&mut self) -> Result<()> {
-        self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)
-    }
-
     /// Destroys (closes) the currently focused window
     pub fn destroy_focused_window(&mut self) -> Result<()> {
-        self.window_renderer.destroy_focused_window(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .destroy_focused_window(&mut self.conn, &mut self.window_state)
     }
 
     /// Swaps the currently focused window with the next window in the layout
     pub fn swap_window_next(&mut self) -> Result<()> {
-        self.window_renderer.swap_window_next(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .swap_window_next(&mut self.conn, &mut self.window_state)
     }
 
     /// Swaps the currently focused window with the previous window in the layout
     pub fn swap_window_prev(&mut self) -> Result<()> {
-        self.window_renderer.swap_window_prev(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .swap_window_prev(&mut self.conn, &mut self.window_state)
     }
 
     /// Toggles fullscreen mode for the focused window
     pub fn toggle_fullscreen(&mut self) -> Result<()> {
-        self.window_renderer.toggle_fullscreen(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .toggle_fullscreen(&mut self.conn, &mut self.window_state)
     }
 
     /// Rotates the focused window by flipping its parent split direction
     pub fn rotate_windows(&mut self) -> Result<()> {
-        self.window_renderer.rotate_windows(&mut self.conn, &mut self.window_state)
+        self.window_renderer
+            .rotate_windows(&mut self.conn, &mut self.window_state)
     }
 }
 

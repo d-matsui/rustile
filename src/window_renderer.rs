@@ -56,7 +56,12 @@ impl WindowRenderer {
     }
 
     /// Sets focus to a specific window with full rendering
-    pub fn set_focus<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState, window: Window) -> Result<()> {
+    pub fn set_focus<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+        window: Window,
+    ) -> Result<()> {
         if !state.has_window(window) {
             return Ok(());
         }
@@ -76,7 +81,11 @@ impl WindowRenderer {
     }
 
     /// Focuses the next window in the stack
-    pub fn focus_next<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn focus_next<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         if state.window_count() == 0 {
             return Ok(());
         }
@@ -105,7 +114,11 @@ impl WindowRenderer {
     }
 
     /// Focuses the previous window in the stack
-    pub fn focus_prev<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn focus_prev<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         if state.window_count() == 0 {
             return Ok(());
         }
@@ -134,7 +147,11 @@ impl WindowRenderer {
     }
 
     /// Applies the current BSP tree layout without rebuilding the tree
-    pub fn apply_layout<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn apply_layout<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         if state.window_count() == 0 {
             return Ok(());
         }
@@ -161,10 +178,8 @@ impl WindowRenderer {
         }
 
         // Calculate window geometries from existing BSP tree (preserves tree structure)
-        let geometries = state.calculate_window_geometries(
-            screen.width_in_pixels,
-            screen.height_in_pixels,
-        );
+        let geometries =
+            state.calculate_window_geometries(screen.width_in_pixels, screen.height_in_pixels);
 
         // Apply calculated geometries and update borders
         for geometry in &geometries {
@@ -208,7 +223,11 @@ impl WindowRenderer {
     }
 
     /// Applies fullscreen layout - window takes entire screen
-    fn apply_fullscreen_layout<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    fn apply_fullscreen_layout<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         if let Some(fullscreen) = state.get_fullscreen_window() {
             let setup = conn.setup();
             let screen = &setup.roots[state.screen_num()];
@@ -248,7 +267,11 @@ impl WindowRenderer {
     }
 
     /// Destroys (closes) the currently focused window
-    pub fn destroy_focused_window<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn destroy_focused_window<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         if let Some(focused) = state.get_focused_window() {
             info!("Destroying focused window: {:?}", focused);
 
@@ -266,10 +289,7 @@ impl WindowRenderer {
     fn close_window_gracefully<C: Connection>(&self, conn: &C, window: Window) -> Result<()> {
         // Get WM_DELETE_WINDOW and WM_PROTOCOLS atoms
         let wm_protocols = conn.intern_atom(false, b"WM_PROTOCOLS")?.reply()?.atom;
-        let wm_delete_window = conn
-            .intern_atom(false, b"WM_DELETE_WINDOW")?
-            .reply()?
-            .atom;
+        let wm_delete_window = conn.intern_atom(false, b"WM_DELETE_WINDOW")?.reply()?.atom;
 
         // Check if the window supports WM_DELETE_WINDOW
         let protocols = conn
@@ -314,12 +334,20 @@ impl WindowRenderer {
     }
 
     /// Swaps the currently focused window with the next window in the layout
-    pub fn swap_window_next<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn swap_window_next<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         self.swap_window_direction(conn, state, SwapDirection::Next)
     }
 
     /// Swaps the currently focused window with the previous window in the layout
-    pub fn swap_window_prev<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn swap_window_prev<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         self.swap_window_direction(conn, state, SwapDirection::Previous)
     }
 
@@ -368,7 +396,11 @@ impl WindowRenderer {
     }
 
     /// Toggles fullscreen mode for the focused window
-    pub fn toggle_fullscreen<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn toggle_fullscreen<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         let focused = match state.get_focused_window() {
             Some(window) => window,
             None => {
@@ -404,7 +436,11 @@ impl WindowRenderer {
     }
 
     /// Rotates the focused window by flipping its parent split direction
-    pub fn rotate_windows<C: Connection>(&mut self, conn: &mut C, state: &mut WindowState) -> Result<()> {
+    pub fn rotate_windows<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         let focused = match state.get_focused_window() {
             Some(window) => window,
             None => {
@@ -458,12 +494,7 @@ enum SwapDirection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
 
-    fn create_test_state() -> WindowState {
-        let config = Config::default();
-        WindowState::new(config, 0)
-    }
 
     #[test]
     fn test_window_renderer_creation() {
@@ -476,7 +507,7 @@ mod tests {
     fn test_swap_direction_enum() {
         let next = SwapDirection::Next;
         let prev = SwapDirection::Previous;
-        
+
         // Test that enum values can be created and compared
         assert!(matches!(next, SwapDirection::Next));
         assert!(matches!(prev, SwapDirection::Previous));

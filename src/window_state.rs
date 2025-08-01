@@ -144,25 +144,13 @@ impl WindowState {
         self.config.unfocused_border_color()
     }
 
-    /// Gets the focused border color from config
-    pub fn focused_border_color(&self) -> u32 {
-        self.config.focused_border_color()
-    }
 
     /// Gets the border width from config
     pub fn border_width(&self) -> u32 {
         self.config.border_width()
     }
 
-    /// Gets the gap from config
-    pub fn gap(&self) -> u32 {
-        self.config.gap()
-    }
 
-    /// Gets the BSP split ratio from config
-    pub fn bsp_split_ratio(&self) -> f32 {
-        self.config.bsp_split_ratio()
-    }
 
     /// Gets the default display from config
     pub fn default_display(&self) -> &str {
@@ -193,14 +181,13 @@ impl WindowState {
     }
 
     /// Calculates window geometries from the BSP tree (pure calculation - no X11 calls)
-    pub fn calculate_window_geometries(&self, screen_width: u16, screen_height: u16) -> Vec<crate::bsp::WindowGeometry> {
+    pub fn calculate_window_geometries(
+        &self,
+        screen_width: u16,
+        screen_height: u16,
+    ) -> Vec<crate::bsp::WindowGeometry> {
         let params = self.layout_params();
-        crate::bsp::calculate_bsp_geometries(
-            &self.bsp_tree,
-            screen_width,
-            screen_height,
-            params,
-        )
+        crate::bsp::calculate_bsp_geometries(&self.bsp_tree, screen_width, screen_height, params)
     }
 }
 
@@ -216,7 +203,7 @@ mod tests {
     fn test_window_state_creation() {
         let config = create_test_config();
         let state = WindowState::new(config, 0);
-        
+
         assert_eq!(state.get_focused_window(), None);
         assert_eq!(state.get_fullscreen_window(), None);
         assert_eq!(state.window_count(), 0);
@@ -227,14 +214,14 @@ mod tests {
     fn test_focus_management() {
         let config = create_test_config();
         let mut state = WindowState::new(config, 0);
-        
+
         // Initially no focus
         assert_eq!(state.get_focused_window(), None);
-        
+
         // Set focus
         state.set_focused_window(Some(10));
         assert_eq!(state.get_focused_window(), Some(10));
-        
+
         // Clear focus
         state.clear_focus();
         assert_eq!(state.get_focused_window(), None);
@@ -244,16 +231,16 @@ mod tests {
     fn test_fullscreen_management() {
         let config = create_test_config();
         let mut state = WindowState::new(config, 0);
-        
+
         // Initially not fullscreen
         assert_eq!(state.get_fullscreen_window(), None);
         assert!(!state.is_in_fullscreen_mode());
-        
+
         // Set fullscreen
         state.set_fullscreen_window(Some(20));
         assert_eq!(state.get_fullscreen_window(), Some(20));
         assert!(state.is_in_fullscreen_mode());
-        
+
         // Clear fullscreen
         state.clear_fullscreen();
         assert_eq!(state.get_fullscreen_window(), None);
@@ -264,14 +251,14 @@ mod tests {
     fn test_intentionally_unmapped_tracking() {
         let config = create_test_config();
         let mut state = WindowState::new(config, 0);
-        
+
         // Initially not unmapped
         assert!(!state.is_intentionally_unmapped(30));
-        
+
         // Mark as unmapped
         state.mark_intentionally_unmapped(30);
         assert!(state.is_intentionally_unmapped(30));
-        
+
         // Remove from unmapped
         state.remove_intentionally_unmapped(30);
         assert!(!state.is_intentionally_unmapped(30));
@@ -281,26 +268,26 @@ mod tests {
     fn test_window_layout_management() {
         let config = create_test_config();
         let mut state = WindowState::new(config, 0);
-        
+
         // Initially empty
         assert_eq!(state.window_count(), 0);
         assert!(!state.has_window(40));
         assert_eq!(state.get_first_window(), None);
-        
+
         // Add window
         state.add_window_to_layout(40);
         assert_eq!(state.window_count(), 1);
         assert!(state.has_window(40));
         assert_eq!(state.get_first_window(), Some(40));
-        
+
         // Set focus to enable adding more windows
         state.set_focused_window(Some(40));
-        
+
         // Add second window
         state.add_window_to_layout(50);
         assert_eq!(state.window_count(), 2);
         assert!(state.has_window(50));
-        
+
         // Remove window
         state.remove_window_from_layout(40);
         assert_eq!(state.window_count(), 1);
@@ -312,12 +299,13 @@ mod tests {
     fn test_config_access() {
         let config = create_test_config();
         let state = WindowState::new(config, 1);
-        
+
         // Test config access methods
         assert_eq!(state.border_width(), state.config.border_width());
-        assert_eq!(state.gap(), state.config.gap());
-        assert_eq!(state.focused_border_color(), state.config.focused_border_color());
-        assert_eq!(state.unfocused_border_color(), state.config.unfocused_border_color());
+        assert_eq!(
+            state.unfocused_border_color(),
+            state.config.unfocused_border_color()
+        );
         assert_eq!(state.screen_num(), 1);
     }
 
@@ -325,18 +313,30 @@ mod tests {
     fn test_border_color_selection() {
         let config = create_test_config();
         let mut state = WindowState::new(config, 0);
-        
+
         // Add windows
         state.add_window_to_layout(60);
         state.add_window_to_layout(70);
-        
+
         // No focus - should get unfocused color
-        assert_eq!(state.border_color_for_window(60), state.unfocused_border_color());
-        assert_eq!(state.border_color_for_window(70), state.unfocused_border_color());
-        
+        assert_eq!(
+            state.border_color_for_window(60),
+            state.unfocused_border_color()
+        );
+        assert_eq!(
+            state.border_color_for_window(70),
+            state.unfocused_border_color()
+        );
+
         // Set focus - focused window should get focused color
         state.set_focused_window(Some(60));
-        assert_eq!(state.border_color_for_window(60), state.focused_border_color());
-        assert_eq!(state.border_color_for_window(70), state.unfocused_border_color());
+        assert_eq!(
+            state.border_color_for_window(60),
+            state.config.focused_border_color()
+        );
+        assert_eq!(
+            state.border_color_for_window(70),
+            state.unfocused_border_color()
+        );
     }
 }
