@@ -56,7 +56,7 @@ impl<C: x11rb::connection::Connection> WindowManager<C> {
                         }
 
                         // Set display environment
-                        cmd.env("DISPLAY", self.config.default_display());
+                        cmd.env("DISPLAY", self.window_operations.config.default_display());
 
                         match cmd.spawn() {
                             Ok(_) => info!("Successfully launched: {}", command),
@@ -75,7 +75,7 @@ impl<C: x11rb::connection::Connection> WindowManager<C> {
         info!("Mapping window: {:?}", window);
 
         // Set initial border attributes before mapping
-        self.configure_window_border(window, self.config.unfocused_border_color())?;
+        self.configure_window_border(window, self.window_operations.unfocused_border_color())?;
 
         // Map the window
         self.conn.map_window(window)?;
@@ -98,7 +98,7 @@ impl<C: x11rb::connection::Connection> WindowManager<C> {
         info!("Unmapping window: {:?}", window);
 
         // Check if this was intentionally unmapped (during fullscreen)
-        if self.intentionally_unmapped.contains(&window) {
+        if self.window_operations.is_intentionally_unmapped(window) {
             info!("Window {:?} was intentionally unmapped, ignoring", window);
             return Ok(());
         }
@@ -111,11 +111,13 @@ impl<C: x11rb::connection::Connection> WindowManager<C> {
         self.remove_window_from_layout(window);
 
         // Update focus if focused window was unmapped
-        if self.focused_window == Some(window) {
+        if self.window_operations.get_focused_window() == Some(window) {
             // Focus first remaining window in BSP tree order
-            self.focused_window = self.get_first_window();
-            if let Some(next_focus) = self.focused_window {
+            let next_focus = self.get_first_window();
+            if let Some(next_focus) = next_focus {
                 self.set_focus(next_focus)?;
+            } else {
+                self.window_operations.clear_focus();
             }
         }
 
@@ -147,20 +149,22 @@ impl<C: x11rb::connection::Connection> WindowManager<C> {
         self.remove_window_from_layout(window);
 
         // Clean up intentionally unmapped set to prevent memory leaks
-        self.intentionally_unmapped.remove(&window);
+        self.window_operations.remove_intentionally_unmapped(window);
 
         // Clear fullscreen if fullscreen window was destroyed
-        if self.fullscreen_window == Some(window) {
+        if self.window_operations.get_fullscreen_window() == Some(window) {
             info!("Fullscreen window destroyed, exiting fullscreen mode");
-            self.fullscreen_window = None;
+            self.window_operations.clear_fullscreen();
         }
 
         // Update focus if focused window was destroyed
-        if self.focused_window == Some(window) {
+        if self.window_operations.get_focused_window() == Some(window) {
             // Focus first remaining window in BSP tree order
-            self.focused_window = self.get_first_window();
-            if let Some(next_focus) = self.focused_window {
+            let next_focus = self.get_first_window();
+            if let Some(next_focus) = next_focus {
                 self.set_focus(next_focus)?;
+            } else {
+                self.window_operations.clear_focus();
             }
         }
 

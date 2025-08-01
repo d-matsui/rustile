@@ -11,6 +11,7 @@ mod config;
 mod event_handler;
 mod keyboard;
 mod window_manager;
+mod window_operations;
 
 use window_manager::WindowManager;
 
