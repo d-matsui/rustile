@@ -30,6 +30,44 @@ cargo test          # Run all tests
 - **Documentation**: Use `///` for public APIs, `//!` for module-level docs
 - **Error Handling**: Use `anyhow::Result` for error propagation, never use `unwrap()` in production code
 
+### Forbidden Rust Attributes
+
+**NEVER use these attributes to suppress warnings or errors:**
+
+**Code Quality Suppressors - FORBIDDEN:**
+- `#[allow(dead_code)]` - Remove unused code instead
+- `#[allow(unused_variables)]` - Use `_` prefix for intentionally unused vars
+- `#[allow(unused_imports)]` - Remove unused imports
+- `#[allow(unused_mut)]` - Remove unnecessary `mut`
+- `#[allow(unreachable_code)]` - Remove unreachable code
+- `#[allow(unused_must_use)]` - Handle `Result`/`Option` properly
+
+**Safety/Convention Suppressors - FORBIDDEN:**
+- `#[allow(unsafe_code)]` - Avoid unsafe code in this project
+- `#[allow(non_snake_case)]` - Follow Rust naming conventions
+- `#[allow(clippy::all)]` - Fix clippy warnings instead
+- `#[allow(clippy::unwrap_used)]` - Use proper error handling
+
+**Documentation Suppressors - FORBIDDEN:**
+- `#[allow(missing_docs)]` - Document all public items
+- `#![allow(...)]` - Never use crate-level suppressors
+
+**Correct Approaches:**
+- Dead code → Remove it or make it `pub` if part of API
+- Unused variables → Use `let _name = value;`
+- Clippy warnings → Fix the underlying issue
+- Temporary issues → Fix immediately, don't suppress
+
+**Example of what NOT to do:**
+```rust
+// ❌ WRONG - Never suppress warnings
+#[allow(dead_code)]
+fn unused_function() { }
+
+// ✅ CORRECT - Remove unused code
+// (function deleted)
+```
+
 ### Commit Conventions
 
 Follow [Conventional Commits](https://conventionalcommits.org/) specification:
