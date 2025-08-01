@@ -1,3 +1,14 @@
+## [0.7.4](https://github.com/d-matsui/rustile/compare/v0.7.3...v0.7.4) (2025-08-01)
+
+### 📖 Documentation
+
+* add forbidden Rust attributes section to CLAUDE.md ([0ea5239](https://github.com/d-matsui/rustile/commit/0ea5239343600d93e14e755a9d57b834c2d89ab0))
+
+### ♻️ Refactor
+
+* add get_first_window() helper to eliminate magic 0 value ([d1ea47f](https://github.com/d-matsui/rustile/commit/d1ea47f551e13855dfc2039a366d043950981479))
+* remove redundant window_stack field and MRU logic ([3abd679](https://github.com/d-matsui/rustile/commit/3abd679aadd8fe43e3377877c2e73984b0bc8de9))
+
 ## [0.7.3](https://github.com/d-matsui/rustile/compare/v0.7.2...v0.7.3) (2025-07-31)
 
 ### ♻️ Refactor
