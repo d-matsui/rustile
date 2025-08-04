@@ -51,6 +51,7 @@ Rustile currently supports:
 
 - **Configuration Enhancements**
   - Live configuration reload
+  - Enhanced logging with window names (show "xterm" instead of window IDs)
 
 - **Advanced Features**
   - insert window (yabai-like)

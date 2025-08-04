@@ -159,7 +159,7 @@ impl<C: Connection> WindowManager<C> {
     /// Handles window map requests
     fn handle_map_request(&mut self, event: MapRequestEvent) -> Result<()> {
         let window = event.window;
-        info!("Mapping window: {}", self.get_window_name(window));
+        info!("Mapping window: {:?}", window);
 
         // Set initial border attributes before mapping
         self.configure_window_border(window, self.window_state.unfocused_border_color())?;
@@ -184,18 +184,18 @@ impl<C: Connection> WindowManager<C> {
     /// Handles window unmap notifications
     fn handle_unmap_notify(&mut self, event: UnmapNotifyEvent) -> Result<()> {
         let window = event.window;
-        info!("Unmapping window: {}", self.get_window_name(window));
+        info!("Unmapping window: {:?}", window);
 
         // Check if this was intentionally unmapped (during fullscreen)
         if self.window_state.is_intentionally_unmapped(window) {
-            info!("Window {} was intentionally unmapped, ignoring", self.get_window_name(window));
+            info!("Window {:?} was intentionally unmapped, ignoring", window);
             return Ok(());
         }
 
         // Only remove from managed windows if NOT intentionally unmapped
         info!(
-            "Window {} closed by user, removing from management",
-            self.get_window_name(window)
+            "Window {:?} closed by user, removing from management",
+            window
         );
         self.window_state.remove_window_from_layout(window);
 
@@ -224,8 +224,8 @@ impl<C: Connection> WindowManager<C> {
     /// Handles window configure requests
     fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Configure request for window: {} - Event: {:#?}", 
-               self.get_window_name(event.window), event);
+        debug!("Configure request for window: {:?} - Event: {:#?}", 
+               event.window, event);
 
         // For now, just honor the request
         // In the future, we might want to be more selective
@@ -238,7 +238,7 @@ impl<C: Connection> WindowManager<C> {
     /// Handles window destroy notifications
     fn handle_destroy_notify(&mut self, event: DestroyNotifyEvent) -> Result<()> {
         let window = event.window;
-        info!("Window destroyed: {}", self.get_window_name(window));
+        info!("Window destroyed: {:?}", window);
 
         // Remove from managed windows
         self.window_state.remove_window_from_layout(window);
@@ -277,16 +277,16 @@ impl<C: Connection> WindowManager<C> {
     /// Handles focus in events
     fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Focus in event for window: {} - Event: {:#?}", 
-               self.get_window_name(_event.event), _event);
+        debug!("Focus in event for window: {:?} - Event: {:#?}", 
+               _event.event, _event);
         Ok(())
     }
 
     /// Handles focus out events
     fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Focus out event for window: {} - Event: {:#?}", 
-               self.get_window_name(_event.event), _event);
+        debug!("Focus out event for window: {:?} - Event: {:#?}", 
+               _event.event, _event);
         Ok(())
     }
 
@@ -294,7 +294,7 @@ impl<C: Connection> WindowManager<C> {
     fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
         let window = event.event;
         #[cfg(debug_assertions)]
-        debug!("Mouse entered window: {}", self.get_window_name(window));
+        debug!("Mouse entered window: {:?}", window);
 
         // Only focus if it's a managed window
         if self.window_state.has_window(window) {
@@ -310,41 +310,6 @@ impl<C: Connection> WindowManager<C> {
 // =============================================================================
 
 impl<C: Connection> WindowManager<C> {
-    /// Gets a human-readable name for a window (for logging)
-    fn get_window_name(&self, window: Window) -> String {
-        // Try to get WM_CLASS first (application class name like "xterm")
-        if let Ok(cookie) = self.conn.get_property(
-            false,
-            window,
-            AtomEnum::WM_CLASS,
-            AtomEnum::STRING,
-            0,
-            1024,
-        ) {
-            if let Ok(reply) = cookie.reply() {
-                if !reply.value.is_empty() {
-                    // WM_CLASS contains both instance and class, separated by null bytes
-                    // We want the class name (second part)
-                    let class_data = String::from_utf8_lossy(&reply.value);
-                    if let Some(class_name) = class_data.split('\0').nth(1) {
-                        if !class_name.is_empty() {
-                            return format!("{class_name}({window})");
-                        }
-                    }
-                    // Fall back to first part (instance name)
-                    if let Some(instance_name) = class_data.split('\0').next() {
-                        if !instance_name.is_empty() {
-                            return format!("{instance_name}({window})");
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Fall back to just window ID
-        format!("Window({window})")
-    }
-
     /// Configures window border color and width - helper to reduce duplication
     pub(crate) fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
         self.window_renderer.configure_window_border(
