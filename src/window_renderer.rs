@@ -214,7 +214,7 @@ impl WindowRenderer {
         conn.flush()?;
 
         #[cfg(debug_assertions)]
-        tracing::debug!(
+        debug!(
             "Applied existing BSP tree layout to {} windows",
             geometries.len()
         );
