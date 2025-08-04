@@ -441,9 +441,10 @@ If CI fails but local tests pass, ensure you're running the exact same commands 
 - Added reusable validators
 
 ### Phase 4: Documentation Enhancement
-- Added BEGINNER_GUIDE.md with visual diagrams
-- Created TECHNICAL_DEEP_DIVE.md for advanced topics
-- Updated all docs to use GitHub-friendly ASCII art
+- Added HOW_RUSTILE_WORKS.md explaining X11 concepts and architecture
+- Created IMPLEMENTATION_DETAILS.md with technical details and code examples
+- Focused on essential concepts with visual ASCII diagrams
+- Removed outdated beginner and deep dive documentation
 
 ### Phase 5: Architecture Simplification (Latest)
 - **Removed master-stack layout**: Simplified to BSP-only (~564 lines removed)
