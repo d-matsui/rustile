@@ -125,8 +125,8 @@ rm ~/.config/rustile/config.toml
 
 ## Documentation
 
-- **[Beginner Guide](docs/BEGINNER_GUIDE.md)** - Learn window managers and how Rustile works
-- **[Technical Deep Dive](docs/TECHNICAL_DEEP_DIVE.md)** - Implementation details for developers
+- **[How Rustile Works](docs/HOW_RUSTILE_WORKS.md)** - X11 concepts, architecture, and event flow
+- **[Implementation Details](docs/IMPLEMENTATION_DETAILS.md)** - Technical details with code examples
 - **[Roadmap](docs/ROADMAP.md)** - Planned features and development timeline
 
 ## License
