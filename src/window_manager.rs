@@ -224,8 +224,10 @@ impl<C: Connection> WindowManager<C> {
     /// Handles window configure requests
     fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Configure request for window: {:?} - Event: {:#?}", 
-               event.window, event);
+        debug!(
+            "Configure request for window: {:?} - Event: {:#?}",
+            event.window, event
+        );
 
         // For now, just honor the request
         // In the future, we might want to be more selective
@@ -277,16 +279,20 @@ impl<C: Connection> WindowManager<C> {
     /// Handles focus in events
     fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Focus in event for window: {:?} - Event: {:#?}", 
-               _event.event, _event);
+        debug!(
+            "Focus in event for window: {:?} - Event: {:#?}",
+            _event.event, _event
+        );
         Ok(())
     }
 
     /// Handles focus out events
     fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        debug!("Focus out event for window: {:?} - Event: {:#?}", 
-               _event.event, _event);
+        debug!(
+            "Focus out event for window: {:?} - Event: {:#?}",
+            _event.event, _event
+        );
         Ok(())
     }
 
