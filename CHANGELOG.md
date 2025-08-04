@@ -1,3 +1,22 @@
+## [0.7.5](https://github.com/d-matsui/rustile/compare/v0.7.4...v0.7.5) (2025-08-04)
+
+### 🐛 Bug Fixes
+
+* apply cargo fmt to pass check.sh ([310e1cb](https://github.com/d-matsui/rustile/commit/310e1cb299a43edf7e4c455d76a84371d4d195cb))
+* apply formatting and remove dead code per CLAUDE.md requirements ([41bd1c1](https://github.com/d-matsui/rustile/commit/41bd1c187c0f5d616c7ff571324fe44d009746b8))
+
+### 📖 Documentation
+
+* add ADR-003 for SRP refactoring to three-module architecture ([c0150dd](https://github.com/d-matsui/rustile/commit/c0150ddae69f28ce60087f9eec61fd06f6ee2566))
+
+### ♻️ Refactor
+
+* complete Phase 2 SRP refactoring with window_operations extraction ([6dc07ad](https://github.com/d-matsui/rustile/commit/6dc07ad3fdc9455e108ba7a75920a4fcfed6ff26))
+* complete SRP refactoring with 3-module architecture ([e514d36](https://github.com/d-matsui/rustile/commit/e514d367d7d40b962bc1bc4de1000f2fa0e533b1))
+* extract event_handler.rs module (Phase 1) ([f8fed26](https://github.com/d-matsui/rustile/commit/f8fed267523e21290c0bafc67796b2e75ee84e74))
+* Phase 4 - Extract WindowState module ([0892aba](https://github.com/d-matsui/rustile/commit/0892aba10e218219a3ad982b3cdfb285b48feb2e))
+* Phase 5 - Extract WindowRenderer module ([c3d9102](https://github.com/d-matsui/rustile/commit/c3d910212e1fce36f718230122018125b158e602))
+
 ## [0.7.4](https://github.com/d-matsui/rustile/compare/v0.7.3...v0.7.4) (2025-08-01)
 
 ### 📖 Documentation
