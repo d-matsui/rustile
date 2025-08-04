@@ -10,6 +10,8 @@ mod bsp;
 mod config;
 mod keyboard;
 mod window_manager;
+mod window_renderer;
+mod window_state;
 
 use window_manager::WindowManager;
 
