@@ -1,3 +1,15 @@
+## [0.7.7](https://github.com/d-matsui/rustile/compare/v0.7.6...v0.7.7) (2025-08-04)
+
+### 💎 Style
+
+* apply cargo fmt formatting to debug logging statements ([2367d50](https://github.com/d-matsui/rustile/commit/2367d50fd56efe2ef97300cc9b9d57cbad5262e4))
+
+### ♻️ Refactor
+
+* enhance logging with window names and detailed event information ([c1eae27](https://github.com/d-matsui/rustile/commit/c1eae271879584c06d71c09fa1ed6904d4a5b27a))
+* revert window name resolution complexity, add to roadmap ([ceb1485](https://github.com/d-matsui/rustile/commit/ceb1485bc65126d5083e45fc52a56900991199e9))
+* standardize logging with simplified 3-level approach ([044f95b](https://github.com/d-matsui/rustile/commit/044f95b1e6f855f5fd9aae7ba5edcaceb915da7c))
+
 ## [0.7.6](https://github.com/d-matsui/rustile/compare/v0.7.5...v0.7.6) (2025-08-04)
 
 ### 🐛 Bug Fixes
