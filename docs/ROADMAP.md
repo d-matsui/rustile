@@ -5,6 +5,7 @@ This document outlines the planned features and development direction for Rustil
 ## 🎯 Current Status: v0.3.0
 
 Rustile currently supports:
+
 - ✅ BSP (Binary Space Partitioning) layout
 - ✅ Configurable gaps and borders
 - ✅ Window focus management with visual indication
@@ -18,16 +19,13 @@ Rustile currently supports:
   - [x] Destroy window
   - [x] Switch window
   - [x] Fullscree window
-  - [ ] Rotate window
+  - [x] Rotate window
   - [ ] Zoom to parent node
 
 - [ ] **Workspace Features**
   - [ ] Workspace creation/deletion
   - [ ] Workspace switching
   - [ ] Move windows between workspaces
-
-- [ ] **Configuration Enhancements**
-  - [ ] Live configuration reload
 
 - [ ] **Floating Windows**
   - [ ] Toggle windows between tiling/floating
@@ -39,7 +37,8 @@ Rustile currently supports:
   - [x] Eliminated LayoutManager abstraction
   - [x] Separated X11 operations from layout calculations
   - [ ] Comprehensive testing
-  - [ ] Comprehensive docs
+  - [ ] Comprehensive documenting
+  - [ ] Comprehensive logging
 
 ## 🚀 Future Considerations
 
@@ -47,8 +46,11 @@ Rustile currently supports:
   - Move windows between monitors
 
 - **Simple and Usefull Key Management**
-  - [ ] Distinguish Alt, AltGr (doesnt work only in Xepher?)
-  - [ ] Simplify key management (use xmodmap command?)
+  - Distinguish Alt, AltGr (doesnt work only in Xepher?)
+  - Simplify key management (use xmodmap command?)
+
+- **Configuration Enhancements**
+  - Live configuration reload
 
 - **Advanced Features**
   - insert window (yabai-like)
@@ -62,21 +64,3 @@ Rustile currently supports:
   - Research wlroots integration
   - Maintain X11/Wayland compatibility
   - Wayland-specific features
-
-## 🤝 Contributing
-
-Interested in helping with any of these features? Check out:
-- [CONTRIBUTING.md](../CONTRIBUTING.md) (to be created)
-- [Technical Deep Dive](TECHNICAL_DEEP_DIVE.md)
-- [Development guide](../CLAUDE.md)
-
-## 📅 Version Planning
-
-Versions follow semantic versioning:
-- **Patch (0.x.Y)**: Bug fixes and minor improvements
-- **Minor (0.X.0)**: New features within a phase
-- **Major (X.0.0)**: Significant architectural changes
-
----
-
-*This roadmap is subject to change based on user feedback and development priorities.*
