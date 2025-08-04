@@ -1,5 +1,6 @@
 //! Binary Space Partitioning (BSP) layout algorithm implementation
 
+use tracing::info;
 use x11rb::protocol::xproto::*;
 
 // === Constants ===
@@ -272,11 +273,11 @@ impl BspTree {
     pub fn rotate_window(&mut self, window: Window) -> bool {
         match &mut self.root {
             Some(root) => {
-                tracing::info!("Attempting to rotate window {:?} in BSP tree", window);
+                info!("Attempting to rotate window {:?} in BSP tree", window);
                 Self::rotate_window_recursive(root, window)
             }
             None => {
-                tracing::info!("Cannot rotate: BSP tree is empty");
+                info!("Cannot rotate: BSP tree is empty");
                 false
             }
         }
@@ -289,7 +290,7 @@ impl BspTree {
                 // Found the target window as a leaf
                 let found = *window == target_window;
                 if found {
-                    tracing::info!(
+                    info!(
                         "Found target window {:?} as a leaf node (cannot rotate leaf)",
                         target_window
                     );
@@ -310,11 +311,9 @@ impl BspTree {
                             // Flip this split's direction
                             let old_direction = *direction;
                             *direction = direction.opposite();
-                            tracing::info!(
+                            info!(
                                 "Rotated parent split from {:?} to {:?} for window {:?}",
-                                old_direction,
-                                direction,
-                                target_window
+                                old_direction, direction, target_window
                             );
                             return true;
                         }
@@ -331,11 +330,9 @@ impl BspTree {
                             // Flip this split's direction
                             let old_direction = *direction;
                             *direction = direction.opposite();
-                            tracing::info!(
+                            info!(
                                 "Rotated parent split from {:?} to {:?} for window {:?}",
-                                old_direction,
-                                direction,
-                                target_window
+                                old_direction, direction, target_window
                             );
                             return true;
                         }

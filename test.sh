@@ -10,7 +10,7 @@ echo "Setting up config..."
 mkdir -p ~/.config/rustile
 cp config.example.toml ~/.config/rustile/config.toml
 
-# Build rustile (debug mode for better logging)
+# Build rustile (debug mode for better logging with cfg(debug_assertions))
 echo "Building rustile..."
 cargo build || exit 1
 
@@ -20,9 +20,9 @@ Xephyr :10 -screen 1200x800 &
 XEPHYR_PID=$!
 sleep 2
 
-# Run rustile (debug build)
+# Run rustile (debug build with debug logging enabled)
 echo "Starting rustile..."
-DISPLAY=:10 ./target/debug/rustile &
+DISPLAY=:10 RUST_LOG=debug ./target/debug/rustile &
 RUSTILE_PID=$!
 sleep 1
 
@@ -38,6 +38,7 @@ DISPLAY=:10 xeyes &
 
 echo ""
 echo "Test environment ready!"
+echo "Debug logging enabled (RUST_LOG=debug) - check terminal for debug messages"
 echo ""
 echo "Keyboard shortcuts:"
 echo "  Alt+j/k         - Focus next/previous"

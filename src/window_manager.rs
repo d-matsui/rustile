@@ -8,7 +8,7 @@
 
 use anyhow::Result;
 use std::process::Command;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
@@ -111,7 +111,7 @@ impl<C: Connection> WindowManager<C> {
             Event::EnterNotify(ev) => self.handle_enter_notify(ev),
             _ => {
                 #[cfg(debug_assertions)]
-                tracing::debug!("Unhandled event: {:?}", event);
+                debug!("Unhandled event: {:#?}", event);
                 Ok(())
             }
         }
@@ -224,7 +224,10 @@ impl<C: Connection> WindowManager<C> {
     /// Handles window configure requests
     fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        tracing::debug!("Configure request for window: {:?}", event.window);
+        debug!(
+            "Configure request for window: {:?} - Event: {:#?}",
+            event.window, event
+        );
 
         // For now, just honor the request
         // In the future, we might want to be more selective
@@ -276,14 +279,20 @@ impl<C: Connection> WindowManager<C> {
     /// Handles focus in events
     fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        tracing::debug!("Focus in event for window: {:?}", _event.event);
+        debug!(
+            "Focus in event for window: {:?} - Event: {:#?}",
+            _event.event, _event
+        );
         Ok(())
     }
 
     /// Handles focus out events
     fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
         #[cfg(debug_assertions)]
-        tracing::debug!("Focus out event for window: {:?}", _event.event);
+        debug!(
+            "Focus out event for window: {:?} - Event: {:#?}",
+            _event.event, _event
+        );
         Ok(())
     }
 
@@ -291,7 +300,7 @@ impl<C: Connection> WindowManager<C> {
     fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
         let window = event.event;
         #[cfg(debug_assertions)]
-        tracing::debug!("Mouse entered window: {:?}", window);
+        debug!("Mouse entered window: {:?}", window);
 
         // Only focus if it's a managed window
         if self.window_state.has_window(window) {

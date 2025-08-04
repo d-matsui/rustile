@@ -315,11 +315,45 @@ unfocused_border_color = 0x808080  # Gray
 - Never use `panic!`, `unwrap()`, or `expect()` in production code
 - Log errors appropriately with `tracing` crate
 
-### Logging
-- Use `tracing` crate for structured logging
-- Log levels: `error!`, `warn!`, `info!`, `debug!`, `trace!`
-- Include relevant context in log messages
-- Debug logging wrapped in `#[cfg(debug_assertions)]`
+### Logging Standards
+**Rustile uses a simplified 3-level logging approach with the tracing crate:**
+
+**Import Style:**
+```rust
+use tracing::{info, error, debug};
+```
+
+**Log Levels:**
+- `error!()` - Breaking functionality, critical failures that affect user experience
+- `info!()` - User-visible events and important state changes (window operations, WM lifecycle)
+- `debug!()` - Developer debugging information (wrapped in `#[cfg(debug_assertions)]`)
+
+**Usage Guidelines:**
+- **error!**: X11 connection failures, config load errors, window manager registration failures
+- **info!**: Window mapping/unmapping, focus changes, shortcut execution, layout applications
+- **debug!**: Event details, internal state changes, detailed flow information
+
+**Examples:**
+```rust
+// Error level - critical failures
+error!("Failed to become window manager: {:?}", e);
+error!("X11 connection lost: {:?}", e);
+
+// Info level - user-visible operations  
+info!("Successfully became the window manager");
+info!("Mapping window: {:?}", window);
+info!("Shortcut pressed, executing: {}", command);
+
+// Debug level - developer information
+#[cfg(debug_assertions)]
+debug!("Configure request for window: {:?}", event.window);
+```
+
+**Standards:**
+- Use consistent import style across all modules
+- Wrap debug! calls in `#[cfg(debug_assertions)]` for performance
+- Include relevant context (window IDs, commands, error details)
+- Keep messages concise but informative
 
 ### Documentation
 - Document all public APIs with `///` comments
