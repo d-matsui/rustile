@@ -1,3 +1,14 @@
+## [0.7.6](https://github.com/d-matsui/rustile/compare/v0.7.5...v0.7.6) (2025-08-04)
+
+### 🐛 Bug Fixes
+
+* clean up duplicate content in CHANGELOG.md ([f81cc27](https://github.com/d-matsui/rustile/commit/f81cc272858be93c1df04b0b2fc379808d18158c))
+
+### 📖 Documentation
+
+* add focused implementation documentation ([9e84763](https://github.com/d-matsui/rustile/commit/9e847638728f3b7d4e77f1505e7464589b3a1605))
+* update README and CLAUDE.md for new documentation structure ([9625af5](https://github.com/d-matsui/rustile/commit/9625af54ce86cb130b352c56db319de0ac1ace65))
+
 ## [0.7.5](https://github.com/d-matsui/rustile/compare/v0.7.4...v0.7.5) (2025-08-04)
 
 ### 🐛 Bug Fixes
@@ -284,4 +295,3 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 * fix automated version and changelog generation ([47acc73](https://github.com/d-matsui/rustile/commit/47acc73103aa2f966602e013c367786849b63360))
 * fix semantic-release cargo set-version command failure ([f531be8](https://github.com/d-matsui/rustile/commit/f531be85fc72b37c310dc972ef340118f3d1f43a))
-
