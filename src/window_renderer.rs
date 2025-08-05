@@ -23,63 +23,6 @@ impl WindowRenderer {
         Self {}
     }
 
-    /// Sets X11 input focus to a specific window
-    pub fn set_x11_focus<C: Connection>(&self, conn: &C, window: Window) -> Result<()> {
-        conn.set_input_focus(InputFocus::POINTER_ROOT, window, CURRENT_TIME)?;
-        Ok(())
-    }
-
-    /// Updates window borders based on current focus state
-    pub fn update_focus_borders<C: Connection>(&self, conn: &C, state: &WindowState) -> Result<()> {
-        for &window in &state.get_all_windows() {
-            let border_color = state.border_color_for_window(window);
-            self.configure_window_border(conn, window, border_color, state.border_width())?;
-        }
-        Ok(())
-    }
-
-    /// Configures window border color and width
-    pub fn configure_window_border<C: Connection>(
-        &self,
-        conn: &C,
-        window: Window,
-        border_color: u32,
-        border_width: u32,
-    ) -> Result<()> {
-        let border_aux = ChangeWindowAttributesAux::new().border_pixel(border_color);
-        conn.change_window_attributes(window, &border_aux)?;
-
-        let config_aux = ConfigureWindowAux::new().border_width(border_width);
-        conn.configure_window(window, &config_aux)?;
-
-        Ok(())
-    }
-
-    /// Sets focus to a specific window with full rendering
-    pub fn set_focus<C: Connection>(
-        &mut self,
-        conn: &mut C,
-        state: &mut WindowState,
-        window: Window,
-    ) -> Result<()> {
-        if !state.has_window(window) {
-            return Ok(());
-        }
-
-        // Set X11 input focus
-        self.set_x11_focus(conn, window)?;
-
-        // Update state
-        state.set_focused_window(Some(window));
-
-        // Update window borders
-        self.update_focus_borders(conn, state)?;
-
-        #[cfg(debug_assertions)]
-        debug!("Focus set to window: {:?}", window);
-        Ok(())
-    }
-
     /// Focuses the next window in the stack
     pub fn focus_next<C: Connection>(
         &mut self,
@@ -105,10 +48,13 @@ impl WindowRenderer {
         if state.is_in_fullscreen_mode() && state.get_fullscreen_window() != Some(next_window) {
             info!("Exiting fullscreen mode to focus different window");
             state.clear_fullscreen();
-            self.apply_layout(conn, state)?;
         }
 
-        self.set_focus(conn, state, next_window)?;
+        // Set focus in state
+        state.set_focused_window(Some(next_window));
+
+        // Apply complete state to screen
+        self.apply_state(conn, state)?;
         info!("Focused next window: {:?}", next_window);
         Ok(())
     }
@@ -138,33 +84,106 @@ impl WindowRenderer {
         if state.is_in_fullscreen_mode() && state.get_fullscreen_window() != Some(prev_window) {
             info!("Exiting fullscreen mode to focus different window");
             state.clear_fullscreen();
-            self.apply_layout(conn, state)?;
         }
 
-        self.set_focus(conn, state, prev_window)?;
+        // Set focus in state
+        state.set_focused_window(Some(prev_window));
+
+        // Apply complete state to screen
+        self.apply_state(conn, state)?;
         info!("Focused previous window: {:?}", prev_window);
         Ok(())
     }
 
-    /// Applies the current BSP tree layout without rebuilding the tree
-    pub fn apply_layout<C: Connection>(
+    /// Applies the current window state to the screen - THE UNIFIED RENDERING METHOD
+    ///
+    /// This is the only rendering method you need to call! It handles everything:
+    /// - Window layout and positioning
+    /// - Focus state and borders  
+    /// - Fullscreen mode
+    /// - All X11 operations to sync screen with state
+    ///
+    /// ## For Beginners: Simple API Design
+    ///
+    /// Instead of guessing which combination of methods to call:
+    /// ```rust
+    /// // Old way - confusing!
+    /// renderer.set_focus(conn, state, window)?;
+    /// renderer.apply_layout(conn, state)?;  // Did I need both? What order?
+    ///
+    /// // New way - always the same!
+    /// renderer.apply_state(conn, state)?;  // Always works!
+    /// ```
+    ///
+    /// ## What This Method Does
+    ///
+    /// 1. **Layout**: Positions all windows according to BSP tree
+    /// 2. **Focus**: Sets X11 focus and raises focused window  
+    /// 3. **Borders**: Updates all window borders (red=focused, gray=unfocused)
+    /// 4. **Modes**: Handles normal and fullscreen modes correctly
+    ///
+    /// ## When To Call This
+    ///
+    /// Call this after ANY state change:
+    /// - New window added
+    /// - Window closed
+    /// - Focus changed  
+    /// - Window swapped
+    /// - Layout rotated
+    /// - Fullscreen toggled
+    ///
+    /// **It's safe to call frequently** - the method is efficient and idempotent.
+    pub fn apply_state<C: Connection>(
         &mut self,
         conn: &mut C,
         state: &mut WindowState,
     ) -> Result<()> {
+        // Early return if no windows to manage
         if state.window_count() == 0 {
             return Ok(());
         }
 
-        // If we're in fullscreen mode, apply fullscreen layout instead
+        // Apply the appropriate layout based on current mode
         if state.is_in_fullscreen_mode() {
-            return self.apply_fullscreen_layout(conn, state);
+            self.apply_fullscreen_layout(conn, state)?;
+        } else {
+            self.apply_normal_layout(conn, state)?;
         }
 
+        // Apply focus state (X11 focus + raise window)
+        if let Some(focused) = state.get_focused_window() {
+            // Set X11 input focus
+            conn.set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)?;
+
+            // Raise focused window to top
+            conn.configure_window(
+                focused,
+                &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
+            )?;
+        }
+
+        // Ensure all commands are sent to X11 server
+        conn.flush()?;
+
+        #[cfg(debug_assertions)]
+        debug!(
+            "Applied complete state to screen: {} windows",
+            state.window_count()
+        );
+
+        Ok(())
+    }
+
+    /// Internal method: applies normal tiled layout
+    fn apply_normal_layout<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
         let setup = conn.setup();
         let screen = &setup.roots[state.screen_num()];
 
-        // Ensure all windows are mapped (visible) and have borders when not in fullscreen
+        // Ensure all windows are mapped (visible) and have borders
         let border_width = state.border_width();
         for &window in &state.get_all_windows() {
             conn.map_window(window)?;
@@ -177,11 +196,11 @@ impl WindowRenderer {
             )?;
         }
 
-        // Calculate window geometries from existing BSP tree (preserves tree structure)
+        // Calculate window geometries from existing BSP tree
         let geometries =
             state.calculate_window_geometries(screen.width_in_pixels, screen.height_in_pixels);
 
-        // Apply calculated geometries and update borders
+        // Apply calculated geometries and borders
         for geometry in &geometries {
             let border_color = state.border_color_for_window(geometry.window);
 
@@ -202,22 +221,6 @@ impl WindowRenderer {
                     .border_width(border_width),
             )?;
         }
-
-        // Update focus hints and raise focused window
-        if let Some(focused) = state.get_focused_window() {
-            conn.configure_window(
-                focused,
-                &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
-            )?;
-        }
-
-        conn.flush()?;
-
-        #[cfg(debug_assertions)]
-        debug!(
-            "Applied existing BSP tree layout to {} windows",
-            geometries.len()
-        );
 
         Ok(())
     }
@@ -388,8 +391,8 @@ impl WindowRenderer {
                     focused, direction_str, target_window
                 );
 
-                // Apply layout
-                self.apply_layout(conn, state)?;
+                // Apply complete state to screen
+                self.apply_state(conn, state)?;
             }
         }
         Ok(())
@@ -415,7 +418,7 @@ impl WindowRenderer {
                 // Exit fullscreen mode
                 info!("Exiting fullscreen mode for window {:?}", focused);
                 state.clear_fullscreen();
-                self.apply_layout(conn, state)?;
+                self.apply_state(conn, state)?;
             } else {
                 // Different window wants fullscreen, switch to it
                 info!(
@@ -470,8 +473,8 @@ impl WindowRenderer {
         let rotated = state.rotate_window(focused);
 
         if rotated {
-            // Apply the existing rotated tree layout (without rebuilding)
-            self.apply_layout(conn, state)?;
+            // Apply complete state to screen
+            self.apply_state(conn, state)?;
             info!("Window rotation completed for window {:?}", focused);
         } else {
             info!(
