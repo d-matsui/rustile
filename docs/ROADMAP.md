@@ -2,66 +2,60 @@
 
 This document outlines the planned features and development direction for Rustile window manager.
 
-## 🎯 Current Status: v0.3.0
+## 🎯 Current Status (v0.7.x)
 
-Rustile currently supports:
+Rustile currently provides:
 
-- ✅ BSP (Binary Space Partitioning) layout
-- ✅ Configurable gaps and borders
-- ✅ Window focus management with visual indication
-- ✅ Keyboard navigation and shortcuts
-- ✅ TOML-based configuration
-- ✅ Automated CI/CD and releases
+- **✅ Core Window Management**
+  - BSP (Binary Space Partitioning) tiling layout
+  - Window focus with visual borders (red=focused, gray=unfocused)
+  - Basic window operations (destroy, rotate, fullscreen, swap)
+  - Keyboard-driven workflow with customizable shortcuts
 
-## 📋 Roadmap (~v1.0.0)
+- **✅ Configuration & Quality**
+  - TOML-based configuration with validation
+  - Configurable gaps, borders, and split ratios
+  - Comprehensive test suite (66 tests)
+  - Automated CI/CD with semantic releases
+  - Standardized logging with debug support
 
-- [ ] **Basic Window Features**
-  - [x] Destroy window
-  - [x] Switch window
-  - [x] Fullscree window
-  - [x] Rotate window
-  - [ ] Zoom to parent node
+- ⭐⭐⭐ **Window Operations**
+  - [ ] **Zoom to parent** - Focus and expand window to its parent container size
+  - [ ] **Auto-balance** - Automatically balance BSP tree ratios for optimal space usage
+  - [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
 
-- [ ] **Workspace Features**
-  - [ ] Workspace creation/deletion
-  - [ ] Workspace switching
-  - [ ] Move windows between workspaces
+- **Configuration**
+  - [ ] **Live config reload** - Update settings without restarting rustile
+  - [ ] **Enhanced logging** - Show application names ("xterm") instead of window IDs
+  - [ ] **Better error messages** - User-friendly configuration validation errors
 
-- [ ] **Floating Windows**
-  - [ ] Toggle windows between tiling/floating
-  - [ ] Floating window movement/resize
-  - [ ] Float rules for specific applications
+- **Floating Windows**
+  - [ ] **Float toggle** - Switch windows between tiling and floating modes  
+  - [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
+  - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
 
-- [ ] **Refactoring/Misc**
-  - [x] Simplified to BSP-only layout (removed master-stack)
-  - [x] Eliminated LayoutManager abstraction
-  - [x] Separated X11 operations from layout calculations
-  - [ ] Comprehensive testing
-  - [ ] Comprehensive documenting
-  - [ ] Comprehensive logging
+- **Keyboard Improvements**
+  - [ ] **Better modifier handling** - Distinguish between Alt/AltGr (fix Xephyr issues?)
+  - [ ] ⭐ **Key management simplification** - Consider using xmodmap for cleaner key handling
+  - [ ] **Shortcut conflicts detection** - Warn about conflicting keybindings
 
-## 🚀 Future Considerations
+- ⭐⭐ **Multi-Workspace Support**
+  - [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
+  - [ ] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
+  - [ ] **Window-workspace movement** - Move windows between different workspaces
 
-- **Multi-Monitor Features**
-  - Move windows between monitors
+- ⭐ **Multi-Monitor**
+  - [ ] **Monitor detection** - Automatically detect and configure multiple monitors
+  - [ ] **Window movement** - Move windows between different monitors
+  - [ ] **Per-monitor workspaces** - Independent workspace management per monitor
 
-- **Simple and Usefull Key Management**
-  - Distinguish Alt, AltGr (doesnt work only in Xepher?)
-  - Simplify key management (use xmodmap command?)
-
-- **Configuration Enhancements**
-  - Live configuration reload
-  - Enhanced logging with window names (show "xterm" instead of window IDs)
-
-- **Advanced Features**
-  - insert window (yabai-like)
-  - Auto-balance window
-  - App launcher integration
-  - Screen shot
-  - Custom status bar
-  - Mouse support
+- ⭐ **Integrations**
+  - [ ] **Application launcher** - Built-in or integration with dmenu/rofi
+  - [ ] **Screenshot utility** - Quick screenshot functionality
+  - [ ] **Status bar support** - Integration with external status bars
+  - [ ] **Mouse support** - Optional mouse interactions for window management
 
 - **Wayland Support**
-  - Research wlroots integration
-  - Maintain X11/Wayland compatibility
-  - Wayland-specific features
+  - [ ] **Research wlroots** - Investigate Wayland compositor integration
+  - [ ] **Protocol compatibility** - Maintain X11 compatibility alongside Wayland
+  - [ ] **Wayland-specific features** - Leverage Wayland-only capabilities

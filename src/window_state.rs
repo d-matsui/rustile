@@ -139,11 +139,6 @@ impl WindowState {
         self.bsp_tree.rotate_window(window)
     }
 
-    /// Gets the unfocused border color from config
-    pub fn unfocused_border_color(&self) -> u32 {
-        self.config.unfocused_border_color()
-    }
-
     /// Gets the border width from config
     pub fn border_width(&self) -> u32 {
         self.config.border_width()
@@ -300,7 +295,7 @@ mod tests {
         // Test config access methods
         assert_eq!(state.border_width(), state.config.border_width());
         assert_eq!(
-            state.unfocused_border_color(),
+            state.config.unfocused_border_color(),
             state.config.unfocused_border_color()
         );
         assert_eq!(state.screen_num(), 1);
@@ -318,11 +313,11 @@ mod tests {
         // No focus - should get unfocused color
         assert_eq!(
             state.border_color_for_window(60),
-            state.unfocused_border_color()
+            state.config.unfocused_border_color()
         );
         assert_eq!(
             state.border_color_for_window(70),
-            state.unfocused_border_color()
+            state.config.unfocused_border_color()
         );
 
         // Set focus - focused window should get focused color
@@ -333,7 +328,7 @@ mod tests {
         );
         assert_eq!(
             state.border_color_for_window(70),
-            state.unfocused_border_color()
+            state.config.unfocused_border_color()
         );
     }
 }

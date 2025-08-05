@@ -1,4 +1,4 @@
-//! Rustile - A tiling window manager written in Rust
+//! Rustile - An X11 tiling window manager written in Rust
 //!
 //! Entry point for the window manager. Initializes logging and starts the window manager.
 

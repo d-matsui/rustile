@@ -1,10 +1,11 @@
-//! Window manager module with focused functionality
+//! # Window Manager Module
 //!
-//! This module organizes window management functionality into logical sections:
-//! - Core: Initialization, main loop, and configuration
-//! - Events: X11 event handling and dispatching
-//! - Focus: Window focus management and visual indicators
-//! - Window Operations: Window lifecycle and manipulation
+//! This is the heart of rustile - it coordinates all window management operations.
+//! ## The Three Main Responsibilities
+//!
+//! 1. **Event Handling**: React to X11 events (keyboard, new windows, etc.)
+//! 2. **State Coordination**: Keep WindowState and WindowRenderer in sync
+//! 3. **User Interface**: Provide public methods for window operations
 
 use anyhow::Result;
 use std::process::Command;
@@ -17,43 +18,46 @@ use crate::keyboard::KeyboardManager;
 use crate::window_renderer::WindowRenderer;
 use crate::window_state::WindowState;
 
-// =============================================================================
-// Core Window Manager Structure and Initialization
-// =============================================================================
-
-/// Main window manager structure
+/// The main window manager structure that coordinates everything
 pub struct WindowManager<C: Connection> {
-    /// X11 connection
+    /// The connection to the X11 server
     pub(crate) conn: C,
-    /// Keyboard manager for shortcuts
+
+    /// Manages keyboard shortcuts (Alt+j, Alt+k, etc.)
     pub(crate) keyboard_manager: KeyboardManager,
-    /// Window state tracking (Model)
+
+    /// Stores the current state of all windows
     pub(crate) window_state: WindowState,
-    /// X11 rendering operations (View)
+
+    /// Handles all X11 drawing operations
     pub(crate) window_renderer: WindowRenderer,
 }
 
 impl<C: Connection> WindowManager<C> {
     /// Creates a new window manager instance
     pub fn new(conn: C, screen_num: usize) -> Result<Self> {
-        // Load configuration
+        // Load configuration from disk
         let config = crate::config::Config::load()?;
         info!(
             "Loaded configuration with {} shortcuts",
             config.shortcuts().len()
         );
 
+        // Get X11 setup information
         let setup = conn.setup();
         let screen = &setup.roots[screen_num];
-        let root = screen.root;
+        let root = screen.root; // The "desktop" window
 
         // Initialize keyboard manager
         let mut keyboard_manager = KeyboardManager::new(&conn, setup)?;
 
         // Register as window manager
+        // SUBSTRUCTURE_REDIRECT = "Tell me when windows want to appear"
+        // SUBSTRUCTURE_NOTIFY = "Tell me when windows change"
         let event_mask = EventMask::SUBSTRUCTURE_REDIRECT | EventMask::SUBSTRUCTURE_NOTIFY;
         let attributes = ChangeWindowAttributesAux::new().event_mask(event_mask);
 
+        // Try to become the window manager
         if let Err(e) = conn.change_window_attributes(root, &attributes)?.check() {
             error!("Another window manager is already running: {:?}", e);
             return Err(anyhow::anyhow!(
@@ -66,11 +70,11 @@ impl<C: Connection> WindowManager<C> {
         // Register keyboard shortcuts from config
         keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
-        // Create new modules
+        // Create our subsystems
         let window_state = WindowState::new(config, screen_num);
         let window_renderer = WindowRenderer::new();
-        info!("Using BSP layout algorithm");
 
+        // Return the complete WindowManager
         Ok(Self {
             conn,
             keyboard_manager,
@@ -79,18 +83,27 @@ impl<C: Connection> WindowManager<C> {
         })
     }
 
-    /// Runs the main event loop
+    /// Runs the main event loop - THE HEART OF THE WINDOW MANAGER!
     pub fn run(mut self) -> Result<()> {
         info!("Starting window manager event loop");
 
+        // THE INFINITE LOOP - This runs until rustile is killed
         loop {
+            // 1. Send any pending X11 commands to the server
             self.conn.flush()?;
+
+            // 2. Wait for the next event (BLOCKS HERE!)
+            // The program stops here until something happens
             let event = self.conn.wait_for_event()?;
 
+            // 3. Handle the event
             if let Err(e) = self.handle_event(event) {
                 error!("Error handling event: {:?}", e);
-                // Continue running despite errors
+                // Important: We continue running!
+                // One bad window shouldn't crash the whole WM
             }
+
+            // 4. Loop back to step 1
         }
     }
 
@@ -161,22 +174,16 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Mapping window: {:?}", window);
 
-        // Set initial border attributes before mapping
-        self.configure_window_border(window, self.window_state.unfocused_border_color())?;
-
         // Map the window
         self.conn.map_window(window)?;
 
-        // Add to managed windows
+        // Add to managed windows and set focus
         self.window_state.add_window_to_layout(window);
+        self.window_state.set_focused_window(Some(window));
 
-        // Set focus to new window
+        // Apply complete state to screen
         self.window_renderer
-            .set_focus(&mut self.conn, &mut self.window_state, window)?;
-
-        // Apply layout
-        self.window_renderer
-            .apply_layout(&mut self.conn, &mut self.window_state)?;
+            .apply_state(&mut self.conn, &mut self.window_state)?;
 
         Ok(())
     }
@@ -204,19 +211,15 @@ impl<C: Connection> WindowManager<C> {
             // Focus first remaining window in BSP tree order
             let next_focus = self.window_state.get_first_window();
             if let Some(next_focus) = next_focus {
-                self.window_renderer.set_focus(
-                    &mut self.conn,
-                    &mut self.window_state,
-                    next_focus,
-                )?;
+                self.window_state.set_focused_window(Some(next_focus));
             } else {
                 self.window_state.clear_focus();
             }
         }
 
-        // Reapply layout
+        // Apply complete state to screen
         self.window_renderer
-            .apply_layout(&mut self.conn, &mut self.window_state)?;
+            .apply_state(&mut self.conn, &mut self.window_state)?;
 
         Ok(())
     }
@@ -259,24 +262,36 @@ impl<C: Connection> WindowManager<C> {
             // Focus first remaining window in BSP tree order
             let next_focus = self.window_state.get_first_window();
             if let Some(next_focus) = next_focus {
-                self.window_renderer.set_focus(
-                    &mut self.conn,
-                    &mut self.window_state,
-                    next_focus,
-                )?;
+                self.window_state.set_focused_window(Some(next_focus));
             } else {
                 self.window_state.clear_focus();
             }
         }
 
-        // Reapply layout
+        // Apply complete state to screen
         self.window_renderer
-            .apply_layout(&mut self.conn, &mut self.window_state)?;
+            .apply_state(&mut self.conn, &mut self.window_state)?;
 
         Ok(())
     }
 
-    /// Handles focus in events
+    /// Handles focus in events (window receives keyboard focus)
+    ///
+    /// ## When This Happens
+    ///
+    /// X11 tells us when a window becomes the "active" window:
+    /// - User clicks on a window
+    /// - We programmatically focus a window
+    /// - Window manager changes focus due to window closure
+    ///
+    /// ## Why We Don't Act Here
+    ///
+    /// We typically don't need to do anything because:
+    /// - We already set borders when WE change focus
+    /// - These events are mostly for X11's internal bookkeeping
+    /// - Our focus management happens in the renderer
+    ///
+    /// But we log it in debug mode to help with development.
     fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
         #[cfg(debug_assertions)]
         debug!(
@@ -286,7 +301,22 @@ impl<C: Connection> WindowManager<C> {
         Ok(())
     }
 
-    /// Handles focus out events
+    /// Handles focus out events (window loses keyboard focus)
+    ///
+    /// ## When This Happens
+    ///
+    /// X11 tells us when a window stops being the "active" window:
+    /// - User clicks on a different window
+    /// - We programmatically focus a different window
+    /// - Window gets destroyed or minimized
+    ///
+    /// ## Why We Don't Act Here
+    ///
+    /// Same as FocusIn - we handle focus changes in our own code,
+    /// these events are mostly X11's way of keeping us informed.
+    ///
+    /// The real focus management happens in `window_renderer.rs`
+    /// where we set border colors and update our internal state.
     fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
         #[cfg(debug_assertions)]
         debug!(
@@ -296,7 +326,37 @@ impl<C: Connection> WindowManager<C> {
         Ok(())
     }
 
-    /// Handles mouse enter events
+    /// Handles mouse pointer entering a window ("focus follows mouse")
+    ///
+    /// ## When This Happens
+    ///
+    /// Every time your mouse cursor moves into a window:
+    /// - Moving mouse from desktop to a window
+    /// - Moving mouse between different windows
+    /// - Moving mouse back from another application
+    ///
+    /// ## Behavior: Focus Follows Mouse
+    ///
+    /// This implements "sloppy focus" - windows get focus when you
+    /// move your mouse over them (no clicking required):
+    ///
+    /// ```text
+    /// Mouse moves into xterm
+    ///         │
+    ///         ▼
+    /// Is xterm managed by us? ─── No ──► Ignore
+    ///         │
+    ///        Yes
+    ///         │
+    ///         ▼
+    /// Focus xterm (red border)
+    /// Unfocus previous window (gray border)
+    /// ```
+    ///
+    /// ## Safety Check
+    ///
+    /// We only focus windows that we manage. This prevents focusing
+    /// system windows, panels, or other WM components.
     fn handle_enter_notify(&mut self, event: EnterNotifyEvent) -> Result<()> {
         let window = event.event;
         #[cfg(debug_assertions)]
@@ -304,35 +364,53 @@ impl<C: Connection> WindowManager<C> {
 
         // Only focus if it's a managed window
         if self.window_state.has_window(window) {
+            self.window_state.set_focused_window(Some(window));
             self.window_renderer
-                .set_focus(&mut self.conn, &mut self.window_state, window)?;
+                .apply_state(&mut self.conn, &mut self.window_state)?;
         }
         Ok(())
     }
 }
 
 // =============================================================================
-// Focus Management
+// Focus Management - Making Windows "Active"
 // =============================================================================
+//
+// Focus determines which window receives keyboard input.
+// Only one window can be focused at a time.
 
 impl<C: Connection> WindowManager<C> {
-    /// Configures window border color and width - helper to reduce duplication
-    pub(crate) fn configure_window_border(&self, window: Window, border_color: u32) -> Result<()> {
-        self.window_renderer.configure_window_border(
-            &self.conn,
-            window,
-            border_color,
-            self.window_state.border_width(),
-        )
-    }
-
-    /// Focuses the next window in the stack
+    /// Focuses the next window in the BSP tree order (Alt+j)
+    ///
+    /// ## How It Works
+    ///
+    /// 1. Get all windows from BSP tree in left-to-right order
+    /// 2. Find current focused window in the list
+    /// 3. Move to next window (wraps around to first if at end)
+    /// 4. Set visual focus (red border) and keyboard focus
+    ///
+    /// ## Example
+    /// ```text
+    /// Before: [xterm] firefox  [gedit]  (firefox focused)
+    /// After:  [xterm] firefox   gedit   (gedit focused)
+    /// ```
     pub fn focus_next(&mut self) -> Result<()> {
         self.window_renderer
             .focus_next(&mut self.conn, &mut self.window_state)
     }
 
-    /// Focuses the previous window in the stack  
+    /// Focuses the previous window in the BSP tree order (Alt+k)
+    ///
+    /// ## How It Works
+    ///
+    /// Same as `focus_next()` but moves backwards through the window list.
+    /// If currently on first window, wraps around to last window.
+    ///
+    /// ## Example
+    /// ```text
+    /// Before: [xterm] firefox  [gedit]  (gedit focused)
+    /// After:  [xterm] firefox   gedit   (firefox focused)
+    /// ```
     pub fn focus_prev(&mut self) -> Result<()> {
         self.window_renderer
             .focus_prev(&mut self.conn, &mut self.window_state)
@@ -340,35 +418,101 @@ impl<C: Connection> WindowManager<C> {
 }
 
 // =============================================================================
-// Window Operations and Layout Integration
+// Window Operations and Layout Integration - Moving and Manipulating Windows
 // =============================================================================
+//
+// These functions modify window positions, sizes, and states.
+// They all delegate to the WindowRenderer for the actual X11 operations.
 
 impl<C: Connection> WindowManager<C> {
-    /// Destroys (closes) the currently focused window
+    /// Destroys (closes) the currently focused window (Shift+Alt+q)
+    ///
+    /// ## What This Does
+    ///
+    /// Forcefully closes the focused window (like clicking the X button):
+    /// 1. Sends X11 "destroy" command to the window
+    /// 2. Window receives signal and should exit gracefully
+    /// 3. We'll get a `DestroyNotify` event confirming closure
+    /// 4. Cleanup happens in `handle_destroy_notify()`
+    ///
+    /// ## Warning
+    ///
+    /// This is a "polite" close request. Some applications might
+    /// ask "Do you want to save?" or ignore the request entirely.
     pub fn destroy_focused_window(&mut self) -> Result<()> {
         self.window_renderer
             .destroy_focused_window(&mut self.conn, &mut self.window_state)
     }
 
-    /// Swaps the currently focused window with the next window in the layout
+    /// Swaps the currently focused window with the next window (Shift+Alt+j)
+    ///
+    /// ## How Window Swapping Works
+    ///
+    /// Changes window positions in the BSP tree without changing focus:
+    ///
+    /// ```text
+    /// Before: [A] B   C   (A is focused)
+    /// After:   B [A]  C   (A still focused, but moved)
+    /// ```
+    ///
+    /// The BSP tree structure remains the same, but window assignments
+    /// to tree nodes change. This creates a "shuffle" effect.
     pub fn swap_window_next(&mut self) -> Result<()> {
         self.window_renderer
             .swap_window_next(&mut self.conn, &mut self.window_state)
     }
 
-    /// Swaps the currently focused window with the previous window in the layout
+    /// Swaps the currently focused window with the previous window (Shift+Alt+k)
+    ///
+    /// ## Opposite of swap_window_next()
+    ///
+    /// ```text
+    /// Before:  A  [B] C   (B is focused)
+    /// After:  [B]  A  C   (B still focused, but moved)
+    /// ```
     pub fn swap_window_prev(&mut self) -> Result<()> {
         self.window_renderer
             .swap_window_prev(&mut self.conn, &mut self.window_state)
     }
 
-    /// Toggles fullscreen mode for the focused window
+    /// Toggles fullscreen mode for the focused window (Alt+f)
+    ///
+    /// ## Fullscreen Behavior
+    ///
+    /// - **Enter fullscreen**: Hide all other windows, expand current to screen
+    /// - **Exit fullscreen**: Restore all windows to tiled layout
+    ///
+    /// ```text
+    /// Normal Mode:         Fullscreen Mode:
+    /// ┌──────┬──────┐      ┌─────────────────────────┐
+    /// │ [A]  │  B   │  →   │                         │
+    /// ├──────┼──────┤      │          [A]            │
+    /// │  C   │  D   │      │                         │
+    /// └──────┴──────┘      └─────────────────────────┘
+    /// ```
+    ///
+    /// Windows B, C, D are temporarily hidden (unmapped).
     pub fn toggle_fullscreen(&mut self) -> Result<()> {
         self.window_renderer
             .toggle_fullscreen(&mut self.conn, &mut self.window_state)
     }
 
-    /// Rotates the focused window by flipping its parent split direction
+    /// Rotates the focused window by flipping its parent split direction (Alt+r)
+    ///
+    /// ## BSP Rotation Explained
+    ///
+    /// Changes how windows are split without changing their relative positions:
+    ///
+    /// ```text
+    /// Horizontal Split:     Vertical Split:
+    /// ┌──────┬──────┐      ┌──────────────────┐
+    /// │ [A]  │  B   │  →   │       [A]       │
+    /// └──────┴──────┘      ├──────────────────┤
+    ///                      │        B        │
+    ///                      └──────────────────┘
+    /// ```
+    ///
+    /// This is useful for getting better proportions for different content.
     pub fn rotate_windows(&mut self) -> Result<()> {
         self.window_renderer
             .rotate_windows(&mut self.conn, &mut self.window_state)
@@ -376,8 +520,23 @@ impl<C: Connection> WindowManager<C> {
 }
 
 // =============================================================================
-// Tests
+// Tests - Ensuring Our Logic Works Correctly
 // =============================================================================
+//
+// These tests verify our window management algorithms work correctly
+// without needing a real X11 server. They test pure logic functions.
+//
+// ## For Beginners: Testing in Rust
+//
+// - `#[cfg(test)]` = "only compile this when running tests"
+// - `#[test]` = "this function is a test case"
+// - `assert_eq!(a, b)` = "panic if a != b"
+// - `cargo test` runs all tests
+//
+// ## Why Test Without X11?
+//
+// Testing with a real X server is slow and complex. Instead, we test
+// the core algorithms with simple data structures.
 
 #[cfg(test)]
 mod tests {
