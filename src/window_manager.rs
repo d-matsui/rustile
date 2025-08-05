@@ -180,10 +180,10 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles window configure requests
     ///
-    /// IMPORTANT: This handler is critical for performance even though we're a tiling WM.
-    /// Applications send ConfigureRequest events when they want to change geometry.
-    /// We MUST acknowledge these requests (even if we immediately override with our layout)
-    /// or applications will hang waiting for acknowledgment, causing slow/unresponsive behavior.
+    /// CRITICAL: Applications like xterm will timeout (5 seconds) if we don't acknowledge
+    /// their ConfigureRequest events, causing slow launch. We acknowledge immediately
+    /// for protocol compliance, then override geometry with our BSP layout.
+    /// See ADR-006 for detailed analysis.
     fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
         #[cfg(debug_assertions)]
         debug!(
