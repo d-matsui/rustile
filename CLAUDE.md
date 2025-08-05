@@ -29,6 +29,11 @@ cargo test          # Run all tests
 - **Testing**: All tests MUST pass before commits
 - **Documentation**: Use `///` for public APIs, `//!` for module-level docs
 - **Error Handling**: Use `anyhow::Result` for error propagation, never use `unwrap()` in production code
+- **Code Comments**: Follow concise comment standard (see ADR-005 for full details)
+  - Single-line function descriptions: document "what", not "how"
+  - Remove obvious inline comments that restate the code
+  - Keep essential X11 protocol and business logic explanations
+  - Eliminate tutorial-style verbosity in code comments
 
 ### Forbidden Rust Attributes
 
