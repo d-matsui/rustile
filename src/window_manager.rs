@@ -85,6 +85,7 @@ impl<C: Connection> WindowManager<C> {
             Event::KeyPress(ev) => self.handle_key_press(ev),
             Event::MapRequest(ev) => self.handle_map_request(ev),
             Event::UnmapNotify(ev) => self.handle_unmap_notify(ev),
+            Event::ConfigureRequest(ev) => self.handle_configure_request(ev),
             Event::DestroyNotify(ev) => self.handle_destroy_notify(ev),
             Event::EnterNotify(ev) => self.handle_enter_notify(ev),
             _ => {
@@ -173,6 +174,26 @@ impl<C: Connection> WindowManager<C> {
 
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
+
+        Ok(())
+    }
+
+    /// Handles window configure requests
+    ///
+    /// CRITICAL: Applications like xterm will timeout (5 seconds) if we don't acknowledge
+    /// their ConfigureRequest events, causing slow launch. We acknowledge immediately
+    /// for protocol compliance, then override geometry with our BSP layout.
+    /// See ADR-006 for detailed analysis.
+    fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
+        debug!(
+            "Configure request for window: {:?} - Event: {:#?}",
+            event.window, event
+        );
+
+        // Forward the request as-is to acknowledge it (X11 protocol compliance)
+        let values = ConfigureWindowAux::from_configure_request(&event);
+        self.conn.configure_window(event.window, &values)?;
 
         Ok(())
     }
