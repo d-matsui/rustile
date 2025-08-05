@@ -1,3 +1,9 @@
+## [0.7.8](https://github.com/d-matsui/rustile/compare/v0.7.7...v0.7.8) (2025-08-05)
+
+### ♻️ Refactor
+
+* implement unified rendering API with single apply_state method ([3fe08cf](https://github.com/d-matsui/rustile/commit/3fe08cf53500c826c20fb78f7a60db512276b0a3))
+
 ## [0.7.7](https://github.com/d-matsui/rustile/compare/v0.7.6...v0.7.7) (2025-08-04)
 
 ### 💎 Style
