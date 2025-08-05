@@ -85,10 +85,7 @@ impl<C: Connection> WindowManager<C> {
             Event::KeyPress(ev) => self.handle_key_press(ev),
             Event::MapRequest(ev) => self.handle_map_request(ev),
             Event::UnmapNotify(ev) => self.handle_unmap_notify(ev),
-            Event::ConfigureRequest(ev) => self.handle_configure_request(ev),
             Event::DestroyNotify(ev) => self.handle_destroy_notify(ev),
-            Event::FocusIn(ev) => self.handle_focus_in(ev),
-            Event::FocusOut(ev) => self.handle_focus_out(ev),
             Event::EnterNotify(ev) => self.handle_enter_notify(ev),
             _ => {
                 #[cfg(debug_assertions)]
@@ -180,20 +177,6 @@ impl<C: Connection> WindowManager<C> {
         Ok(())
     }
 
-    /// Handles window configure requests
-    fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
-        #[cfg(debug_assertions)]
-        debug!(
-            "Configure request for window: {:?} - Event: {:#?}",
-            event.window, event
-        );
-
-        let values = ConfigureWindowAux::from_configure_request(&event);
-        self.conn.configure_window(event.window, &values)?;
-
-        Ok(())
-    }
-
     /// Handles window destroy notifications
     fn handle_destroy_notify(&mut self, event: DestroyNotifyEvent) -> Result<()> {
         let window = event.window;
@@ -219,26 +202,6 @@ impl<C: Connection> WindowManager<C> {
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
 
-        Ok(())
-    }
-
-    /// Handles focus in events (X11 bookkeeping only)
-    fn handle_focus_in(&mut self, _event: FocusInEvent) -> Result<()> {
-        #[cfg(debug_assertions)]
-        debug!(
-            "Focus in event for window: {:?} - Event: {:#?}",
-            _event.event, _event
-        );
-        Ok(())
-    }
-
-    /// Handles focus out events (X11 bookkeeping only)
-    fn handle_focus_out(&mut self, _event: FocusOutEvent) -> Result<()> {
-        #[cfg(debug_assertions)]
-        debug!(
-            "Focus out event for window: {:?} - Event: {:#?}",
-            _event.event, _event
-        );
         Ok(())
     }
 
