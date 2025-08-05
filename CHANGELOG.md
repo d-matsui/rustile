@@ -1,3 +1,9 @@
+## [0.7.10](https://github.com/d-matsui/rustile/compare/v0.7.9...v0.7.10) (2025-08-05)
+
+### ♻️ Refactor
+
+* remove unused event handlers for cleaner architecture ([33f4971](https://github.com/d-matsui/rustile/commit/33f497140d7bf96c856d80c3b0f259b59bebad1b))
+
 ## [0.7.9](https://github.com/d-matsui/rustile/compare/v0.7.8...v0.7.9) (2025-08-05)
 
 ### 📖 Documentation
