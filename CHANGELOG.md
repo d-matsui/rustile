@@ -1,3 +1,14 @@
+## [0.7.9](https://github.com/d-matsui/rustile/compare/v0.7.8...v0.7.9) (2025-08-05)
+
+### 📖 Documentation
+
+* add ADR-005 and update CLAUDE.md with code comment standard ([eb6d317](https://github.com/d-matsui/rustile/commit/eb6d3179604eb6498e4a3f99eb9782ca9a72da1e))
+* reorganize CLAUDE.md for improved readability and structure ([177b4d0](https://github.com/d-matsui/rustile/commit/177b4d04b5678f1f3a7e85fe65debad762ac3b12))
+
+### ♻️ Refactor
+
+* implement concise code comment standard ([6d93b69](https://github.com/d-matsui/rustile/commit/6d93b69f0adc93493e726f4e0b8e133e28e55567))
+
 ## [0.7.8](https://github.com/d-matsui/rustile/compare/v0.7.7...v0.7.8) (2025-08-05)
 
 ### ♻️ Refactor
