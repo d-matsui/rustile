@@ -1,7 +1,4 @@
 //! Window state management and queries
-//!
-//! This module manages all window state including focus, layout tree, and fullscreen mode.
-//! It provides pure state operations and geometry calculations without X11 dependencies.
 
 use std::collections::HashSet;
 use x11rb::protocol::xproto::Window;
@@ -9,19 +6,13 @@ use x11rb::protocol::xproto::Window;
 use crate::bsp::{BspTree, LayoutParams};
 use crate::config::Config;
 
-/// Manages all window state and provides queries
+/// Manages window state and provides queries
 pub struct WindowState {
-    /// Currently focused window
     focused_window: Option<Window>,
-    /// BSP tree for window arrangement (single source of truth for window layout)
     bsp_tree: BspTree,
-    /// Currently fullscreen window (if any)
     fullscreen_window: Option<Window>,
-    /// Windows we intentionally unmapped (to distinguish from user-closed windows)
     intentionally_unmapped: HashSet<Window>,
-    /// Configuration
     config: Config,
-    /// Screen number to use
     screen_num: usize,
 }
 
