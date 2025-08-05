@@ -1,3 +1,10 @@
+## [0.7.11](https://github.com/d-matsui/rustile/compare/v0.7.10...v0.7.11) (2025-08-05)
+
+### 🐛 Bug Fixes
+
+* restore ConfigureRequest handler to resolve xterm launch performance regression ([f26cedd](https://github.com/d-matsui/rustile/commit/f26ceddbf6c7d33ff61eb7e4b044dccdb263cb36))
+* restore ConfigureRequest handler to resolve xterm launch performance regression ([ab43756](https://github.com/d-matsui/rustile/commit/ab43756226031ca3df19c78a454a55a42ba7ec17))
+
 ## [0.7.10](https://github.com/d-matsui/rustile/compare/v0.7.9...v0.7.10) (2025-08-05)
 
 ### ♻️ Refactor
