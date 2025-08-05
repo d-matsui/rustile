@@ -85,6 +85,7 @@ impl<C: Connection> WindowManager<C> {
             Event::KeyPress(ev) => self.handle_key_press(ev),
             Event::MapRequest(ev) => self.handle_map_request(ev),
             Event::UnmapNotify(ev) => self.handle_unmap_notify(ev),
+            Event::ConfigureRequest(ev) => self.handle_configure_request(ev),
             Event::DestroyNotify(ev) => self.handle_destroy_notify(ev),
             Event::EnterNotify(ev) => self.handle_enter_notify(ev),
             _ => {
@@ -173,6 +174,26 @@ impl<C: Connection> WindowManager<C> {
 
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
+
+        Ok(())
+    }
+
+    /// Handles window configure requests
+    ///
+    /// IMPORTANT: This handler is critical for performance even though we're a tiling WM.
+    /// Applications send ConfigureRequest events when they want to change geometry.
+    /// We MUST acknowledge these requests (even if we immediately override with our layout)
+    /// or applications will hang waiting for acknowledgment, causing slow/unresponsive behavior.
+    fn handle_configure_request(&mut self, event: ConfigureRequestEvent) -> Result<()> {
+        #[cfg(debug_assertions)]
+        debug!(
+            "Configure request for window: {:?} - Event: {:#?}",
+            event.window, event
+        );
+
+        // Forward the request as-is to acknowledge it (X11 protocol compliance)
+        let values = ConfigureWindowAux::from_configure_request(&event);
+        self.conn.configure_window(event.window, &values)?;
 
         Ok(())
     }
