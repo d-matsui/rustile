@@ -4,43 +4,46 @@
 Accepted
 
 ## Context
-The X11 keyboard mapping system causes frequent confusion when implementing keyboard shortcut handling. Developers often misunderstand:
+The X11 keyboard system causes frequent confusion when implementing keyboard shortcut handling. Developers often misunderstand:
 
 1. **Terminology Confusion**: Keycodes vs keysyms and their numeric representations
-2. **Data Structure Mystery**: How X11's flat array of keysyms maps to physical keys
+2. **Data Structure Mystery**: How X11's flat array of keysyms maps to keycodes
 3. **Conversion Flow**: Why we need reverse mapping from keysyms to keycodes
 
 This lack of understanding led to potential bugs in keyboard handling implementation.
 
 ## Decision
-Document the X11 keyboard mapping system comprehensively to ensure correct implementation and maintenance.
+Document the X11 keyboard system comprehensively to ensure correct implementation and maintenance.
 
 ### Key Concepts Clarified
 
-**Important**: Throughout this document, keysym values are shown as both hex numbers and their character representation for clarity:
-- `0x0071 ('q')` means the keysym value 0x0071, which represents the character 'q'
-- The actual data structures contain only the numbers (u32 values), not characters
+**Important**: This document uses only 3 core terms for clarity:
+- **Keynames**: What users type in config ("q", "Return", "Super+q")
+- **Keysyms**: Standard numbers for keys (0x0071 for 'q', 0xff0d for Return)
+- **Keycodes**: Physical positions on keyboard (24, 36, etc. - varies by layout)
 
-#### 1. Three-Level Hierarchy
+#### 1. The Complete Flow
 ```
-Physical Key → Keycode → Keysym(s)
-"Q key"      → 24      → [0x0071 ('q'), 0x0051 ('Q'), 0x0071 ('q'), 0x0051 ('Q')]
+Keyname  → Keysym → Keycode
+"q"      → 0x0071 → 24 (varies by keyboard)
+"Return" → 0xff0d → 36 (varies by keyboard)
 ```
 
-#### 2. Keysym Representations
-Keysyms have two equivalent forms:
-- **Symbolic**: `XK_q`, `XK_Return`, `XK_Shift_L` (C header defines)
-- **Numeric**: `0x0071`, `0xff0d`, `0xffe1` (what X11 transmits)
+#### 2. Keysyms Are Standard Numbers
+Keysyms are universal constants (like ASCII codes):
+- 0x0071 always means 'q' on every system
+- 0xff0d always means Return on every system
+- 0xffbe always means F1 on every system
 
-Example from X11/keysymdef.h (development header, requires libx11-dev):
+These numbers are defined in X11 standards:
 ```c
-#define XK_q  0x0071  /* U+0071 LATIN SMALL LETTER Q */
+// From X11/keysymdef.h (if installed):
+#define XK_q  0x0071  /* Always 'q' everywhere */
 ```
 
-#### 3. X11 Data Structure
+#### 3. What X11 Provides
 ```rust
-// X11 returns flat array of u32 keysym values
-// Example with 4 keysyms per keycode:
+// X11 tells us which keysyms are at which keycodes:
 [0x0061, 0x0041, 0x0061, 0x0041, 0x0073, 0x0053, 0x0073, 0x0053, ...]
 // ('a')   ('A')   ('a')   ('A')   ('s')   ('S')   ('s')   ('S')
 // └────── keycode 38 ──────┘      └────── keycode 39 ──────┘
@@ -54,12 +57,12 @@ Example from X11/keysymdef.h (development header, requires libx11-dev):
 
 ### Examples
 
-#### Using xmodmap to View Mappings
+#### Using xmodmap to View Keysym-to-Keycode Mapping
 ```bash
 $ xmodmap -pke | grep "keycode  24"
 keycode  24 = q Q q Q
 
-# This shows the same data our GetKeyboardMappingReply contains
+# This shows: keycode 24 contains keysyms [0x0071, 0x0051, 0x0071, 0x0051]
 ```
 
 #### Using xev to See Runtime Behavior
@@ -68,19 +71,23 @@ keycode  24 = q Q q Q
 KeyPress event, serial 34, synthetic NO, window 0x2600001,
     state 0x0, keycode 24 (keysym 0x71, q), same_screen YES,
     
-# Shows: physical keycode 24 → keysym 0x71 ('q')
+# Shows: keycode 24 → keysym 0x71 ('q')
 ```
 
 #### Our Implementation Flow
 ```rust
 // User config: { key = "q", action = "Quit" }
 // 
-// Conversion process:
-"q" → parser.get_keysym("q") → 0x0071 ('q')
+// Step 1: Convert keyname to keysym
+"q" → parser.get_keysym("q") → 0x0071
+
+// Step 2: Convert keysym to keycode using X11 mapping
 0x0071 → keycode_map.get(&0x0071) → 24
+
+// Step 3: Register keycode with X11
 conn.grab_key(modifiers, keycode: 24, ...)
 
-// When user presses Q key:
+// Runtime: When user presses Q key
 X11 sends KeyPressEvent { keycode: 24, ... }
 We match: keycode 24 → execute "Quit" action
 ```
@@ -101,10 +108,10 @@ We match: keycode 24 → execute "Quit" action
 
 ## Implementation Details
 
-### Building the Keycode Map
+### Building the Keysym-to-Keycode Map
 ```rust
-// GetKeyboardMappingReply provides flat array of u32 values
-let keysyms = [0x0061, 0x0041, 0x0061, 0x0041, ...];  // Numbers, not characters!
+// X11 provides flat array of keysym values
+let keysyms = [0x0061, 0x0041, 0x0061, 0x0041, ...];  // Numbers only!
 let keysyms_per_keycode = 4;
 
 // Chunk and build reverse map
@@ -112,7 +119,7 @@ for (index, chunk) in keysyms.chunks(keysyms_per_keycode).enumerate() {
     let keycode = min_keycode + index as u8;
     // Take first keysym (unmodified position)
     if let Some(&keysym) = chunk.first() {
-        // Store: keysym value → physical keycode
+        // Store: keysym → keycode
         keycode_map.insert(keysym, keycode);  // e.g., 0x0071 → 24
     }
 }
