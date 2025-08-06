@@ -133,9 +133,9 @@ impl Default for KeyParser {
 /// Shortcut information
 #[derive(Debug, Clone)]
 pub struct Shortcut {
-    pub modifiers: ModMask,  // Bit flags for Ctrl, Alt, etc.
-    pub keycode: u8,         // Physical key position
-    pub command: String,     // Command to execute
+    pub modifiers: ModMask, // Bit flags for Ctrl, Alt, etc.
+    pub keycode: u8,        // Physical key position
+    pub command: String,    // Command to execute
 }
 
 /// Manages keysym-to-keycode mapping and shortcuts

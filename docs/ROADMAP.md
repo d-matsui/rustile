@@ -26,17 +26,17 @@ Rustile currently provides:
 
 - **Configuration**
   - [ ] **Live config reload** - Update settings without restarting rustile
-  - [ ] **Enhanced logging** - Show application names ("xterm") instead of window IDs
+  - ⭐ [ ] **Enhanced logging** - Show application names ("xterm") instead of window IDs
   - [ ] **Better error messages** - User-friendly configuration validation errors
 
 - **Floating Windows**
-  - [ ] **Float toggle** - Switch windows between tiling and floating modes  
+  - ⭐ [ ] **Float toggle** - Switch windows between tiling and floating modes  
   - [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
   - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
 
 - **Keyboard Improvements**
-  - [ ] **Better modifier handling** - Distinguish between Alt/AltGr (fix Xephyr issues?)
-  - [ ] ⭐ **Key management simplification** - Consider using xmodmap for cleaner key handling
+  - [ ] ⭐ **Better modifier handling** - Distinguish between Alt/AltGr (fix Xephyr issues?)
+  - [ ] **Key management simplification** - Consider using xmodmap for cleaner key handling
   - [ ] **Shortcut conflicts detection** - Warn about conflicting keybindings
 
 - ⭐⭐ **Multi-Workspace Support**
@@ -49,7 +49,7 @@ Rustile currently provides:
   - [ ] **Window movement** - Move windows between different monitors
   - [ ] **Per-monitor workspaces** - Independent workspace management per monitor
 
-- ⭐ **Integrations**
+- **Integrations**
   - [ ] **Application launcher** - Built-in or integration with dmenu/rofi
   - [ ] **Screenshot utility** - Quick screenshot functionality
   - [ ] **Status bar support** - Integration with external status bars
