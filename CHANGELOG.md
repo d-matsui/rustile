@@ -1,3 +1,14 @@
+## [0.7.12](https://github.com/d-matsui/rustile/compare/v0.7.11...v0.7.12) (2025-08-06)
+
+### 📖 Documentation
+
+* clarify X11 keyboard mapping concepts and add ADR-007 ([b14b960](https://github.com/d-matsui/rustile/commit/b14b960357eb57f24f7de71b4400e8fcffd891a9))
+* update roadmap priorities and fix ADR naming convention ([e714804](https://github.com/d-matsui/rustile/commit/e714804d05e4ec01a56dd172efa0755d5984bb24))
+
+### ♻️ Refactor
+
+* improve keyboard terminology and add modifier documentation ([c8612e7](https://github.com/d-matsui/rustile/commit/c8612e7f689c742f7b1f7a805cf09faba46866cb))
+
 ## [0.7.11](https://github.com/d-matsui/rustile/compare/v0.7.10...v0.7.11) (2025-08-05)
 
 ### 🐛 Bug Fixes
