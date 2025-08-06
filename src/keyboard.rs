@@ -10,7 +10,7 @@ use x11rb::protocol::xproto::*;
 
 /// Key combination parser that converts human-readable strings to X11 codes
 pub struct KeyParser {
-    /// Map of key names to X11 keysyms
+    /// Map of key names (strings) to X11 keysym values (u32 numbers)
     key_names: HashMap<String, u32>,
 }
 
@@ -19,34 +19,34 @@ impl KeyParser {
     pub fn new() -> Self {
         let mut key_names = HashMap::new();
 
-        // Letters
+        // Letters: "a" → 0x0061 (97), "b" → 0x0062 (98), etc.
         for c in 'a'..='z' {
             key_names.insert(c.to_string(), c as u32);
         }
 
-        // Numbers
+        // Numbers: "0" → 0x0030 (48), "1" → 0x0031 (49), etc.
         for c in '0'..='9' {
             key_names.insert(c.to_string(), c as u32);
         }
 
-        // Special keys
-        key_names.insert("Return".to_string(), 0xff0d);
-        key_names.insert("Enter".to_string(), 0xff0d);
-        key_names.insert("space".to_string(), 0x0020);
-        key_names.insert("Tab".to_string(), 0xff09);
-        key_names.insert("Escape".to_string(), 0xff1b);
-        key_names.insert("BackSpace".to_string(), 0xff08);
-        key_names.insert("Delete".to_string(), 0xffff);
-        key_names.insert("Home".to_string(), 0xff50);
-        key_names.insert("End".to_string(), 0xff57);
-        key_names.insert("Page_Up".to_string(), 0xff55);
-        key_names.insert("Page_Down".to_string(), 0xff56);
-        key_names.insert("Left".to_string(), 0xff51);
-        key_names.insert("Up".to_string(), 0xff52);
-        key_names.insert("Right".to_string(), 0xff53);
+        // Special keys with their keysym values
+        key_names.insert("Return".to_string(), 0xff0d);    // Return key
+        key_names.insert("Enter".to_string(), 0xff0d);     // Same as Return
+        key_names.insert("space".to_string(), 0x0020);     // Space bar (32)
+        key_names.insert("Tab".to_string(), 0xff09);       // Tab key
+        key_names.insert("Escape".to_string(), 0xff1b);    // Escape key
+        key_names.insert("BackSpace".to_string(), 0xff08); // Backspace key
+        key_names.insert("Delete".to_string(), 0xffff);    // Delete key
+        key_names.insert("Home".to_string(), 0xff50);      // Home key
+        key_names.insert("End".to_string(), 0xff57);       // End key
+        key_names.insert("Page_Up".to_string(), 0xff55);   // Page Up key
+        key_names.insert("Page_Down".to_string(), 0xff56); // Page Down key
+        key_names.insert("Left".to_string(), 0xff51);      // Left arrow
+        key_names.insert("Up".to_string(), 0xff52);        // Up arrow
+        key_names.insert("Right".to_string(), 0xff53);     // Right arrow
         key_names.insert("Down".to_string(), 0xff54);
 
-        // Function keys
+        // Function keys: "F1" → 0xffbe, "F2" → 0xffbf, ..., "F12" → 0xffc9
         for i in 1..=12 {
             key_names.insert(format!("F{i}"), 0xffbe + i - 1);
         }
@@ -137,7 +137,8 @@ pub struct Shortcut {
 
 /// Manages keyboard mappings and shortcuts
 pub struct KeyboardManager {
-    /// Map of keysyms to keycodes from X11
+    /// Map of keysym values (u32) to physical keycodes (u8) from X11
+    /// Example: 0x0071 ('q') → 24, 0x0061 ('a') → 38
     keycode_map: HashMap<u32, u8>,
     /// Registered shortcuts
     shortcuts: Vec<Shortcut>,
@@ -152,22 +153,35 @@ impl KeyboardManager {
         let max_keycode = setup.max_keycode;
 
         // Get keyboard mapping from X server
+        // X11 returns a flat array of keysym numbers (u32 values)
+        // Example: [0x0061, 0x0041, 0x0061, 0x0041, 0x0073, 0x0053, ...]
+        //           ('a')   ('A')   ('a')   ('A')   ('s')   ('S')
+        //           └─────── keycode 38 ────────┘    └── keycode 39 ──┘
         let mapping_reply = conn
             .get_keyboard_mapping(min_keycode, max_keycode - min_keycode + 1)?
             .reply()?;
 
+        // Each physical key can produce multiple symbols
+        // Example: keycode 38 → [0x0061 ('a'), 0x0041 ('A'), 0x00e1 ('á'), 0x00c1 ('Á')]
+        // depending on which modifiers (none, Shift, AltGr, Shift+AltGr) are pressed
         let keysyms_per_keycode = mapping_reply.keysyms_per_keycode as usize;
         let mut keycode_map = HashMap::new();
 
-        // Build keycode map
+        // Build reverse map: keysym value → physical keycode
+        // This allows us to convert config strings to physical keycodes
+        // Example flow: "q" → 0x0071 → keycode 24
         for (index, chunk) in mapping_reply
             .keysyms
             .chunks(keysyms_per_keycode)
             .enumerate()
         {
+            // Calculate the actual keycode for this chunk
             let keycode = min_keycode + index as u8;
 
-            // Store first keysym for each keycode (unshifted)
+            // Store only the first keysym (unmodified position) for each keycode
+            // Example: chunk = [0x0061 ('a'), 0x0041 ('A'), 0x00e1 ('á'), 0x00c1 ('Á')]
+            // We store: keycode_map.insert(0x0061, 38)
+            // This creates mapping: 0x0061 → keycode 38
             if let Some(&keysym) = chunk.first() {
                 if keysym != 0 {
                     keycode_map.insert(keysym, keycode);
@@ -219,10 +233,15 @@ impl KeyboardManager {
         key_combo: &str,
         command: &str,
     ) -> Result<()> {
+        // Parse human-readable key combo into X11 codes
+        // Example: "Super+q" → (ModMask::M4, 0x0071)
         let (modifiers, keysym) = self.key_parser.parse_combination(key_combo)?;
+
+        // Convert keysym value to physical keycode using our mapping
+        // Example: 0x0071 ('q') → keycode 24
         let keycode = self.get_keycode(keysym)?;
 
-        // Grab the key combination
+        // Tell X11 to send us KeyPress events when this combination is pressed
         conn.grab_key(
             true,
             root_window,
@@ -232,7 +251,7 @@ impl KeyboardManager {
             GrabMode::ASYNC,
         )?;
 
-        // Store the shortcut
+        // Store the shortcut for later lookup when we receive key events
         self.shortcuts.push(Shortcut {
             modifiers,
             keycode,
@@ -242,7 +261,9 @@ impl KeyboardManager {
         Ok(())
     }
 
-    /// Gets the keycode for a given keysym
+    /// Gets the physical keycode for a given keysym value
+    /// Example: get_keycode(0x0071) → 24 (the 'q' key's physical keycode)
+    /// Returns error if keysym not found (e.g., modifier keys like Alt_L aren't in map)
     fn get_keycode(&self, keysym: u32) -> Result<u8> {
         self.keycode_map
             .get(&keysym)
