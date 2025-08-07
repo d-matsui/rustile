@@ -38,10 +38,10 @@ Ctrl+Alt = ModMask::CONTROL | ModMask::M1 = 0b00001100
 ```
 1. Config: "Super+q" = "quit"
    
-2. Parse (KeyParser):
+2. Parse (ShortcutManager):
    "Super+q" → (ModMask::M4, 0x0071)
    
-3. Register (KeyboardManager):
+3. Register (ShortcutManager):
    - Convert: 0x0071 → keycode 24
    - Grab: grab_key(M4, 24)
    - Store: Shortcut { modifiers: M4, keycode: 24, command: "quit" }

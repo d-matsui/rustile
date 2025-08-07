@@ -23,9 +23,9 @@ conn.change_window_attributes(root, &ChangeWindowAttributesAux::new().event_mask
 ```
 
 ### Layer 2: Keyboard Events (Per-Shortcut Registration)
-Register specific key combinations through KeyboardManager:
+Register specific key combinations through ShortcutManager:
 ```rust
-keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
+shortcut_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 ```
 
 ### Layer 3: Focus Events (Automatic via Window Operations)
