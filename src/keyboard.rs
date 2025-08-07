@@ -80,7 +80,7 @@ impl KeyParser {
                 // Less common modifiers
                 "mod2" | "numlock" | "num" => modifiers |= ModMask::M2,
                 "mod3" | "scrolllock" | "scroll" => modifiers |= ModMask::M3,
-                "mod5" | "altgr" | "altgraph" => modifiers |= ModMask::M5,
+                "mod5" => modifiers |= ModMask::M5,
 
                 // Special combination: all four main modifiers at once
                 "hyper" => {
@@ -166,7 +166,7 @@ impl KeyboardManager {
 
         // Each physical key can produce multiple symbols
         // Example: keycode 38 → [0x0061 ('a'), 0x0041 ('A'), 0x00e1 ('á'), 0x00c1 ('Á')]
-        // depending on which modifiers (none, Shift, AltGr, Shift+AltGr) are pressed
+        // depending on which modifiers (none, Shift, etc.) are pressed
         let keysyms_per_keycode = mapping_reply.keysyms_per_keycode as usize;
         let mut keycode_map = HashMap::new();
 
@@ -352,14 +352,6 @@ mod tests {
         let (modifiers, keysym) = parser.parse_combination("NumLock+Return").unwrap();
         assert_eq!(modifiers, ModMask::M2);
         assert_eq!(keysym, 0xff0d);
-    }
-
-    #[test]
-    fn test_altgr_modifier() {
-        let parser = KeyParser::new();
-        let (modifiers, keysym) = parser.parse_combination("AltGr+e").unwrap();
-        assert_eq!(modifiers, ModMask::M5);
-        assert_eq!(keysym, 'e' as u32);
     }
 
     #[test]

@@ -35,7 +35,7 @@ Rustile currently provides:
   - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
 
 - **Keyboard Improvements**
-  - [ ] ⭐ **Better modifier handling** - Distinguish between Alt/AltGr (fix Xephyr issues?)
+  - [ ] ⭐ **Better modifier handling** - Distinguish between left and right Alt keys
   - [ ] **Key management simplification** - Consider using xmodmap for cleaner key handling
   - [ ] **Shortcut conflicts detection** - Warn about conflicting keybindings
 
