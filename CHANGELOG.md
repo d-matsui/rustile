@@ -1,3 +1,10 @@
+## [0.7.13](https://github.com/d-matsui/rustile/compare/v0.7.12...v0.7.13) (2025-08-07)
+
+### ♻️ Refactor
+
+* remove AltGr support from codebase ([46483b3](https://github.com/d-matsui/rustile/commit/46483b3779d40d918194e0c33345cfe897b1df83))
+* unify KeyParser and KeyboardManager into ShortcutManager ([8b92c9d](https://github.com/d-matsui/rustile/commit/8b92c9d5808dd1bc489a1caa7e0669c37b04bec1))
+
 ## [0.7.12](https://github.com/d-matsui/rustile/compare/v0.7.11...v0.7.12) (2025-08-06)
 
 ### 📖 Documentation
