@@ -332,8 +332,9 @@ The same physical key produces different keysyms based on modifiers!
 
 ```rust
 // From src/keyboard.rs
-pub struct KeyboardManager {
-    keycode_to_keysym: HashMap<Keycode, Vec<Keysym>>,
+pub struct ShortcutManager {
+    keyname_to_keysym: HashMap<String, u32>,
+    keysym_to_keycode: HashMap<u32, u8>,
     shortcuts: Vec<Shortcut>,
 }
 

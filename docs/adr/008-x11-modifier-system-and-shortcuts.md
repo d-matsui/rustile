@@ -28,7 +28,7 @@ ModMask::M1      = 0b00001000  // Bit 3 (Alt/Meta)
 ModMask::M2      = 0b00010000  // Bit 4 (NumLock)
 ModMask::M3      = 0b00100000  // Bit 5 (ScrollLock)
 ModMask::M4      = 0b01000000  // Bit 6 (Super/Win)
-ModMask::M5      = 0b10000000  // Bit 7 (AltGr)
+ModMask::M5      = 0b10000000  // Bit 7 (ISO_Level3_Shift)
 
 // Combining modifiers uses bitwise OR:
 Ctrl+Alt = ModMask::CONTROL | ModMask::M1 = 0b00001100
@@ -38,10 +38,10 @@ Ctrl+Alt = ModMask::CONTROL | ModMask::M1 = 0b00001100
 ```
 1. Config: "Super+q" = "quit"
    
-2. Parse (KeyParser):
+2. Parse (ShortcutManager):
    "Super+q" → (ModMask::M4, 0x0071)
    
-3. Register (KeyboardManager):
+3. Register (ShortcutManager):
    - Convert: 0x0071 → keycode 24
    - Grab: grab_key(M4, 24)
    - Store: Shortcut { modifiers: M4, keycode: 24, command: "quit" }

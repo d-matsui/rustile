@@ -51,7 +51,7 @@ These numbers are defined in X11 standards:
 // Position meanings:
 // [0]: No modifiers
 // [1]: Shift
-// [2]: Mode_switch/AltGr (or same as [0] on US keyboards)
+// [2]: Mode_switch/ISO_Level3_Shift (or same as [0] on US keyboards)
 // [3]: Shift+Mode_switch (or same as [1] on US keyboards)
 ```
 

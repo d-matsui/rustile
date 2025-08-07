@@ -7,14 +7,14 @@ use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
-use crate::keyboard::KeyboardManager;
+use crate::keyboard::ShortcutManager;
 use crate::window_renderer::WindowRenderer;
 use crate::window_state::WindowState;
 
 /// Main window manager coordinating X11 events and window state
 pub struct WindowManager<C: Connection> {
     pub(crate) conn: C,
-    pub(crate) keyboard_manager: KeyboardManager,
+    pub(crate) shortcut_manager: ShortcutManager,
     pub(crate) window_state: WindowState,
     pub(crate) window_renderer: WindowRenderer,
 }
@@ -32,7 +32,7 @@ impl<C: Connection> WindowManager<C> {
         let screen = &setup.roots[screen_num];
         let root = screen.root;
 
-        let mut keyboard_manager = KeyboardManager::new(&conn, setup)?;
+        let mut shortcut_manager = ShortcutManager::new(&conn, setup)?;
 
         // SUBSTRUCTURE_REDIRECT/NOTIFY = become window manager
         let event_mask = EventMask::SUBSTRUCTURE_REDIRECT | EventMask::SUBSTRUCTURE_NOTIFY;
@@ -47,14 +47,14 @@ impl<C: Connection> WindowManager<C> {
 
         info!("Successfully became the window manager");
 
-        keyboard_manager.register_shortcuts(&conn, root, config.shortcuts())?;
+        shortcut_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
         let window_state = WindowState::new(config, screen_num);
         let window_renderer = WindowRenderer::new();
 
         Ok(Self {
             conn,
-            keyboard_manager,
+            shortcut_manager,
             window_state,
             window_renderer,
         })
@@ -98,7 +98,7 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles key press events
     fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
-        if let Some(command) = self.keyboard_manager.handle_key_press(&event) {
+        if let Some(command) = self.shortcut_manager.handle_key_press(&event) {
             info!("Shortcut pressed, executing: {}", command);
 
             // Handle window management commands

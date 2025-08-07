@@ -36,7 +36,7 @@ pub struct WindowRenderer {
 ```rust
 pub struct WindowManager<C: Connection> {
     conn: C,
-    keyboard_manager: KeyboardManager,
+    shortcut_manager: ShortcutManager,
     window_state: WindowState,
     window_renderer: WindowRenderer,
 }

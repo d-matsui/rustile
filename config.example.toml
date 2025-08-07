@@ -34,7 +34,7 @@ unfocused_border_color = 0x808080 # Gray color for unfocused windows (hex format
 # Available modifiers:
 #   Primary: Super, Alt, Ctrl, Shift
 #   Alternative names: Win/Windows/Cmd (for Super), Meta (for Alt), Control/Ctl (for Ctrl)
-#   Less common: Mod2/NumLock, Mod3/ScrollLock, Mod5/AltGr
+#   Less common: Mod2/NumLock, Mod3/ScrollLock, Mod5
 #   Special: Hyper (combines Super+Alt+Ctrl+Shift)
 #
 # You can combine multiple modifiers like "Ctrl+Alt+t" or "Super+Shift+Alt+F12"
