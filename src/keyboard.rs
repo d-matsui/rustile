@@ -62,11 +62,10 @@ impl ShortcutManager {
             // Example: chunk = [0x0061 ('a'), 0x0041 ('A'), 0x00e1 ('á'), 0x00c1 ('Á')]
             // We store: keysym_to_keycode.insert(0x0061, 38)
             // This creates mapping: 0x0061 → keycode 38
-            if let Some(&keysym) = chunk.first() {
-                if keysym != 0 {
+            if let Some(&keysym) = chunk.first()
+                && keysym != 0 {
                     keysym_to_keycode.insert(keysym, keycode);
                 }
-            }
         }
 
         info!(

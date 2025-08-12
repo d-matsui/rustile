@@ -633,12 +633,11 @@ mod tests {
 
     /// Helper to test destroy window logic
     fn test_destroy_window_logic(windows: &mut Vec<Window>, focused: Option<Window>) -> bool {
-        if let Some(focused) = focused {
-            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
+        if let Some(focused) = focused
+            && let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
                 windows.remove(focused_idx);
                 return true;
             }
-        }
         false
     }
 
@@ -721,8 +720,8 @@ mod tests {
             return false;
         }
 
-        if let Some(focused) = focused {
-            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
+        if let Some(focused) = focused
+            && let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
                 let target_idx = match direction {
                     TestSwapDirection::Next => (focused_idx + 1) % windows.len(),
                     TestSwapDirection::Previous => {
@@ -736,7 +735,6 @@ mod tests {
                 windows.swap(focused_idx, target_idx);
                 return true;
             }
-        }
         false
     }
 
