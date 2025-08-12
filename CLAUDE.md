@@ -23,6 +23,11 @@ cargo test          # Run all tests
 ./check.sh   # Code quality checks (formatting, clippy, tests, docs)
 ```
 
+### Rust Version Management
+- **Current Version**: Pinned to Rust 1.89 for CI reproducibility and 2024 edition support
+- **Update Schedule**: Review quarterly or as needed for new features
+- **Rationale**: Prevents unexpected CI failures from Rust version changes while maintaining modern toolchain
+
 ## Development Standards
 
 ### Code Quality Requirements

@@ -23,7 +23,7 @@ jobs:
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: stable
+        toolchain: 1.89
         components: rustfmt, clippy
         
     - name: Install system dependencies
@@ -56,7 +56,7 @@ jobs:
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: stable
+        toolchain: 1.89
       
     - name: Cache cargo audit binary
       uses: actions/cache@v4
@@ -97,7 +97,7 @@ jobs:
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: stable
+        toolchain: 1.89
       
     - name: Install system dependencies
       run: |
