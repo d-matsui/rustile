@@ -307,16 +307,17 @@ impl BspTree {
                 if Self::contains_window(left, target_window) {
                     // If left child is the target window (direct child), rotate this split
                     if let BspNode::Leaf(window) = left.as_ref()
-                        && *window == target_window {
-                            // Flip this split's direction
-                            let old_direction = *direction;
-                            *direction = direction.opposite();
-                            info!(
-                                "Rotated parent split from {:?} to {:?} for window {:?}",
-                                old_direction, direction, target_window
-                            );
-                            return true;
-                        }
+                        && *window == target_window
+                    {
+                        // Flip this split's direction
+                        let old_direction = *direction;
+                        *direction = direction.opposite();
+                        info!(
+                            "Rotated parent split from {:?} to {:?} for window {:?}",
+                            old_direction, direction, target_window
+                        );
+                        return true;
+                    }
                     // Otherwise, recurse into left subtree
                     return Self::rotate_window_recursive(left, target_window);
                 }
@@ -325,16 +326,17 @@ impl BspTree {
                 if Self::contains_window(right, target_window) {
                     // If right child is the target window (direct child), rotate this split
                     if let BspNode::Leaf(window) = right.as_ref()
-                        && *window == target_window {
-                            // Flip this split's direction
-                            let old_direction = *direction;
-                            *direction = direction.opposite();
-                            info!(
-                                "Rotated parent split from {:?} to {:?} for window {:?}",
-                                old_direction, direction, target_window
-                            );
-                            return true;
-                        }
+                        && *window == target_window
+                    {
+                        // Flip this split's direction
+                        let old_direction = *direction;
+                        *direction = direction.opposite();
+                        info!(
+                            "Rotated parent split from {:?} to {:?} for window {:?}",
+                            old_direction, direction, target_window
+                        );
+                        return true;
+                    }
                     // Otherwise, recurse into right subtree
                     return Self::rotate_window_recursive(right, target_window);
                 }
@@ -720,9 +722,10 @@ mod tests {
 
         // Navigate to the right child which should be vertical
         if let Some(BspNode::Split { right, .. }) = &bsp_tree.root
-            && let BspNode::Split { direction, .. } = right.as_ref() {
-                assert!(matches!(direction, SplitDirection::Vertical));
-            }
+            && let BspNode::Split { direction, .. } = right.as_ref()
+        {
+            assert!(matches!(direction, SplitDirection::Vertical));
+        }
     }
 
     #[test]
