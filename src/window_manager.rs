@@ -4,8 +4,8 @@ use anyhow::Result;
 use std::process::Command;
 use tracing::{debug, error, info};
 use x11rb::connection::Connection;
-use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
+use x11rb::protocol::Event;
 
 use crate::keyboard::ShortcutManager;
 use crate::window_renderer::WindowRenderer;
