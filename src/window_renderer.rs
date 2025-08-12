@@ -2,9 +2,9 @@
 
 use anyhow::Result;
 use tracing::{debug, info};
+use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
-use x11rb::CURRENT_TIME;
 
 use crate::window_state::WindowState;
 
