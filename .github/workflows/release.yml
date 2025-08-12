@@ -31,9 +31,10 @@ jobs:
         token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
         
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        targets: x86_64-unknown-linux-gnu,x86_64-unknown-linux-musl
+        toolchain: 1.85
+        target: x86_64-unknown-linux-gnu,x86_64-unknown-linux-musl
         
     - name: Setup cargo environment
       run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
