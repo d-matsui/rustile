@@ -1,3 +1,16 @@
+## [0.7.14](https://github.com/d-matsui/rustile/compare/v0.7.13...v0.7.14) (2025-08-13)
+
+### 🐛 Bug Fixes
+
+* improve CI stability and resolve dependabot issues ([2d0f02d](https://github.com/d-matsui/rustile/commit/2d0f02d19382dcdee045215411c940886f34ba2f))
+* resolve clippy collapsible_if warnings in Rust 1.89 ([286edd7](https://github.com/d-matsui/rustile/commit/286edd760a5a4794f4cf5d85e496ee5dc59bff15))
+* resolve unused debug imports in release builds ([e731c98](https://github.com/d-matsui/rustile/commit/e731c9814f7e15d2271e3131a69931d968a96892))
+
+### 💎 Style
+
+* fix import order after rebase ([1d7435f](https://github.com/d-matsui/rustile/commit/1d7435f8baa0115f7ba9e4e7947bd9865a8730ee))
+* fix let-chains formatting for Rust 1.89 ([e3c37e4](https://github.com/d-matsui/rustile/commit/e3c37e44a8a6918f31b4b53b421aaebdcc0bf60f))
+
 ## [0.7.13](https://github.com/d-matsui/rustile/compare/v0.7.12...v0.7.13) (2025-08-07)
 
 ### ♻️ Refactor
