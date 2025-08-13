@@ -2,7 +2,9 @@
 
 use anyhow::Result;
 use std::process::Command;
-use tracing::{debug, error, info};
+#[cfg(debug_assertions)]
+use tracing::debug;
+use tracing::{error, info};
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
@@ -633,11 +635,11 @@ mod tests {
 
     /// Helper to test destroy window logic
     fn test_destroy_window_logic(windows: &mut Vec<Window>, focused: Option<Window>) -> bool {
-        if let Some(focused) = focused {
-            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
-                windows.remove(focused_idx);
-                return true;
-            }
+        if let Some(focused) = focused
+            && let Some(focused_idx) = windows.iter().position(|&w| w == focused)
+        {
+            windows.remove(focused_idx);
+            return true;
         }
         false
     }
@@ -721,21 +723,21 @@ mod tests {
             return false;
         }
 
-        if let Some(focused) = focused {
-            if let Some(focused_idx) = windows.iter().position(|&w| w == focused) {
-                let target_idx = match direction {
-                    TestSwapDirection::Next => (focused_idx + 1) % windows.len(),
-                    TestSwapDirection::Previous => {
-                        if focused_idx == 0 {
-                            windows.len() - 1
-                        } else {
-                            focused_idx - 1
-                        }
+        if let Some(focused) = focused
+            && let Some(focused_idx) = windows.iter().position(|&w| w == focused)
+        {
+            let target_idx = match direction {
+                TestSwapDirection::Next => (focused_idx + 1) % windows.len(),
+                TestSwapDirection::Previous => {
+                    if focused_idx == 0 {
+                        windows.len() - 1
+                    } else {
+                        focused_idx - 1
                     }
-                };
-                windows.swap(focused_idx, target_idx);
-                return true;
-            }
+                }
+            };
+            windows.swap(focused_idx, target_idx);
+            return true;
         }
         false
     }
