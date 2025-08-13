@@ -2,9 +2,9 @@
 
 use anyhow::Result;
 use std::process::Command;
-use tracing::{error, info};
 #[cfg(debug_assertions)]
 use tracing::debug;
+use tracing::{error, info};
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
