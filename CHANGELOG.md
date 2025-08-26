@@ -1,3 +1,9 @@
+## [0.7.15](https://github.com/d-matsui/rustile/compare/v0.7.14...v0.7.15) (2025-08-26)
+
+### 🔧 CI/CD
+
+* **deps:** bump actions/checkout from 4 to 5 ([b0d0cb6](https://github.com/d-matsui/rustile/commit/b0d0cb674eeae5b797b0057d7dc1a7ed4417c0f0))
+
 ## [0.7.14](https://github.com/d-matsui/rustile/compare/v0.7.13...v0.7.14) (2025-08-13)
 
 ### 🐛 Bug Fixes
