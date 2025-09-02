@@ -133,8 +133,34 @@ impl WindowRenderer {
             )?;
         }
 
-        let geometries =
+        let mut geometries =
             state.calculate_window_geometries(screen.width_in_pixels, screen.height_in_pixels);
+
+        // Apply zoom if a window is zoomed
+        if let Some(zoomed_window) = state.get_zoomed_window() {
+            let screen_rect = crate::bsp::BspRect {
+                x: state.layout_params().gap as i32,
+                y: state.layout_params().gap as i32,
+                width: (screen.width_in_pixels as i32 - 2 * state.layout_params().gap as i32)
+                    .max(state.layout_params().min_window_width as i32),
+                height: (screen.height_in_pixels as i32 - 2 * state.layout_params().gap as i32)
+                    .max(state.layout_params().min_window_height as i32),
+            };
+
+            // Find parent bounds for the zoomed window
+            if let Some(parent_bounds) = state.bsp_tree().find_parent_bounds(zoomed_window, screen_rect) {
+                // Override the zoomed window's geometry with parent bounds
+                for geometry in &mut geometries {
+                    if geometry.window == zoomed_window {
+                        geometry.x = parent_bounds.x;
+                        geometry.y = parent_bounds.y;
+                        geometry.width = parent_bounds.width.max(state.layout_params().min_window_width as i32) as u32;
+                        geometry.height = parent_bounds.height.max(state.layout_params().min_window_height as i32) as u32;
+                        break;
+                    }
+                }
+            }
+        }
 
         for geometry in &geometries {
             let border_color = state.border_color_for_window(geometry.window);
@@ -144,15 +170,19 @@ impl WindowRenderer {
                 &ChangeWindowAttributesAux::new().border_pixel(border_color),
             )?;
 
-            conn.configure_window(
-                geometry.window,
-                &ConfigureWindowAux::new()
-                    .x(geometry.x)
-                    .y(geometry.y)
-                    .width(geometry.width)
-                    .height(geometry.height)
-                    .border_width(border_width),
-            )?;
+            let mut config = ConfigureWindowAux::new()
+                .x(geometry.x)
+                .y(geometry.y)
+                .width(geometry.width)
+                .height(geometry.height)
+                .border_width(border_width);
+
+            // If this is the zoomed window, ensure it's on top
+            if Some(geometry.window) == state.get_zoomed_window() {
+                config = config.stack_mode(StackMode::ABOVE);
+            }
+
+            conn.configure_window(geometry.window, &config)?;
         }
 
         Ok(())
@@ -258,6 +288,62 @@ impl WindowRenderer {
         info!("Forcefully killing window {:?}", window);
         conn.kill_client(window)?;
         conn.flush()?;
+        Ok(())
+    }
+
+    /// Toggles zoom for the focused window
+    pub fn toggle_zoom<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        state: &mut WindowState,
+    ) -> Result<()> {
+        // Don't allow zoom in fullscreen mode
+        if state.is_in_fullscreen_mode() {
+            info!("Cannot zoom while in fullscreen mode");
+            return Ok(());
+        }
+
+        // Get the focused window
+        let focused = match state.get_focused_window() {
+            Some(window) => window,
+            None => {
+                info!("No focused window to zoom");
+                return Ok(());
+            }
+        };
+
+        // Get screen dimensions for parent bounds calculation
+        let setup = conn.setup();
+        let screen = &setup.roots[state.screen_num()];
+        let screen_rect = crate::bsp::BspRect {
+            x: state.layout_params().gap as i32,
+            y: state.layout_params().gap as i32,
+            width: (screen.width_in_pixels as i32 - 2 * state.layout_params().gap as i32)
+                .max(state.layout_params().min_window_width as i32),
+            height: (screen.height_in_pixels as i32 - 2 * state.layout_params().gap as i32)
+                .max(state.layout_params().min_window_height as i32),
+        };
+
+        // Toggle zoom state
+        if state.get_zoomed_window() == Some(focused) {
+            // Already zoomed - unzoom
+            state.clear_zoom();
+            info!("Unzoomed window: {:?}", focused);
+        } else {
+            // Check if this window can be zoomed (has a parent)
+            if state.bsp_tree().find_parent_bounds(focused, screen_rect).is_none() {
+                // Single window or root - cannot zoom
+                info!("Window {:?} has no parent to zoom to", focused);
+                return Ok(());
+            }
+
+            // Zoom the focused window
+            state.set_zoomed_window(Some(focused));
+            info!("Zoomed window: {:?}", focused);
+        }
+
+        // Apply the new state
+        self.apply_state(conn, state)?;
         Ok(())
     }
 

@@ -45,8 +45,8 @@ impl SplitDirection {
 }
 
 /// Rectangle for BSP layout calculations
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct BspRect {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BspRect {
     pub x: i32,
     pub y: i32,
     pub width: i32,
@@ -396,6 +396,90 @@ impl BspTree {
             } else {
                 // Window was the only one, clear the tree
                 self.root = None;
+            }
+        }
+    }
+
+    /// Find the bounds of the parent split containing the target window
+    pub fn find_parent_bounds(&self, target_window: Window, screen_rect: BspRect) -> Option<BspRect> {
+        if let Some(ref root) = self.root {
+            Self::find_parent_bounds_recursive(root, target_window, screen_rect)
+        } else {
+            None
+        }
+    }
+
+    /// Recursively find parent bounds for a window
+    fn find_parent_bounds_recursive(
+        node: &BspNode,
+        target_window: Window,
+        rect: BspRect,
+    ) -> Option<BspRect> {
+        match node {
+            BspNode::Leaf(window) => {
+                if *window == target_window {
+                    // Found the window - if it's the root, it has no parent
+                    None
+                } else {
+                    None
+                }
+            }
+            BspNode::Split { direction, ratio, left, right } => {
+                // Check if either child directly contains the target window
+                let left_is_target = matches!(**left, BspNode::Leaf(w) if w == target_window);
+                let right_is_target = matches!(**right, BspNode::Leaf(w) if w == target_window);
+                
+                if left_is_target || right_is_target {
+                    // This split is the parent of the target window
+                    return Some(rect);
+                }
+                
+                // Calculate child rectangles and recurse
+                let (left_rect, right_rect) = match direction {
+                    SplitDirection::Horizontal => {
+                        let split_x = rect.x + (rect.width as f32 * ratio) as i32;
+                        (
+                            BspRect {
+                                x: rect.x,
+                                y: rect.y,
+                                width: split_x - rect.x,
+                                height: rect.height,
+                            },
+                            BspRect {
+                                x: split_x,
+                                y: rect.y,
+                                width: rect.x + rect.width - split_x,
+                                height: rect.height,
+                            },
+                        )
+                    }
+                    SplitDirection::Vertical => {
+                        let split_y = rect.y + (rect.height as f32 * ratio) as i32;
+                        (
+                            BspRect {
+                                x: rect.x,
+                                y: rect.y,
+                                width: rect.width,
+                                height: split_y - rect.y,
+                            },
+                            BspRect {
+                                x: rect.x,
+                                y: split_y,
+                                width: rect.width,
+                                height: rect.y + rect.height - split_y,
+                            },
+                        )
+                    }
+                };
+                
+                // Try to find in left subtree
+                if Self::contains_window_static(left, target_window) {
+                    Self::find_parent_bounds_recursive(left, target_window, left_rect)
+                } else if Self::contains_window_static(right, target_window) {
+                    Self::find_parent_bounds_recursive(right, target_window, right_rect)
+                } else {
+                    None
+                }
             }
         }
     }
@@ -780,5 +864,65 @@ mod tests {
         // Non-existent window should return first window
         assert_eq!(bsp_tree.next_window(999), Some(10));
         assert_eq!(bsp_tree.prev_window(999), Some(10));
+    }
+
+    #[test]
+    fn test_find_parent_bounds() {
+        let mut bsp_tree = BspTree::new();
+        let screen_rect = BspRect {
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 800,
+        };
+
+        // Single window - should have no parent
+        bsp_tree.add_window(10, None, 0.5);
+        assert_eq!(bsp_tree.find_parent_bounds(10, screen_rect), None);
+
+        // Two windows - both should return the root split bounds
+        bsp_tree.add_window(20, Some(10), 0.5);
+        assert_eq!(
+            bsp_tree.find_parent_bounds(10, screen_rect),
+            Some(screen_rect)
+        );
+        assert_eq!(
+            bsp_tree.find_parent_bounds(20, screen_rect),
+            Some(screen_rect)
+        );
+
+        // Three windows - test nested split
+        // Tree structure:
+        //     Split(H)
+        //    /        \
+        //   10      Split(V)
+        //          /        \
+        //         20        30
+        bsp_tree.add_window(30, Some(20), 0.5);
+        
+        // Window 10's parent is still the root
+        assert_eq!(
+            bsp_tree.find_parent_bounds(10, screen_rect),
+            Some(screen_rect)
+        );
+        
+        // Windows 20 and 30's parent should be the right half (vertical split)
+        let right_half = BspRect {
+            x: 500,
+            y: 0,
+            width: 500,
+            height: 800,
+        };
+        assert_eq!(
+            bsp_tree.find_parent_bounds(20, screen_rect),
+            Some(right_half)
+        );
+        assert_eq!(
+            bsp_tree.find_parent_bounds(30, screen_rect),
+            Some(right_half)
+        );
+
+        // Non-existent window should return None
+        assert_eq!(bsp_tree.find_parent_bounds(999, screen_rect), None);
     }
 }
