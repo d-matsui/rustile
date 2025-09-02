@@ -112,6 +112,7 @@ impl<C: Connection> WindowManager<C> {
                 "destroy_window" => return self.destroy_focused_window(),
                 "toggle_fullscreen" => return self.toggle_fullscreen(),
                 "rotate_windows" => return self.rotate_windows(),
+                "toggle_zoom" => return self.toggle_zoom(),
                 _ => {
                     let parts: Vec<&str> = command.split_whitespace().collect();
                     if let Some(program) = parts.first() {
@@ -290,6 +291,12 @@ impl<C: Connection> WindowManager<C> {
     pub fn rotate_windows(&mut self) -> Result<()> {
         self.window_renderer
             .rotate_windows(&mut self.conn, &mut self.window_state)
+    }
+
+    /// Toggles zoom for the focused window
+    pub fn toggle_zoom(&mut self) -> Result<()> {
+        self.window_renderer
+            .toggle_zoom(&mut self.conn, &mut self.window_state)
     }
 }
 

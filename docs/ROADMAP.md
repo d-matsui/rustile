@@ -20,7 +20,7 @@ Rustile currently provides:
   - Standardized logging with debug support
 
 - ⭐⭐⭐ **Window Operations**
-  - [ ] **Zoom to parent** - Focus and expand window to its parent container size
+  - [x] **Zoom to parent** - Focus and expand window to its parent container size *(v0.8.0)*
   - [ ] **Auto-balance** - Automatically balance BSP tree ratios for optimal space usage
   - [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
 
@@ -54,6 +54,11 @@ Rustile currently provides:
   - [ ] **Screenshot utility** - Quick screenshot functionality
   - [ ] **Status bar support** - Integration with external status bars
   - [ ] **Mouse support** - Optional mouse interactions for window management
+
+- **Architecture & Refactoring**
+  - [ ] **Screen rect calculation cleanup** - Move rendering calculations out of BSP tree module
+  - [ ] **Responsibility separation** - Ensure BSP tree focuses purely on tree operations
+  - [ ] **Code duplication elimination** - Remove duplicated screen rectangle calculations
 
 - **Wayland Support**
   - [ ] **Research wlroots** - Investigate Wayland compositor integration

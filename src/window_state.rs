@@ -11,6 +11,7 @@ pub struct WindowState {
     focused_window: Option<Window>,
     bsp_tree: BspTree,
     fullscreen_window: Option<Window>,
+    zoomed_window: Option<Window>,
     intentionally_unmapped: HashSet<Window>,
     config: Config,
     screen_num: usize,
@@ -23,6 +24,7 @@ impl WindowState {
             focused_window: None,
             bsp_tree: BspTree::new(),
             fullscreen_window: None,
+            zoomed_window: None,
             intentionally_unmapped: HashSet::new(),
             config,
             screen_num,
@@ -62,6 +64,21 @@ impl WindowState {
     /// Checks if we're in fullscreen mode
     pub fn is_in_fullscreen_mode(&self) -> bool {
         self.fullscreen_window.is_some()
+    }
+
+    /// Gets the current zoomed window
+    pub fn get_zoomed_window(&self) -> Option<Window> {
+        self.zoomed_window
+    }
+
+    /// Sets the zoomed window
+    pub fn set_zoomed_window(&mut self, window: Option<Window>) {
+        self.zoomed_window = window;
+    }
+
+    /// Clears zoom state
+    pub fn clear_zoom(&mut self) {
+        self.zoomed_window = None;
     }
 
     /// Gets all windows currently managed by the layout
@@ -111,12 +128,18 @@ impl WindowState {
 
     /// Adds a window to the layout manager
     pub fn add_window_to_layout(&mut self, window: Window) {
+        // Clear zoom when adding new window (as per ADR-010)
+        self.clear_zoom();
         self.bsp_tree
             .add_window(window, self.focused_window, self.config.bsp_split_ratio());
     }
 
     /// Removes a window from the layout manager
     pub fn remove_window_from_layout(&mut self, window: Window) {
+        // Clear zoom if removing the zoomed window
+        if self.zoomed_window == Some(window) {
+            self.clear_zoom();
+        }
         self.bsp_tree.remove_window(window);
     }
 
@@ -127,6 +150,8 @@ impl WindowState {
 
     /// Rotates a window in the BSP tree
     pub fn rotate_window(&mut self, window: Window) -> bool {
+        // Clear zoom when rotating (as per ADR-010)
+        self.clear_zoom();
         self.bsp_tree.rotate_window(window)
     }
 
@@ -143,6 +168,11 @@ impl WindowState {
     /// Gets the screen number
     pub fn screen_num(&self) -> usize {
         self.screen_num
+    }
+
+    /// Gets a reference to the BSP tree
+    pub fn bsp_tree(&self) -> &BspTree {
+        &self.bsp_tree
     }
 
     /// Creates layout parameters bundle from config - helper to reduce parameter duplication
