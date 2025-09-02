@@ -1,3 +1,10 @@
+## [0.8.0](https://github.com/d-matsui/rustile/compare/v0.7.15...v0.8.0) (2025-09-02)
+
+### 🚀 Features
+
+* implement zoom to parent feature ([028aa93](https://github.com/d-matsui/rustile/commit/028aa9389d0cd9375b17b1ee3a7f0c2d73c02d05))
+* implement zoom to parent feature ([4eb4d7f](https://github.com/d-matsui/rustile/commit/4eb4d7f958da33e25add3c712bf3ff41e7e1308d))
+
 ## [0.7.15](https://github.com/d-matsui/rustile/compare/v0.7.14...v0.7.15) (2025-08-26)
 
 ### 🔧 CI/CD
