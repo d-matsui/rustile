@@ -81,11 +81,6 @@ impl WindowState {
         self.zoomed_window = None;
     }
 
-    /// Checks if a specific window is zoomed
-    pub fn is_window_zoomed(&self, window: Window) -> bool {
-        self.zoomed_window == Some(window)
-    }
-
     /// Gets all windows currently managed by the layout
     pub fn get_all_windows(&self) -> Vec<Window> {
         self.bsp_tree.all_windows()

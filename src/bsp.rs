@@ -401,7 +401,11 @@ impl BspTree {
     }
 
     /// Find the bounds of the parent split containing the target window
-    pub fn find_parent_bounds(&self, target_window: Window, screen_rect: BspRect) -> Option<BspRect> {
+    pub fn find_parent_bounds(
+        &self,
+        target_window: Window,
+        screen_rect: BspRect,
+    ) -> Option<BspRect> {
         if let Some(ref root) = self.root {
             Self::find_parent_bounds_recursive(root, target_window, screen_rect)
         } else {
@@ -424,16 +428,21 @@ impl BspTree {
                     None
                 }
             }
-            BspNode::Split { direction, ratio, left, right } => {
+            BspNode::Split {
+                direction,
+                ratio,
+                left,
+                right,
+            } => {
                 // Check if either child directly contains the target window
                 let left_is_target = matches!(**left, BspNode::Leaf(w) if w == target_window);
                 let right_is_target = matches!(**right, BspNode::Leaf(w) if w == target_window);
-                
+
                 if left_is_target || right_is_target {
                     // This split is the parent of the target window
                     return Some(rect);
                 }
-                
+
                 // Calculate child rectangles and recurse
                 let (left_rect, right_rect) = match direction {
                     SplitDirection::Horizontal => {
@@ -471,7 +480,7 @@ impl BspTree {
                         )
                     }
                 };
-                
+
                 // Try to find in left subtree
                 if Self::contains_window_static(left, target_window) {
                     Self::find_parent_bounds_recursive(left, target_window, left_rect)
@@ -899,13 +908,13 @@ mod tests {
         //          /        \
         //         20        30
         bsp_tree.add_window(30, Some(20), 0.5);
-        
+
         // Window 10's parent is still the root
         assert_eq!(
             bsp_tree.find_parent_bounds(10, screen_rect),
             Some(screen_rect)
         );
-        
+
         // Windows 20 and 30's parent should be the right half (vertical split)
         let right_half = BspRect {
             x: 500,

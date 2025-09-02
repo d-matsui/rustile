@@ -148,14 +148,23 @@ impl WindowRenderer {
             };
 
             // Find parent bounds for the zoomed window
-            if let Some(parent_bounds) = state.bsp_tree().find_parent_bounds(zoomed_window, screen_rect) {
+            if let Some(parent_bounds) = state
+                .bsp_tree()
+                .find_parent_bounds(zoomed_window, screen_rect)
+            {
                 // Override the zoomed window's geometry with parent bounds
                 for geometry in &mut geometries {
                     if geometry.window == zoomed_window {
                         geometry.x = parent_bounds.x;
                         geometry.y = parent_bounds.y;
-                        geometry.width = parent_bounds.width.max(state.layout_params().min_window_width as i32) as u32;
-                        geometry.height = parent_bounds.height.max(state.layout_params().min_window_height as i32) as u32;
+                        geometry.width = parent_bounds
+                            .width
+                            .max(state.layout_params().min_window_width as i32)
+                            as u32;
+                        geometry.height = parent_bounds
+                            .height
+                            .max(state.layout_params().min_window_height as i32)
+                            as u32;
                         break;
                     }
                 }
@@ -331,7 +340,11 @@ impl WindowRenderer {
             info!("Unzoomed window: {:?}", focused);
         } else {
             // Check if this window can be zoomed (has a parent)
-            if state.bsp_tree().find_parent_bounds(focused, screen_rect).is_none() {
+            if state
+                .bsp_tree()
+                .find_parent_bounds(focused, screen_rect)
+                .is_none()
+            {
                 // Single window or root - cannot zoom
                 info!("Window {:?} has no parent to zoom to", focused);
                 return Ok(());
