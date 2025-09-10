@@ -1,7 +1,7 @@
-//! Binary Space Partitioning (BSP) layout algorithm implementation
+//! Binary Space Partitioning (BSP) tree data structure for window management
 
 use tracing::info;
-use x11rb::protocol::xproto::*;
+use x11rb::protocol::xproto::Window;
 
 // === Constants ===
 
@@ -42,25 +42,6 @@ impl SplitDirection {
             SplitDirection::Vertical => SplitDirection::Horizontal,
         }
     }
-}
-
-/// Rectangle for BSP layout calculations
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct BspRect {
-    pub x: i32,
-    pub y: i32,
-    pub width: i32,
-    pub height: i32,
-}
-
-/// Represents a calculated window position and size
-#[derive(Debug, Clone, Copy)]
-pub struct WindowGeometry {
-    pub window: Window,
-    pub x: i32,
-    pub y: i32,
-    pub width: u32,
-    pub height: u32,
 }
 
 /// Represents a node in the BSP tree
@@ -404,8 +385,8 @@ impl BspTree {
     pub fn find_parent_bounds(
         &self,
         target_window: Window,
-        screen_rect: BspRect,
-    ) -> Option<BspRect> {
+        screen_rect: crate::window_renderer::BspRect,
+    ) -> Option<crate::window_renderer::BspRect> {
         if let Some(ref root) = self.root {
             Self::find_parent_bounds_recursive(root, target_window, screen_rect)
         } else {
@@ -417,8 +398,8 @@ impl BspTree {
     fn find_parent_bounds_recursive(
         node: &BspNode,
         target_window: Window,
-        rect: BspRect,
-    ) -> Option<BspRect> {
+        rect: crate::window_renderer::BspRect,
+    ) -> Option<crate::window_renderer::BspRect> {
         match node {
             BspNode::Leaf(window) => {
                 if *window == target_window {
@@ -448,13 +429,13 @@ impl BspTree {
                     SplitDirection::Horizontal => {
                         let split_x = rect.x + (rect.width as f32 * ratio) as i32;
                         (
-                            BspRect {
+                            crate::window_renderer::BspRect {
                                 x: rect.x,
                                 y: rect.y,
                                 width: split_x - rect.x,
                                 height: rect.height,
                             },
-                            BspRect {
+                            crate::window_renderer::BspRect {
                                 x: split_x,
                                 y: rect.y,
                                 width: rect.x + rect.width - split_x,
@@ -465,13 +446,13 @@ impl BspTree {
                     SplitDirection::Vertical => {
                         let split_y = rect.y + (rect.height as f32 * ratio) as i32;
                         (
-                            BspRect {
+                            crate::window_renderer::BspRect {
                                 x: rect.x,
                                 y: rect.y,
                                 width: rect.width,
                                 height: split_y - rect.y,
                             },
-                            BspRect {
+                            crate::window_renderer::BspRect {
                                 x: rect.x,
                                 y: split_y,
                                 width: rect.width,
@@ -557,131 +538,6 @@ impl BspTree {
                     })
                 }
             }
-        }
-    }
-}
-
-/// Layout parameters bundle to reduce parameter passing
-#[derive(Debug, Clone, Copy)]
-pub struct LayoutParams {
-    pub min_window_width: u32,
-    pub min_window_height: u32,
-    pub gap: u32,
-}
-
-/// Calculate window geometries without applying them (pure calculation)
-pub fn calculate_bsp_geometries(
-    bsp_tree: &BspTree,
-    screen_width: u16,
-    screen_height: u16,
-    params: LayoutParams,
-) -> Vec<WindowGeometry> {
-    let mut geometries = Vec::new();
-
-    if let Some(ref root) = bsp_tree.root {
-        let screen_rect = BspRect {
-            x: params.gap as i32,
-            y: params.gap as i32,
-            width: (screen_width as i32 - 2 * params.gap as i32)
-                .max(params.min_window_width as i32),
-            height: (screen_height as i32 - 2 * params.gap as i32)
-                .max(params.min_window_height as i32),
-        };
-
-        calculate_bsp_recursive(
-            root,
-            screen_rect,
-            params.min_window_width,
-            params.min_window_height,
-            params.gap,
-            &mut geometries,
-        );
-    }
-
-    geometries
-}
-
-/// Recursively calculate window geometries for BSP nodes
-fn calculate_bsp_recursive(
-    node: &BspNode,
-    rect: BspRect,
-    min_window_width: u32,
-    min_window_height: u32,
-    gap: u32,
-    geometries: &mut Vec<WindowGeometry>,
-) {
-    match node {
-        BspNode::Leaf(window) => {
-            geometries.push(WindowGeometry {
-                window: *window,
-                x: rect.x,
-                y: rect.y,
-                width: rect.width.max(dimensions::MIN_WINDOW_WIDTH as i32) as u32,
-                height: rect.height.max(dimensions::MIN_WINDOW_HEIGHT as i32) as u32,
-            });
-        }
-        BspNode::Split {
-            direction,
-            ratio,
-            left,
-            right,
-        } => {
-            let gap_i32 = gap as i32;
-            let (left_rect, right_rect) = match direction {
-                SplitDirection::Horizontal => {
-                    // Split left/right (horizontal arrangement)
-                    let split_pos = (rect.width as f32 * ratio) as i32;
-                    let left_rect = BspRect {
-                        x: rect.x,
-                        y: rect.y,
-                        width: (split_pos - gap_i32 / 2).max(min_window_width as i32),
-                        height: rect.height,
-                    };
-                    let right_rect = BspRect {
-                        x: rect.x + split_pos + gap_i32 / 2,
-                        y: rect.y,
-                        width: (rect.width - split_pos - gap_i32 / 2).max(min_window_width as i32),
-                        height: rect.height,
-                    };
-                    (left_rect, right_rect)
-                }
-                SplitDirection::Vertical => {
-                    // Split top/bottom (vertical arrangement)
-                    let split_pos = (rect.height as f32 * ratio) as i32;
-                    let top_rect = BspRect {
-                        x: rect.x,
-                        y: rect.y,
-                        width: rect.width,
-                        height: (split_pos - gap_i32 / 2).max(min_window_height as i32),
-                    };
-                    let bottom_rect = BspRect {
-                        x: rect.x,
-                        y: rect.y + split_pos + gap_i32 / 2,
-                        width: rect.width,
-                        height: (rect.height - split_pos - gap_i32 / 2)
-                            .max(min_window_height as i32),
-                    };
-                    (top_rect, bottom_rect)
-                }
-            };
-
-            // Recursively calculate for children
-            calculate_bsp_recursive(
-                left,
-                left_rect,
-                min_window_width,
-                min_window_height,
-                gap,
-                geometries,
-            );
-            calculate_bsp_recursive(
-                right,
-                right_rect,
-                min_window_width,
-                min_window_height,
-                gap,
-                geometries,
-            );
         }
     }
 }
@@ -877,6 +733,8 @@ mod tests {
 
     #[test]
     fn test_find_parent_bounds() {
+        use crate::window_renderer::BspRect;
+
         let mut bsp_tree = BspTree::new();
         let screen_rect = BspRect {
             x: 0,
