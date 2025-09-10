@@ -10,6 +10,35 @@ use x11rb::protocol::xproto::*;
 
 use crate::window_state::WindowState;
 
+// === Geometry Types (moved from bsp.rs) ===
+
+/// Rectangle for BSP layout calculations
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BspRect {
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+}
+
+/// Represents a calculated window position and size
+#[derive(Debug, Clone, Copy)]
+pub struct WindowGeometry {
+    pub window: Window,
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Layout parameters bundle to reduce parameter passing
+#[derive(Debug, Clone, Copy)]
+pub struct LayoutParams {
+    pub min_window_width: u32,
+    pub min_window_height: u32,
+    pub gap: u32,
+}
+
 /// Handles X11 rendering operations
 pub struct WindowRenderer {}
 
@@ -138,14 +167,7 @@ impl WindowRenderer {
 
         // Apply zoom if a window is zoomed
         if let Some(zoomed_window) = state.get_zoomed_window() {
-            let screen_rect = crate::bsp::BspRect {
-                x: state.layout_params().gap as i32,
-                y: state.layout_params().gap as i32,
-                width: (screen.width_in_pixels as i32 - 2 * state.layout_params().gap as i32)
-                    .max(state.layout_params().min_window_width as i32),
-                height: (screen.height_in_pixels as i32 - 2 * state.layout_params().gap as i32)
-                    .max(state.layout_params().min_window_height as i32),
-            };
+            let screen_rect = state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
 
             // Find parent bounds for the zoomed window
             if let Some(parent_bounds) = state
@@ -324,14 +346,7 @@ impl WindowRenderer {
         // Get screen dimensions for parent bounds calculation
         let setup = conn.setup();
         let screen = &setup.roots[state.screen_num()];
-        let screen_rect = crate::bsp::BspRect {
-            x: state.layout_params().gap as i32,
-            y: state.layout_params().gap as i32,
-            width: (screen.width_in_pixels as i32 - 2 * state.layout_params().gap as i32)
-                .max(state.layout_params().min_window_width as i32),
-            height: (screen.height_in_pixels as i32 - 2 * state.layout_params().gap as i32)
-                .max(state.layout_params().min_window_height as i32),
-        };
+        let screen_rect = state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
 
         // Toggle zoom state
         if state.get_zoomed_window() == Some(focused) {
@@ -516,6 +531,128 @@ impl WindowRenderer {
 enum SwapDirection {
     Next,
     Previous,
+}
+
+// === BSP Geometry Calculation Functions (moved from bsp.rs) ===
+
+use crate::bsp::{BspNode, BspTree, SplitDirection, dimensions};
+
+/// Calculate window geometries without applying them (pure calculation)
+pub fn calculate_bsp_geometries(
+    bsp_tree: &BspTree,
+    screen_width: u16,
+    screen_height: u16,
+    params: LayoutParams,
+) -> Vec<WindowGeometry> {
+    let mut geometries = Vec::new();
+
+    if let Some(ref root) = bsp_tree.root {
+        // Create screen rect with gap and minimum size constraints
+        let screen_rect = BspRect {
+            x: params.gap as i32,
+            y: params.gap as i32,
+            width: (screen_width as i32 - 2 * params.gap as i32)
+                .max(params.min_window_width as i32),
+            height: (screen_height as i32 - 2 * params.gap as i32)
+                .max(params.min_window_height as i32),
+        };
+
+        calculate_bsp_recursive(
+            root,
+            screen_rect,
+            params.min_window_width,
+            params.min_window_height,
+            params.gap,
+            &mut geometries,
+        );
+    }
+
+    geometries
+}
+
+/// Recursively calculate window geometries for BSP nodes
+fn calculate_bsp_recursive(
+    node: &BspNode,
+    rect: BspRect,
+    min_window_width: u32,
+    min_window_height: u32,
+    gap: u32,
+    geometries: &mut Vec<WindowGeometry>,
+) {
+    match node {
+        BspNode::Leaf(window) => {
+            geometries.push(WindowGeometry {
+                window: *window,
+                x: rect.x,
+                y: rect.y,
+                width: rect.width.max(dimensions::MIN_WINDOW_WIDTH as i32) as u32,
+                height: rect.height.max(dimensions::MIN_WINDOW_HEIGHT as i32) as u32,
+            });
+        }
+        BspNode::Split {
+            direction,
+            ratio,
+            left,
+            right,
+        } => {
+            let gap_i32 = gap as i32;
+            let (left_rect, right_rect) = match direction {
+                SplitDirection::Horizontal => {
+                    // Split left/right (horizontal arrangement)
+                    let split_pos = (rect.width as f32 * ratio) as i32;
+                    let left_rect = BspRect {
+                        x: rect.x,
+                        y: rect.y,
+                        width: (split_pos - gap_i32 / 2).max(min_window_width as i32),
+                        height: rect.height,
+                    };
+                    let right_rect = BspRect {
+                        x: rect.x + split_pos + gap_i32 / 2,
+                        y: rect.y,
+                        width: (rect.width - split_pos - gap_i32 / 2).max(min_window_width as i32),
+                        height: rect.height,
+                    };
+                    (left_rect, right_rect)
+                }
+                SplitDirection::Vertical => {
+                    // Split top/bottom (vertical arrangement)
+                    let split_pos = (rect.height as f32 * ratio) as i32;
+                    let top_rect = BspRect {
+                        x: rect.x,
+                        y: rect.y,
+                        width: rect.width,
+                        height: (split_pos - gap_i32 / 2).max(min_window_height as i32),
+                    };
+                    let bottom_rect = BspRect {
+                        x: rect.x,
+                        y: rect.y + split_pos + gap_i32 / 2,
+                        width: rect.width,
+                        height: (rect.height - split_pos - gap_i32 / 2)
+                            .max(min_window_height as i32),
+                    };
+                    (top_rect, bottom_rect)
+                }
+            };
+
+            // Recursively calculate for children
+            calculate_bsp_recursive(
+                left,
+                left_rect,
+                min_window_width,
+                min_window_height,
+                gap,
+                geometries,
+            );
+            calculate_bsp_recursive(
+                right,
+                right_rect,
+                min_window_width,
+                min_window_height,
+                gap,
+                geometries,
+            );
+        }
+    }
 }
 
 #[cfg(test)]

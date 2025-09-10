@@ -3,8 +3,9 @@
 use std::collections::HashSet;
 use x11rb::protocol::xproto::Window;
 
-use crate::bsp::{BspTree, LayoutParams};
+use crate::bsp::BspTree;
 use crate::config::Config;
+use crate::window_renderer::{BspRect, LayoutParams, WindowGeometry};
 
 /// Manages window state and provides queries
 pub struct WindowState {
@@ -198,9 +199,22 @@ impl WindowState {
         &self,
         screen_width: u16,
         screen_height: u16,
-    ) -> Vec<crate::bsp::WindowGeometry> {
+    ) -> Vec<WindowGeometry> {
         let params = self.layout_params();
-        crate::bsp::calculate_bsp_geometries(&self.bsp_tree, screen_width, screen_height, params)
+        crate::window_renderer::calculate_bsp_geometries(&self.bsp_tree, screen_width, screen_height, params)
+    }
+
+    /// Calculates the screen rectangle with gap and minimum size constraints
+    pub fn calculate_screen_rect(&self, screen_width: u16, screen_height: u16) -> BspRect {
+        let params = self.layout_params();
+        BspRect {
+            x: params.gap as i32,
+            y: params.gap as i32,
+            width: (screen_width as i32 - 2 * params.gap as i32)
+                .max(params.min_window_width as i32),
+            height: (screen_height as i32 - 2 * params.gap as i32)
+                .max(params.min_window_height as i32),
+        }
     }
 }
 
