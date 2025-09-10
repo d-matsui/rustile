@@ -1,3 +1,9 @@
+## [0.8.1](https://github.com/d-matsui/rustile/compare/v0.8.0...v0.8.1) (2025-09-10)
+
+### 🔧 CI/CD
+
+* **deps:** bump actions/setup-node from 4 to 5 ([0333567](https://github.com/d-matsui/rustile/commit/0333567ce75dd08241b483a6016cca177e9b7e92))
+
 ## [0.8.0](https://github.com/d-matsui/rustile/compare/v0.7.15...v0.8.0) (2025-09-02)
 
 ### 🚀 Features
