@@ -56,9 +56,9 @@ Rustile currently provides:
   - [ ] **Mouse support** - Optional mouse interactions for window management
 
 - **Architecture & Refactoring**
-  - [ ] **Screen rect calculation cleanup** - Move rendering calculations out of BSP tree module
-  - [ ] **Responsibility separation** - Ensure BSP tree focuses purely on tree operations
-  - [ ] **Code duplication elimination** - Remove duplicated screen rectangle calculations
+  - [x] **Screen rect calculation cleanup** - Move rendering calculations out of BSP tree module (Completed in PR #43)
+  - [x] **Responsibility separation** - Ensure BSP tree focuses purely on tree operations (Completed in PR #43)
+  - [x] **Code duplication elimination** - Remove duplicated screen rectangle calculations (Completed in PR #43)
 
 - **Wayland Support**
   - [ ] **Research wlroots** - Investigate Wayland compositor integration
