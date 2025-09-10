@@ -1,3 +1,17 @@
+## [0.8.2](https://github.com/d-matsui/rustile/compare/v0.8.1...v0.8.2) (2025-09-10)
+
+### 📖 Documentation
+
+* update ROADMAP.md to mark architecture refactoring as completed ([9bf9f43](https://github.com/d-matsui/rustile/commit/9bf9f436bfcf1630c39c8bed067fcf6f21f13f88)), closes [#43](https://github.com/d-matsui/rustile/issues/43)
+
+### 💎 Style
+
+* apply cargo fmt to ensure consistent formatting ([912136f](https://github.com/d-matsui/rustile/commit/912136fa38f3ccdebc320d6a6ba15047bc931243))
+
+### ♻️ Refactor
+
+* separate BSP tree logic from screen geometry calculations ([747e242](https://github.com/d-matsui/rustile/commit/747e24286844c2a593c14d99409be50fdc76a72d))
+
 ## [0.8.1](https://github.com/d-matsui/rustile/compare/v0.8.0...v0.8.1) (2025-09-10)
 
 ### 🔧 CI/CD
