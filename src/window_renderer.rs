@@ -167,7 +167,8 @@ impl WindowRenderer {
 
         // Apply zoom if a window is zoomed
         if let Some(zoomed_window) = state.get_zoomed_window() {
-            let screen_rect = state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
+            let screen_rect =
+                state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
 
             // Find parent bounds for the zoomed window
             if let Some(parent_bounds) = state
@@ -346,7 +347,8 @@ impl WindowRenderer {
         // Get screen dimensions for parent bounds calculation
         let setup = conn.setup();
         let screen = &setup.roots[state.screen_num()];
-        let screen_rect = state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
+        let screen_rect =
+            state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
 
         // Toggle zoom state
         if state.get_zoomed_window() == Some(focused) {

@@ -734,7 +734,7 @@ mod tests {
     #[test]
     fn test_find_parent_bounds() {
         use crate::window_renderer::BspRect;
-        
+
         let mut bsp_tree = BspTree::new();
         let screen_rect = BspRect {
             x: 0,

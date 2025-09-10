@@ -201,7 +201,12 @@ impl WindowState {
         screen_height: u16,
     ) -> Vec<WindowGeometry> {
         let params = self.layout_params();
-        crate::window_renderer::calculate_bsp_geometries(&self.bsp_tree, screen_width, screen_height, params)
+        crate::window_renderer::calculate_bsp_geometries(
+            &self.bsp_tree,
+            screen_width,
+            screen_height,
+            params,
+        )
     }
 
     /// Calculates the screen rectangle with gap and minimum size constraints
