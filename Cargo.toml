@@ -11,7 +11,7 @@ categories = ["gui"]
 readme = "README.md"
 
 [dependencies]
-x11rb = "0.13.0"
+x11rb = "0.13.2"
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
