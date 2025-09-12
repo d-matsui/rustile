@@ -9,6 +9,8 @@ pkill -f "rustile.*:10" 2>/dev/null
 echo "Setting up config..."
 mkdir -p ~/.config/rustile
 cp config.example.toml ~/.config/rustile/config.toml
+# Update display setting for test environment
+sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
 
 # Build rustile (debug mode for better logging with cfg(debug_assertions))
 echo "Building rustile..."
