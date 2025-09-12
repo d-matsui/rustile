@@ -2,65 +2,91 @@
 
 This document outlines the planned features and development direction for Rustile window manager.
 
-## 🎯 Current Status (v0.7.x)
+Current version: v0.8.1 - Beta quality tiling window manager
 
-Rustile currently provides:
+## 📊 Current Status (v0.8.1)
 
-- **✅ Core Window Management**
-  - BSP (Binary Space Partitioning) tiling layout
-  - Window focus with visual borders (red=focused, gray=unfocused)
-  - Basic window operations (destroy, rotate, fullscreen, swap)
-  - Keyboard-driven workflow with customizable shortcuts
+### Window Operations
 
-- **✅ Configuration & Quality**
-  - TOML-based configuration with validation
-  - Configurable gaps, borders, and split ratios
-  - Comprehensive test suite (66 tests)
-  - Automated CI/CD with semantic releases
-  - Standardized logging with debug support
+- ✅ **BSP tiling layout** - Binary space partitioning window management
+- ✅ **Window operations** - Focus, destroy, swap, rotate, fullscreen, zoom-to-parent
+- ✅ **Visual focus management** - Red borders for focused, gray for unfocused windows
 
-- ⭐⭐⭐ **Window Operations**
-  - [x] **Zoom to parent** - Focus and expand window to its parent container size *(v0.8.0)*
-  - [ ] **Auto-balance** - Automatically balance BSP tree ratios for optimal space usage
-  - [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
+### Configuration & System
 
-- **Configuration**
-  - [ ] **Live config reload** - Update settings without restarting rustile
-  - ⭐ [ ] **Enhanced logging** - Show application names ("xterm") instead of window IDs
-  - [ ] **Better error messages** - User-friendly configuration validation errors
+- ✅ **TOML configuration** - Runtime validation, gaps, borders, split ratios
+- ✅ **Comprehensive testing** - 66 unit tests covering core functionality
+- ✅ **CI/CD automation** - Semantic releases, security audits, code quality checks
+- ✅ **Standardized logging** - 3-level logging with tracing framework
+- ✅ **Modular architecture** - Clean separation of concerns (7 focused modules)
+- ✅ **Zero-warning builds** - Strict clippy rules, automated formatting
+- ✅ **Single source of truth** - Eliminated duplicate state management
 
-- **Floating Windows**
-  - ⭐ [ ] **Float toggle** - Switch windows between tiling and floating modes  
-  - [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
-  - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
+### Workspace Management
 
-- **Keyboard Improvements**
-  - [ ] ⭐ **Better modifier handling** - Distinguish between left and right Alt keys
-  - [ ] **Key management simplification** - Consider using xmodmap for cleaner key handling
-  - [ ] **Shortcut conflicts detection** - Warn about conflicting keybindings
+- ✅ **Single workspace** - Current implementation supports one workspace
 
-- ⭐⭐ **Multi-Workspace Support**
-  - [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
-  - [ ] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
-  - [ ] **Window-workspace movement** - Move windows between different workspaces
+### Input & Shortcuts
 
-- ⭐ **Multi-Monitor**
-  - [ ] **Monitor detection** - Automatically detect and configure multiple monitors
-  - [ ] **Window movement** - Move windows between different monitors
-  - [ ] **Per-monitor workspaces** - Independent workspace management per monitor
+- ✅ **Keyboard shortcuts** - Comprehensive Alt+key bindings for all operations
 
-- **Integrations**
-  - [ ] **Application launcher** - Built-in or integration with dmenu/rofi
-  - [ ] **Screenshot utility** - Quick screenshot functionality
-  - [ ] **Status bar support** - Integration with external status bars
-  - [ ] **Mouse support** - Optional mouse interactions for window management
+### Platform & Integration
 
-- **Architecture & Refactoring**
-  - [x] **Screen rect calculation cleanup** - Move rendering calculations out of BSP tree module (Completed in PR #43)
-  - [x] **Responsibility separation** - Ensure BSP tree focuses purely on tree operations (Completed in PR #43)
-  - [x] **Code duplication elimination** - Remove duplicated screen rectangle calculations (Completed in PR #43)
+- ✅ **X11 support** - Full X11 window management integration
+- ✅ **Comprehensive documentation** - ADRs, implementation guides, user documentation
 
-- **Wayland Support**
-  - [ ] **Research wlroots** - Investigate Wayland compositor integration
-  - [ ] **Protocol compatibility** - Maintain X11 compatibility alongside Wayland
-  - [ ] **Wayland-specific features** - Leverage Wayland-only capabilities
+## 🎯 v1.0.0 - Stable Release
+
+### Window Operations
+
+- [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
+
+### Configuration & System
+
+- [ ] **Production installation** - Installation guide
+
+### Workspace Management
+
+- *No additional features planned for v1.0.0*
+
+### Input & Shortcuts
+
+- *No additional features planned for v1.0.0*
+
+### Platform & Integration
+
+- *No additional features planned for v1.0.0*
+
+## 🚀 Feature Expansion
+
+### Window Operations
+
+- [ ] **Float toggle** - Switch windows between tiling and floating modes
+- [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
+- [ ] **Window-workspace movement** - Move windows between different workspaces
+
+### Configuration & System
+
+- [ ] **Auto-balance BSP tree** - Automatically balance BSP tree ratios for optimal space usage
+- [ ] **Enhanced error messages** - User-friendly configuration validation errors
+- [ ] **Live config reload** - Update settings without restarting rustile
+- [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
+
+### Workspace Management
+
+- [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
+- [ ] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
+
+### Input & Shortcuts
+
+- [ ] **Better modifier handling** - Distinguish between left and right Alt keys
+- [ ] **Shortcut conflicts detection** - Warn about conflicting keybindings
+- [ ] **Mouse support** - Optional mouse interactions for window management
+
+### Platform & Integration
+
+- [ ] **Multi-monitor support** - Automatically detect and configure multiple monitors
+- [ ] **Wayland compatibility** - Research wlroots integration, maintain X11 compatibility
+- [ ] **Application launcher** - Built-in or integration with dmenu/rofi
+- [ ] **Screenshot utility** - Quick screenshot functionality
+- [ ] **Status bar support** - Integration with external status bars
