@@ -3,7 +3,7 @@
 
 [general]
 # Default display for launching applications
-default_display = ":10"
+default_display = ":0"
 
 [layout]
 # BSP (Binary Space Partitioning) layout settings
