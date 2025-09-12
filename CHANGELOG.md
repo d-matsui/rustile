@@ -1,3 +1,13 @@
+## [0.8.3](https://github.com/d-matsui/rustile/compare/v0.8.2...v0.8.3) (2025-09-12)
+
+### 🐛 Bug Fixes
+
+* change default_display from :10 to :0 for production use ([3b9697d](https://github.com/d-matsui/rustile/commit/3b9697d5701ebcde678f221bbf40d9385dd9be21))
+
+### 📖 Documentation
+
+* reorganize ROADMAP with 5 clear functional categories ([18d5bee](https://github.com/d-matsui/rustile/commit/18d5bee8fb071cb33cf8d4beca932fb240b93a1a))
+
 ## [0.8.2](https://github.com/d-matsui/rustile/compare/v0.8.1...v0.8.2) (2025-09-10)
 
 ### 📖 Documentation
