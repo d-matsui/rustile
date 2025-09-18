@@ -125,46 +125,71 @@ See [config.example.toml](config.example.toml) for the complete list.
 
 ## Production Setup
 
-**Note: The following methods need verification and will be tested before v1.0.0 release.**
-
 ### Make Rustile Your Default Window Manager
 
-Once you're comfortable with Rustile, set it as your default:
+Once you're comfortable with Rustile, choose one of these methods:
 
-#### Option A: Desktop Session (Recommended)
+#### Option 1: Primary Window Manager (Minimal Environment)
 
-Create `/usr/share/xsessions/rustile.desktop`:
+**Best for**: Minimal systems or replacing other window managers
 
+```bash
+# Setup Rustile as default
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+# default_display = ":0" (keep as-is)
+
+# Create xinitrc
+echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
+
+# Start X session
+startx
+```
+
+#### Option 2: Dedicated TTY (Alongside Desktop Environment)
+
+**Best for**: Using Rustile alongside GNOME/KDE without conflicts
+
+**Step 1: Setup TTY3 auto-login**
+```bash
+sudo systemctl edit getty@tty3.service
+```
+Add this configuration:
 ```ini
-[Desktop Entry]
-Name=Rustile
-Comment=Tiling window manager written in Rust
-Exec=rustile
-Type=Application
-Keywords=tiling;window;manager;
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin USERNAME --noclear %I $TERM
 ```
+Replace `USERNAME` with your actual username.
 
-Then log out and select "Rustile" from your display manager's session menu.
-
-#### Option B: xinitrc Method (without display manager)
-
-First, disable your display manager to use startx:
+**Step 2: Setup Rustile config for TTY3**
 ```bash
-# Disable GDM (GNOME) - can be re-enabled later
-sudo systemctl disable gdm3
-# Or for other display managers:
-# sudo systemctl disable lightdm  # Ubuntu
-# sudo systemctl disable sddm     # KDE
-
-# To re-enable later:
-# sudo systemctl enable gdm3
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
 ```
 
-Then add to `~/.xinitrc`:
-
+**Step 3: Setup X auto-start on TTY3**
 ```bash
-exec rustile
+# Add to ~/.bash_profile (create if it doesn't exist)
+cat >> ~/.bash_profile << 'EOF'
+
+# TTY3 Rustile auto-start
+if [ "$(tty)" = "/dev/tty3" ]; then
+    exec startx -- :10
+fi
+EOF
 ```
+
+**Step 4: Setup xinitrc for Rustile**
+```bash
+echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
+```
+
+**Usage:**
+- **Ctrl+Alt+F3**: Switch to Rustile environment
+- **Ctrl+Alt+F1/F2**: Return to your main desktop (GNOME/KDE)
+- Auto-login and X startup on TTY3
 
 ## Debugging & Troubleshooting
 
