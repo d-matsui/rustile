@@ -10,17 +10,36 @@ An X11 tiling window manager written in Rust, inspired by [yabai](https://github
 
 ## Key Features
 
-- **Automatic Window Tiling** - No manual window arrangement needed
-- **Keyboard-Driven Workflow** - Efficient control without mouse dependency
-- **Easy TOML Configuration** - Simple, readable config files
-- **Lightweight Performance** - Minimal resource usage, fast startup
-- **Extensible & Customizable** - Adapt to your workflow needs
+- **Automatic Window Tiling** - BSP (Binary Space Partitioning) layout with no manual arrangement needed
+- **Keyboard-Driven Workflow** - Full control without mouse dependency
+- **Simple TOML Configuration** - Intuitive, readable config files with live validation
+
+## Requirements
+
+### Runtime Requirements
+- **X11 display server** (Wayland/XWayland not supported)
+- Linux system (tested on Ubuntu 24.04)
+
+### Build Requirements (if building from source)
+- Rust toolchain (rustc, cargo)
+- X11 development libraries (libx11-dev, libxcb1-dev)
 
 ## Installation
 
-### Build from Source or Download from [GitHub Releases](https://github.com/d-matsui/rustile/releases)
+### Option 1: Download Pre-built Binary
 
-**Build from source:**
+Download the latest release from [GitHub Releases](https://github.com/d-matsui/rustile/releases):
+
+```bash
+# Download and install (example for v0.8.3)
+wget https://github.com/d-matsui/rustile/releases/download/v0.8.3/rustile-v0.8.3-x86_64-linux.tar.gz
+tar xzf rustile-v0.8.3-x86_64-linux.tar.gz
+sudo cp rustile /usr/local/bin/
+sudo chmod +x /usr/local/bin/rustile
+```
+
+### Option 2: Build from Source
+
 ```bash
 # Install build dependencies (Debian/Ubuntu)
 sudo apt-get install build-essential libx11-dev libxcb1-dev
@@ -29,105 +48,141 @@ sudo apt-get install build-essential libx11-dev libxcb1-dev
 git clone https://github.com/d-matsui/rustile.git
 cd rustile
 cargo build --release
+
+# Install binary
+sudo cp target/release/rustile /usr/local/bin/
+sudo chmod +x /usr/local/bin/rustile
 ```
 
-### Install the Binary
+## Quick Start - Try Rustile Safely
+
+**Important**: Rustile will auto-generate `~/.config/rustile/config.toml` on first run with `default_display = ":0"`. You'll need to adjust this for different display setups.
+
+### Option 1: Xephyr (Recommended - Keep your desktop running)
+
+The safest way to try Rustile without affecting your current desktop:
+
 ```bash
-# Copy to system PATH
-sudo cp target/release/rustile /usr/local/bin/  # or from downloaded binary
-chmod +x /usr/local/bin/rustile
+# Install Xephyr if needed
+sudo apt-get install xserver-xephyr
+
+# Setup config for Xephyr
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
+
+# Create a nested X server window
+Xephyr :10 -screen 1280x720 -resizeable &
+
+# Start Rustile in the nested display
+DISPLAY=:10 rustile &
+
+# Launch some test applications
+DISPLAY=:10 xterm &
+DISPLAY=:10 xcalc &
 ```
 
-## Setup
+To stop: Simply close the Xephyr window.
 
-### Stop Existing Window Manager
-**On Debian/Ubuntu with GNOME:**
+### Option 2: TTY Console (Advanced users)
+
+Run Rustile on a different TTY while keeping your desktop session:
+
 ```bash
-# Check current session type
-echo $XDG_SESSION_TYPE  # "x11" = OK, "wayland" = Not compatible
+# Switch to TTY3 with Ctrl+Alt+F3 (TTY1/2 are often in use)
+# Login with your username and password
 
-# If running Wayland:
-# - Log out and choose "GNOME on Xorg" at login screen
-# - XWayland won't work - rustile needs real X11
+# Setup config for TTY (use :10 to avoid conflicts, same as Xephyr)
+mkdir -p ~/.config/rustile
+cp config.example.toml ~/.config/rustile/config.toml
+sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
 
-# For X11 sessions, stop GNOME temporarily for testing:
-sudo systemctl stop gdm3  # Warning: This stops your entire desktop!
+# Using xinitrc
+echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
+startx -- :10
+
+# Switch between sessions:
+# - Ctrl+Alt+F1 or F2: Back to your display manager/GNOME
+# - Ctrl+Alt+F3: Back to Rustile session
 ```
+To stop the session:
+1. Switch to another TTY (e.g., Ctrl+Alt+F4)
+2. Login and run: `killall Xorg`
+3. Return to your main session (Ctrl+Alt+F1 or F2)
+
+
+## Usage
+
+### Keyboard Shortcuts
+
+Default shortcuts are configured in `config.example.toml`. Key bindings include:
+- **Navigation**: `Alt+j/k` (focus next/previous)
+- **Window management**: `Shift+Alt+q` (close), `Alt+f` (fullscreen), `Alt+r` (rotate)
+- **Applications**: `Shift+Alt+1/2/3` (terminal/editor/browser)
+
+See [config.example.toml](config.example.toml) for the complete list.
+
+
+## Production Setup
+
+**Note: The following methods need verification and will be tested before v1.0.0 release.**
 
 ### Make Rustile Your Default Window Manager
 
-**Option A: Choose at Login (Recommended)**
+Once you're comfortable with Rustile, set it as your default:
+
+#### Option A: Desktop Session (Recommended)
+
 Create `/usr/share/xsessions/rustile.desktop`:
+
 ```ini
 [Desktop Entry]
 Name=Rustile
 Comment=Tiling window manager written in Rust
 Exec=rustile
 Type=Application
+Keywords=tiling;window;manager;
 ```
-Then log out and select "Rustile" from the login screen.
 
-**Option B: Using startx**
-Add to `~/.xinitrc`:
+Then log out and select "Rustile" from your display manager's session menu.
+
+#### Option B: xinitrc Method (without display manager)
+
+First, disable your display manager to use startx:
+```bash
+# Disable GDM (GNOME) - can be re-enabled later
+sudo systemctl disable gdm3
+# Or for other display managers:
+# sudo systemctl disable lightdm  # Ubuntu
+# sudo systemctl disable sddm     # KDE
+
+# To re-enable later:
+# sudo systemctl enable gdm3
+```
+
+Then add to `~/.xinitrc`:
+
 ```bash
 exec rustile
 ```
-Then use `startx` to launch.
 
-## Basic Usage
+## Debugging & Troubleshooting
 
-```bash
-# Window Navigation
-Alt+j/k              Focus next/previous window
-Shift+Alt+j/k        Swap window positions
-Shift+Alt+m          Swap with master window
-
-# Window Control  
-Shift+Alt+q          Close window
-Shift+Alt+1          Open terminal
-```
-
-## Configuration (Optional)
-
-Rustile works out of the box, but you can customize it:
-
-**Create config file:**
-```bash
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-```
-
-**Example customizations:**
-```toml
-[layout]
-gap = 15                           # Spacing between windows
-border_width = 3                   # Window border thickness
-focused_border_color = 0x00FF00    # Green borders for focused window
-
-[shortcuts]
-"Super+Return" = "xterm"           # Terminal with Super+Enter
-"Super+d" = "rofi -show run"       # Application launcher
-```
-
-See [config.example.toml](config.example.toml) for all available options.
-
-## Troubleshooting
-
-### Configuration Issues
+### Enable Logging
 
 ```bash
-# Check for errors (logs to stderr):
+# View debug output
+# Log levels: error, warn, info, debug, trace
 RUST_LOG=debug rustile 2>&1 | tee rustile.log
 
-# Reset to defaults:
-rm ~/.config/rustile/config.toml
 ```
 
 ## Documentation
 
-- **[How Rustile Works](docs/HOW_RUSTILE_WORKS.md)** - X11 concepts, architecture, and event flow
-- **[Implementation Details](docs/IMPLEMENTATION_DETAILS.md)** - Technical details with code examples
+- **[How Rustile Works](docs/HOW_RUSTILE_WORKS.md)** - Architecture, X11 concepts, event flow
+- **[Implementation Details](docs/IMPLEMENTATION_DETAILS.md)** - Technical deep-dive with code examples
 - **[Roadmap](docs/ROADMAP.md)** - Planned features and development timeline
+- **[Architecture Decision Records](docs/adr/)** - Design decisions and rationale
 
 ## License
 

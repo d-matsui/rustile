@@ -43,6 +43,7 @@ Current version: v0.8.1 - Beta quality tiling window manager
 
 ### Configuration & System
 
+- [ ] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
 - [ ] **Production installation** - Installation guide
 
 ### Workspace Management
