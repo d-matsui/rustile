@@ -1,3 +1,13 @@
+## [0.9.0](https://github.com/d-matsui/rustile/compare/v0.8.3...v0.9.0) (2025-09-18)
+
+### 🚀 Features
+
+* add verified Production Setup methods for v1.0.0 ([27aac93](https://github.com/d-matsui/rustile/commit/27aac93078d34954901cc7a48073b4ba97d1a949))
+
+### 📖 Documentation
+
+* improve README for v1.0.0 preparation ([ccef74d](https://github.com/d-matsui/rustile/commit/ccef74d3f33cfcee5662963fd5781f2255117e54))
+
 ## [0.8.3](https://github.com/d-matsui/rustile/compare/v0.8.2...v0.8.3) (2025-09-12)
 
 ### 🐛 Bug Fixes
