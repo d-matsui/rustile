@@ -180,7 +180,7 @@ See [docs/adr/](docs/adr/) for detailed decisions:
 - Visual focus management (red=focused, gray=unfocused)
 - Keyboard navigation and window operations
 - TOML configuration with runtime validation
-- Comprehensive test coverage (66 unit tests)
+- Comprehensive test coverage
 - Zoom-to-parent functionality for focused windows
 - Production-ready TTY setup alongside desktop environments
 

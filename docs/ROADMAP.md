@@ -2,8 +2,6 @@
 
 This document outlines the planned features and development direction for Rustile window manager.
 
-Current version: v0.9.0 - Beta quality tiling window manager
-
 ## 📊 Current Status
 
 ### Window Operations

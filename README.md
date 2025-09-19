@@ -31,9 +31,9 @@ An X11 tiling window manager written in Rust, inspired by [yabai](https://github
 Download the latest release from [GitHub Releases](https://github.com/d-matsui/rustile/releases):
 
 ```bash
-# Download and install (example for v0.8.3)
-wget https://github.com/d-matsui/rustile/releases/download/v0.8.3/rustile-v0.8.3-x86_64-linux.tar.gz
-tar xzf rustile-v0.8.3-x86_64-linux.tar.gz
+# Download and install
+wget <download-url-from-releases-page>
+tar xzf rustile-*.tar.gz
 sudo cp rustile /usr/local/bin/
 sudo chmod +x /usr/local/bin/rustile
 ```

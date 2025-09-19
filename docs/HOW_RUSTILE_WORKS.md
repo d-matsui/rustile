@@ -68,7 +68,7 @@ let (conn, screen_num) = x11rb::connect(None)?;
 let wm = WindowManager::new(conn, screen_num)?;
 ```
 
-Inside `WindowManager::new()` (`src/window_manager.rs:38`):
+Inside `WindowManager::new()` (`src/window_manager.rs`):
 
 ```rust
 // 3. Register as window manager by requesting SubstructureRedirect
