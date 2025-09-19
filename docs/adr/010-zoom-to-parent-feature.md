@@ -1,7 +1,11 @@
 # ADR-010: Zoom to Parent Feature Implementation
 
 ## Status
-Accepted
+**Current**: Accepted (2024-09-10)
+
+**History**:
+- Proposed: 2024-09-10
+- Accepted: 2024-09-10
 
 ## Context
 Users need to temporarily focus on a specific window without losing the underlying BSP layout structure. The "zoom to parent" feature allows expanding a window to fill its parent container's space, similar to features in other tiling window managers (i3's "fullscreen mode 2", dwm's "zoom", bspwm's "monocle" mode).
@@ -104,3 +108,8 @@ fn find_parent_bounds(&self, window: Window, screen_rect: BspRect) -> Option<Bsp
 - Zoom state is transient (lost on WM restart)
 - Requires BSP tree traversal to find parent bounds
 - Different from fullscreen (window-level vs container-level)
+
+## References
+- Implementation: src/window_state.rs zoom functionality
+- Implementation: src/window_renderer.rs zoom rendering
+- Related: ADR-011 (BSP tree operations)

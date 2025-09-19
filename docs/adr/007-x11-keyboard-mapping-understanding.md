@@ -1,7 +1,11 @@
 # ADR-007: X11 Keyboard Mapping Understanding
 
 ## Status
-Accepted
+**Current**: Accepted (2024-08-12)
+<!-- Investigation record - understanding document, not implementation decision -->
+
+**History**:
+- Documented: 2024-08-12
 
 ## Context
 The X11 keyboard system causes frequent confusion when implementing keyboard shortcut handling. Developers often misunderstand:

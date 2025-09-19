@@ -1,7 +1,10 @@
 # ADR-012: Configuration File Handling Improvement
 
 ## Status
-Proposed
+**Current**: Proposed (2024-09-19)
+
+**History**:
+- Proposed: 2024-09-19
 
 ## Context
 Currently, when Rustile starts without a configuration file (`~/.config/rustile/config.toml`), it automatically generates one with default values. This behavior has several issues:

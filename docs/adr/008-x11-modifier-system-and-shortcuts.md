@@ -1,7 +1,11 @@
 # ADR-008: X11 Modifier System and Keyboard Shortcuts
 
 ## Status
-Accepted
+**Current**: Accepted (2024-08-12)
+<!-- Investigation record - understanding document, not implementation decision -->
+
+**History**:
+- Documented: 2024-08-12
 
 ## Context
 The modifier system in Rustile is complex and not immediately obvious from the code. Developers struggle to understand:

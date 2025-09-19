@@ -1,7 +1,12 @@
 # ADR-003: SRP Refactoring to Three-Module Architecture
 
 ## Status
-Accepted
+**Current**: Deprecated (2024-09-10)
+
+**History**:
+- Proposed: 2024-08-12
+- Accepted: 2024-08-12
+- Deprecated: 2024-09-10
 
 ## Context
 After consolidating window state into `WindowOperations` (ADR-002), the module grew to 567 lines and violated Single Responsibility Principle by mixing state management, X11 operations, and coordination logic. This caused:
@@ -69,3 +74,10 @@ self.window_renderer.apply_layout(&mut self.conn, &mut self.window_state)
 - All 66 tests pass with no functionality loss
 - Interactive testing confirms proper window arrangement
 - Follows "Functional Core, Imperative Shell" architecture pattern
+
+## Deprecation Reason
+This ADR described a 3-module architecture that was later superseded by the current 7-module flat structure (main.rs, window_manager.rs, window_state.rs, window_renderer.rs, bsp.rs, config.rs, keyboard.rs). The flat structure proved simpler and more maintainable than the hierarchical approach described here.
+
+## References
+- Related: ADR-002 (Single source of truth)
+- Current implementation: src/ directory with 7-module flat structure
