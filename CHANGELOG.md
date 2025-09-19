@@ -1,3 +1,20 @@
+## [0.10.0](https://github.com/d-matsui/rustile/compare/v0.9.0...v0.10.0) (2025-09-19)
+
+### 🚀 Features
+
+* add ADR lifecycle management with automated INDEX generation ([e7c7b53](https://github.com/d-matsui/rustile/commit/e7c7b539a6c7101b936ac9b42b8630b8cfe46352))
+
+### 📖 Documentation
+
+* remove hardcoded version numbers and counts ([c15c09b](https://github.com/d-matsui/rustile/commit/c15c09b3cb6c2456fc57fbb24402ab7964ffffda))
+* remove IMPLEMENTATION_DETAILS.md and update references ([d0b2113](https://github.com/d-matsui/rustile/commit/d0b211334f09f14f32f336ef0cd4f112e658635e))
+* remove IMPLEMENTATION_DETAILS.md reference from CLAUDE.md ([0b60c39](https://github.com/d-matsui/rustile/commit/0b60c39fa15f92d428e9b454fed6256fe379ae76))
+* restore version numbers in README and update HOW_RUSTILE_WORKS ([c913175](https://github.com/d-matsui/rustile/commit/c91317524192c4c818ff08cd8dbb35a4ac95dfe9))
+* simplify ADR template by removing superseded state ([cffeecd](https://github.com/d-matsui/rustile/commit/cffeecd732fd468be7c7ee4f4d811a24b559a4e5))
+* update all ADRs to new template format and add References ([8498d27](https://github.com/d-matsui/rustile/commit/8498d2746bda8b097deae6247db27bc0c43744b7))
+* update CLAUDE.md for v1.0.0 preparation ([2bdc2ff](https://github.com/d-matsui/rustile/commit/2bdc2fff8d4574cdbe42e06bfec12d5fd8e1de65))
+* update roadmap for v1.0.0 release preparation ([4c8304f](https://github.com/d-matsui/rustile/commit/4c8304fd8220e84be7e3664814bf487c4097da17))
+
 ## [0.9.0](https://github.com/d-matsui/rustile/compare/v0.8.3...v0.9.0) (2025-09-18)
 
 ### 🚀 Features
