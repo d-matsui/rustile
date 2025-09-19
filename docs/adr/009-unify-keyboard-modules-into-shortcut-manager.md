@@ -1,7 +1,11 @@
 # ADR-009: Unify Keyboard Modules into ShortcutManager
 
 ## Status
-Accepted
+**Current**: Accepted (2024-08-12)
+
+**History**:
+- Proposed: 2024-08-12
+- Accepted: 2024-08-12
 
 ## Context
 The keyboard module contained two separate structs: `KeyParser` and `KeyboardManager`. Analysis revealed that:

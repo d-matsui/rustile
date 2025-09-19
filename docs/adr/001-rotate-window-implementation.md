@@ -1,7 +1,11 @@
 # ADR-001: Window Rotation by Parent Split Flip
 
 ## Status
-Accepted
+**Current**: Accepted (2024-07-30)
+
+**History**:
+- Proposed: 2024-07-30
+- Accepted: 2024-07-30
 
 ## Context
 Users need to reorganize windows in the BSP tiling layout. The challenge is defining what "rotate window" means in a binary tree where each node represents either a window (leaf) or a split direction (horizontal/vertical).
@@ -54,3 +58,7 @@ Before (B focused):          After (B's parent V→H):
 ### Neutral
 - Requires visual examples in documentation for user understanding
 - Alt+r shortcut provides consistent access across all window arrangements
+
+## References
+- Implementation: src/bsp.rs rotate_window() method
+- Related: BSP tree data structure documentation

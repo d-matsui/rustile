@@ -1,7 +1,11 @@
 # ADR-006: ConfigureRequest Timeout Handling
 
 ## Status
-Accepted
+**Current**: Accepted (2024-08-06)
+
+**History**:
+- Proposed: 2024-08-06
+- Accepted: 2024-08-06
 
 ## Context
 
@@ -78,8 +82,8 @@ The handler performs pure acknowledgment:
 
 This pattern is common in tiling window managers that need to balance X11 protocol compliance with their own layout management.
 
-## Related
-
+## References
 - Performance regression discovered during event handler cleanup
 - Part of overall window manager architecture simplification
 - Demonstrates importance of X11 protocol compliance in tiling WMs
+- Implementation: src/window_manager.rs handle_configure_request()

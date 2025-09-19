@@ -1,7 +1,11 @@
 # ADR-011: Separation of BSP Tree Logic from Screen Geometry Calculations
 
 ## Status
-Proposed
+**Current**: Accepted (2024-09-10)
+
+**History**:
+- Proposed: 2024-09-10
+- Accepted: 2024-09-10
 
 ## Context
 The current BSP module (`src/bsp.rs`) violates the Single Responsibility Principle by mixing pure tree operations with screen geometry calculations and rendering concerns.

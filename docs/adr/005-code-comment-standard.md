@@ -1,7 +1,11 @@
 # ADR-005: Code Comment Standard - Concise Over Verbose
 
 ## Status
-Accepted
+**Current**: Accepted (2024-08-05)
+
+**History**:
+- Proposed: 2024-08-05
+- Accepted: 2024-08-05
 
 ## Context
 The rustile codebase had accumulated extensive tutorial-style comments that prioritized beginner education over code maintainability:
@@ -117,3 +121,7 @@ pub fn apply_state<C: Connection>(&mut self, conn: &mut C, state: &mut WindowSta
 - Monitor new contributor feedback to ensure external documentation sufficiency
 - Consider automated tooling to detect overly verbose comments
 - Regular review of comment standards as codebase evolves
+
+## References
+- CLAUDE.md: Development guidelines implementation
+- Implementation: Applied across src/ directory files

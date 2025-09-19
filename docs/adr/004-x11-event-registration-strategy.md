@@ -1,7 +1,11 @@
 # ADR-004: X11 Event Registration Strategy
 
 ## Status
-Accepted
+**Current**: Accepted (2024-08-12)
+
+**History**:
+- Proposed: 2024-08-12
+- Accepted: 2024-08-12
 
 ## Context
 Window managers in X11 need to receive various types of events to function properly. However, different events have different registration mechanisms and performance implications. The question is: which events should be registered how, and when?
@@ -61,3 +65,8 @@ Receive focus events automatically when managing windows - no explicit registrat
 - **X11 Protocol Compliance**: Follows standard X11 window manager patterns
 - **Code Organization**: Events handled in logical modules rather than centralized dispatch
 - **Future Extensibility**: Easy to add new event types through appropriate layer
+
+## References
+- Implementation: src/window_manager.rs event handling
+- Implementation: src/keyboard.rs shortcut registration
+- Related: X11 protocol documentation

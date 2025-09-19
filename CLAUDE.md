@@ -71,7 +71,6 @@ rustile/
 │   └── keyboard.rs          # Keyboard shortcut handling
 ├── docs/                    # Documentation and ADRs
 │   ├── HOW_RUSTILE_WORKS.md # X11 concepts and architecture
-│   ├── IMPLEMENTATION_DETAILS.md # Technical implementation details
 │   ├── ROADMAP.md           # Development roadmap
 │   └── adr/                 # Architecture Decision Records
 ├── test.sh                  # Interactive testing script
@@ -155,13 +154,20 @@ RUST_BACKTRACE=1 cargo run   # Show backtraces on panic
 ### Recent Architectural Evolution
 - **Phase 6 (Latest)**: Flattened module structure for simplicity (7 focused files in src/)
 - **Phase 5**: Removed master-stack layout, eliminated LayoutManager abstraction (~740 lines removed)
-- **Phase 4**: Enhanced documentation with HOW_RUSTILE_WORKS.md and IMPLEMENTATION_DETAILS.md
+- **Phase 4**: Enhanced documentation with HOW_RUSTILE_WORKS.md
 - **Phase 3**: Configuration validation system improvements
 - **Phase 2**: Window manager modularization experiment (later simplified)
 - **Phase 1**: Layout module refactoring (trait system)
 
 ### Architecture Decision Records (ADRs)
 See [docs/adr/](docs/adr/) for detailed decisions:
+- **ADR-012**: Configuration file handling improvement
+- **ADR-011**: BSP screen rect separation
+- **ADR-010**: Zoom to parent feature
+- **ADR-009**: Unify keyboard modules
+- **ADR-008**: X11 modifier system understanding
+- **ADR-007**: X11 keyboard mapping understanding
+- **ADR-006**: Configure request timeout handling
 - **ADR-005**: Code comment standard implementation
 - **ADR-004**: X11 event registration strategy
 - **ADR-003**: SRP refactoring and three-module architecture
@@ -173,13 +179,12 @@ See [docs/adr/](docs/adr/) for detailed decisions:
 - Visual focus management (red=focused, gray=unfocused)
 - Keyboard navigation and window operations
 - TOML configuration with runtime validation
-- Comprehensive test coverage (49 unit tests)
+- Comprehensive test coverage
+- Zoom-to-parent functionality for focused windows
+- Production-ready TTY setup alongside desktop environments
 
 ## Future Development
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed planning:
-1. Basic window features (destroy, switch, rotate)
-2. BSP enhancements (directional focus, targeted insertion)
-3. Configuration live reload
-4. Floating window support
-5. Multi-monitor support
+See [docs/ROADMAP.md](docs/ROADMAP.md) for v1.0.0 and beyond:
+- **v1.0.0**: Config file handling improvement (no auto-generation)
+- **Future**: Directional insertion, floating windows, workspaces, multi-monitor support

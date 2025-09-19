@@ -1,7 +1,11 @@
 # ADR-002: Single Source of Truth for Window Storage
 
 ## Status
-Accepted
+**Current**: Accepted (2024-07-30)
+
+**History**:
+- Proposed: 2024-07-30
+- Accepted: 2024-07-30
 
 ## Context
 The window manager maintained two data structures for windows: `Vec<Window>` for window lists and `BspTree` for spatial layout. This caused synchronization bugs where operations would update one structure but not the other, leading to:
@@ -38,3 +42,7 @@ pub struct WindowManager<C: Connection> {
 ### Neutral
 - All 59 tests continue to pass with no functionality loss
 - Migration required three-phase refactoring but maintained API compatibility
+
+## References
+- Related: ADR-003 (SRP refactoring)
+- Implementation: src/bsp.rs as single source of truth for windows
