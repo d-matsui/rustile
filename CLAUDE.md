@@ -71,7 +71,6 @@ rustile/
 │   └── keyboard.rs          # Keyboard shortcut handling
 ├── docs/                    # Documentation and ADRs
 │   ├── HOW_RUSTILE_WORKS.md # X11 concepts and architecture
-│   ├── IMPLEMENTATION_DETAILS.md # Technical implementation details
 │   ├── ROADMAP.md           # Development roadmap
 │   └── adr/                 # Architecture Decision Records
 ├── test.sh                  # Interactive testing script
