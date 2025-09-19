@@ -180,13 +180,12 @@ See [docs/adr/](docs/adr/) for detailed decisions:
 - Visual focus management (red=focused, gray=unfocused)
 - Keyboard navigation and window operations
 - TOML configuration with runtime validation
-- Comprehensive test coverage (49 unit tests)
+- Comprehensive test coverage (66 unit tests)
+- Zoom-to-parent functionality for focused windows
+- Production-ready TTY setup alongside desktop environments
 
 ## Future Development
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed planning:
-1. Basic window features (destroy, switch, rotate)
-2. BSP enhancements (directional focus, targeted insertion)
-3. Configuration live reload
-4. Floating window support
-5. Multi-monitor support
+See [docs/ROADMAP.md](docs/ROADMAP.md) for v1.0.0 and beyond:
+- **v1.0.0**: Config file handling improvement (no auto-generation)
+- **Future**: Directional insertion, floating windows, workspaces, multi-monitor support
