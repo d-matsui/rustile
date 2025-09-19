@@ -89,47 +89,50 @@ After:  X Server → asks rustile → rustile decides → tells X Server
 
 ## Architecture Overview
 
-Rustile uses a 3-module architecture following Single Responsibility Principle:
+Rustile uses a modular architecture with clear separation of concerns:
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │                   WindowManager                         │
 │  - Receives X11 events                                  │
 │  - Coordinates state updates and rendering              │
-└─────────────────────┬───────────────────────────────────┘
-                      │ owns
-        ┌─────────────┴───────────┐
-        ↓                         ↓
-┌──────────────┐          ┌──────────────┐
-│ WindowState  │          │WindowRenderer│
-│              │ <------  │              │
-│ - focus      │ injected │ - X11 ops    │
-│ - BSP tree   │   into   │ - drawing    │
-│ - fullscreen │          │ - borders    │
-└──────────────┘          └──────────────┘
+└────────────┬────────────────────────┬──────────────────┘
+             │ owns                   │ owns
+    ┌────────┴────────┐      ┌───────┴────────┐
+    ↓                 ↓      ↓                ↓
+┌──────────┐   ┌──────────────┐   ┌──────────┐
+│WindowState│   │WindowRenderer│   │ Keyboard │
+│           │   │              │   │          │
+│ - focus   │   │ - X11 ops    │   │ - parse  │
+│ - windows │   │ - drawing    │   │ - handle │
+│ - BSP ref │   │ - borders    │   └──────────┘
+└─────┬─────┘   └──────────────┘
+      │ uses
+┌─────┴─────┐   ┌──────────┐
+│    BSP    │   │  Config  │
+│           │   │          │
+│ - tree    │   │ - TOML   │
+│ - layout  │   │ - params │
+└───────────┘   └──────────┘
 ```
 
-### Why This Architecture?
+### Module Responsibilities
 
-**Separation of Concerns:**
+**Core Modules:**
 
-- **WindowState**: Pure data, no X11 calls (can test without X server!)
-- **WindowRenderer**: All X11 operations (side effects isolated here)
-- **WindowManager**: Event handling and coordination
+- **WindowManager** (`window_manager.rs`): Event handling and coordination
+- **WindowState** (`window_state.rs`): Window tracking and focus management
+- **WindowRenderer** (`window_renderer.rs`): All X11 rendering operations
+- **BSP** (`bsp.rs`): Binary Space Partitioning tree operations
+- **Config** (`config.rs`): Configuration loading and validation
+- **Keyboard** (`keyboard.rs`): Key binding parsing and handling
 
-**Dependency Injection Pattern:**
+**Key Design Principles:**
 
-```rust
-// WindowRenderer doesn't own state, receives it as parameter
-pub fn apply_layout(&mut self, conn: &mut C, state: &mut WindowState)
-//                                           ^^^^^^^^^^^^^^^^^^^^ injected!
-```
-
-This means:
-
-- Renderer can't accidentally store stale state
-- Easy to test with mock state
-- Clear data flow
+- **Single Responsibility**: Each module has one clear purpose
+- **Dependency Injection**: State is passed to renderer, not owned
+- **Pure Functions**: BSP tree operations don't know about X11
+- **Separation of Concerns**: Tree logic separate from geometry calculations (ADR-011)
 
 ## Event Flow
 
@@ -176,7 +179,7 @@ Rustile handles these X11 events:
 - **UnmapNotify**: Window is being hidden
 - **DestroyNotify**: Window is being closed
 - **ConfigureRequest**: Window wants to change size/position
-- **KeyPress**: Keyboard shortcuts (Alt+j, Alt+k, etc.)
+- **KeyPress**: Keyboard shortcuts (Alt+j, Alt+k, Alt+d for zoom, etc.)
 - **EnterNotify**: Mouse enters a window (focus follows mouse)
 - **FocusIn/FocusOut**: Focus change notifications
 
