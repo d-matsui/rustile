@@ -2,9 +2,9 @@
 
 This document outlines the planned features and development direction for Rustile window manager.
 
-Current version: v0.8.1 - Beta quality tiling window manager
+Current version: v0.9.0 - Beta quality tiling window manager
 
-## 📊 Current Status (v0.8.1)
+## 📊 Current Status
 
 ### Window Operations
 
@@ -39,32 +39,24 @@ Current version: v0.8.1 - Beta quality tiling window manager
 
 ### Window Operations
 
-- [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
-
 ### Configuration & System
 
 - [ ] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
-- [ ] **Production installation** - Installation guide
+- [x] **Production installation** - Installation guide
 
 ### Workspace Management
 
-- *No additional features planned for v1.0.0*
-
 ### Input & Shortcuts
 
-- *No additional features planned for v1.0.0*
-
 ### Platform & Integration
-
-- *No additional features planned for v1.0.0*
 
 ## 🚀 Feature Expansion
 
 ### Window Operations
 
+- [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
 - [ ] **Float toggle** - Switch windows between tiling and floating modes
 - [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
-- [ ] **Window-workspace movement** - Move windows between different workspaces
 
 ### Configuration & System
 
@@ -77,6 +69,7 @@ Current version: v0.8.1 - Beta quality tiling window manager
 
 - [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
 - [ ] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
+- [ ] **Window-workspace movement** - Move windows between different workspaces
 
 ### Input & Shortcuts
 
@@ -87,7 +80,7 @@ Current version: v0.8.1 - Beta quality tiling window manager
 ### Platform & Integration
 
 - [ ] **Multi-monitor support** - Automatically detect and configure multiple monitors
-- [ ] **Wayland compatibility** - Research wlroots integration, maintain X11 compatibility
 - [ ] **Application launcher** - Built-in or integration with dmenu/rofi
-- [ ] **Screenshot utility** - Quick screenshot functionality
 - [ ] **Status bar support** - Integration with external status bars
+- [ ] **Screenshot utility** - Quick screenshot functionality
+- [ ] **Wayland compatibility** - Research wlroots integration, maintain X11 compatibility
