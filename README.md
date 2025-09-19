@@ -205,7 +205,6 @@ RUST_LOG=debug rustile 2>&1 | tee rustile.log
 ## Documentation
 
 - **[How Rustile Works](docs/HOW_RUSTILE_WORKS.md)** - Architecture, X11 concepts, event flow
-- **[Implementation Details](docs/IMPLEMENTATION_DETAILS.md)** - Technical deep-dive with code examples
 - **[Roadmap](docs/ROADMAP.md)** - Planned features and development timeline
 - **[Architecture Decision Records](docs/adr/)** - Design decisions and rationale
 
