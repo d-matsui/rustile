@@ -1,58 +1,43 @@
 #!/bin/bash
 # Test rustile in Xephyr window
 
-# Clean up any existing test instances
-pkill -f "Xephyr :10" 2>/dev/null
-pkill -f "rustile.*:10" 2>/dev/null
+# Clean up existing instances
+pkill -f "Xephyr :5" 2>/dev/null
+pkill -f "rustile.*:5" 2>/dev/null
 
-# Setup clean config from example
-echo "Setting up config..."
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-# Update display setting for test environment
-sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
-
-# Build rustile (debug mode for better logging with cfg(debug_assertions))
 echo "Building rustile..."
 cargo build || exit 1
 
-# Start test X server
-echo "Starting test window..."
-Xephyr :10 -screen 1200x800 &
+echo "Starting Xephyr..."
+Xephyr :5 -screen 1200x800 &
 XEPHYR_PID=$!
 sleep 2
 
-# Run rustile (debug build with debug logging enabled)
 echo "Starting rustile..."
-DISPLAY=:10 RUST_LOG=debug ./target/debug/rustile &
+DISPLAY=:5 RUST_LOG=debug ./target/debug/rustile &
 RUSTILE_PID=$!
 sleep 1
 
-# Open test applications
 echo "Opening test windows..."
-DISPLAY=:10 xterm &
+DISPLAY=:5 xterm &
 sleep 0.5
-DISPLAY=:10 xlogo &
+DISPLAY=:5 xlogo &
 sleep 0.5
-DISPLAY=:10 xcalc &
+DISPLAY=:5 xcalc &
 sleep 0.5
-DISPLAY=:10 xeyes &
+DISPLAY=:5 xeyes &
 
 echo ""
 echo "Test environment ready!"
-echo "Debug logging enabled (RUST_LOG=debug) - check terminal for debug messages"
 echo ""
 echo "Keyboard shortcuts:"
 echo "  Alt+j/k         - Focus next/previous"
 echo "  Shift+Alt+j/k   - Swap with next/previous"
 echo "  Shift+Alt+q     - Close window"
 echo "  Alt+f           - Toggle fullscreen"
-echo "  Alt+r           - Rotate window (flip parent split direction)"
+echo "  Alt+r           - Rotate windows"
 echo ""
 echo "Close Xephyr window to exit"
 
-# Clean up on exit
 trap "kill $XEPHYR_PID $RUSTILE_PID 2>/dev/null" EXIT
-
-# Wait for Xephyr to close
 wait $XEPHYR_PID

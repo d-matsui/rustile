@@ -161,11 +161,6 @@ impl WindowState {
         self.config.border_width()
     }
 
-    /// Gets the default display from config
-    pub fn default_display(&self) -> &str {
-        self.config.default_display()
-    }
-
     /// Gets the screen number
     pub fn screen_num(&self) -> usize {
         self.screen_num

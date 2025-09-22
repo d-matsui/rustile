@@ -80,8 +80,6 @@ pub struct Config {
     pub shortcuts: HashMap<String, String>,
     /// Layout configuration
     pub layout: LayoutConfig,
-    /// General settings
-    pub general: GeneralConfig,
 }
 
 /// Layout-related configuration
@@ -118,26 +116,28 @@ fn default_min_window_height() -> u32 {
     50 // Default minimum height - can be customized in config
 }
 
-/// General application configuration
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct GeneralConfig {
-    /// Default display for launching applications
-    pub default_display: String,
-}
-
 impl Default for Config {
     fn default() -> Self {
         let mut shortcuts = HashMap::new();
 
-        // Default keyboard shortcuts
-        shortcuts.insert("Super+t".to_string(), "xcalc".to_string());
-        shortcuts.insert("Super+Return".to_string(), "xterm".to_string());
-        shortcuts.insert("Super+d".to_string(), "dmenu_run".to_string());
+        // Default application shortcuts
+        shortcuts.insert("Shift+Alt+1".to_string(), "xterm".to_string());
+        shortcuts.insert("Shift+Alt+2".to_string(), "emacs".to_string());
+        shortcuts.insert("Shift+Alt+3".to_string(), "google-chrome".to_string());
+
+        // Default window management shortcuts
+        shortcuts.insert("Alt+j".to_string(), "focus_next".to_string());
+        shortcuts.insert("Alt+k".to_string(), "focus_prev".to_string());
+        shortcuts.insert("Shift+Alt+j".to_string(), "swap_window_next".to_string());
+        shortcuts.insert("Shift+Alt+k".to_string(), "swap_window_prev".to_string());
+        shortcuts.insert("Shift+Alt+q".to_string(), "destroy_window".to_string());
+        shortcuts.insert("Alt+f".to_string(), "toggle_fullscreen".to_string());
+        shortcuts.insert("Alt+r".to_string(), "rotate_windows".to_string());
+        shortcuts.insert("Alt+d".to_string(), "toggle_zoom".to_string());
 
         Self {
             shortcuts,
             layout: LayoutConfig::default(),
-            general: GeneralConfig::default(),
         }
     }
 }
@@ -148,18 +148,10 @@ impl Default for LayoutConfig {
             bsp_split_ratio: default_bsp_split_ratio(),
             min_window_width: default_min_window_width(),
             min_window_height: default_min_window_height(),
-            gap: 0,
-            border_width: 2,
+            gap: 10,                          // 10px gap for comfortable spacing
+            border_width: 5,                  // 5px for visible borders
             focused_border_color: 0xFF0000,   // Red
             unfocused_border_color: 0x808080, // Gray
-        }
-    }
-}
-
-impl Default for GeneralConfig {
-    fn default() -> Self {
-        Self {
-            default_display: ":0".to_string(),
         }
     }
 }
@@ -191,24 +183,10 @@ impl Validate for LayoutConfig {
     }
 }
 
-impl Validate for GeneralConfig {
-    fn validate(&self) -> Result<()> {
-        // Validate display format (simple check for X11 display format)
-        if !self.default_display.starts_with(':') && !self.default_display.contains('.') {
-            return Err(anyhow::anyhow!(
-                "default_display should be in X11 format (e.g., ':0', '192.168.1.1:0.0'), got: '{}'",
-                self.default_display
-            ));
-        }
-        Ok(())
-    }
-}
-
 impl Validate for Config {
     fn validate(&self) -> Result<()> {
         // Validate sub-configurations
         self.layout.validate()?;
-        self.general.validate()?;
 
         // Validate shortcuts
         for (key_combo, command) in &self.shortcuts {
@@ -236,29 +214,9 @@ impl Config {
             config.validate()?;
             Ok(config)
         } else {
-            info!(
-                "Config file not found, creating default config at: {:?}",
-                config_path
-            );
-            let default_config = Self::default();
-            default_config.save()?;
-            Ok(default_config)
+            info!("No config file found, using defaults");
+            Ok(Self::default())
         }
-    }
-
-    /// Saves current configuration to file
-    pub fn save(&self) -> Result<()> {
-        let config_path = Self::config_path()?;
-
-        // Create config directory if it doesn't exist
-        if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let content = toml::to_string_pretty(self)?;
-        std::fs::write(&config_path, content)?;
-        info!("Saved config to: {:?}", config_path);
-        Ok(())
     }
 
     /// Gets the config file path
@@ -272,12 +230,6 @@ impl Config {
     /// Validates the configuration using the Validate trait
     fn validate(&self) -> Result<()> {
         Validate::validate(self)
-    }
-
-    /// Gets the master ratio for layout calculations
-    /// Gets the default display for launching applications
-    pub fn default_display(&self) -> &str {
-        &self.general.default_display
     }
 
     /// Gets all configured shortcuts
@@ -431,9 +383,8 @@ mod tests {
     #[test]
     fn test_config_accessors() {
         let config = Config::default();
-        assert_eq!(config.default_display(), ":0");
-        assert_eq!(config.gap(), 0);
-        assert_eq!(config.border_width(), 2);
+        assert_eq!(config.gap(), 10);
+        assert_eq!(config.border_width(), 5);
         assert_eq!(config.focused_border_color(), 0xFF0000);
         assert_eq!(config.unfocused_border_color(), 0x808080);
         assert!(!config.shortcuts().is_empty());

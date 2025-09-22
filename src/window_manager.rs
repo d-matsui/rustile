@@ -122,8 +122,6 @@ impl<C: Connection> WindowManager<C> {
                             cmd.args(&parts[1..]);
                         }
 
-                        cmd.env("DISPLAY", self.window_state.default_display());
-
                         match cmd.spawn() {
                             Ok(_) => info!("Successfully launched: {}", command),
                             Err(e) => error!("Failed to launch {}: {}", command, e),

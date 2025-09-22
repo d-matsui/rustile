@@ -39,7 +39,7 @@ This document outlines the planned features and development direction for Rustil
 
 ### Configuration & System
 
-- [ ] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
+- [x] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
 - [x] **Production installation** - Installation guide
 
 ### Workspace Management
@@ -82,3 +82,18 @@ This document outlines the planned features and development direction for Rustil
 - [ ] **Status bar support** - Integration with external status bars
 - [ ] **Screenshot utility** - Quick screenshot functionality
 - [ ] **Wayland compatibility** - Research wlroots integration, maintain X11 compatibility
+
+## 🐛 Known Issues & Bug Fixes
+
+### Window Management Bugs
+
+- [ ] **Black root window issue** - After closing all windows with Shift+Alt+q, a black root window remains when opening new applications (reproduced with Emacs)
+- [ ] **Chrome Xephyr compatibility** - Investigate why Google Chrome doesn't launch in Xephyr test environment
+
+## 🔧 CI/CD & Infrastructure
+
+### Build & Release Process
+
+- [ ] **CI/CD documentation** - Document current workflows and troubleshooting guide
+- [ ] **Workflow simplification** - Reduce complexity in GitHub Actions workflows
+- [ ] **Security improvements** - Implement least-privilege tokens and better dependency scanning

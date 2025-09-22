@@ -16,7 +16,7 @@
           {"type": "test", "release": "patch"},
           {"type": "ci", "release": "patch"},
           {"type": "chore", "release": false},
-          {"breaking": true, "release": "minor"}
+          {"breaking": true, "release": "major"}
         ]
       }
     ],
