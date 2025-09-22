@@ -388,8 +388,8 @@ mod tests {
     #[test]
     fn test_config_accessors() {
         let config = Config::default();
-        assert_eq!(config.gap(), 0);
-        assert_eq!(config.border_width(), 2);
+        assert_eq!(config.gap(), 10);
+        assert_eq!(config.border_width(), 5);
         assert_eq!(config.focused_border_color(), 0xFF0000);
         assert_eq!(config.unfocused_border_color(), 0x808080);
         assert!(!config.shortcuts().is_empty());

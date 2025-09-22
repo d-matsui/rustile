@@ -89,3 +89,11 @@ This document outlines the planned features and development direction for Rustil
 
 - [ ] **Black root window issue** - After closing all windows with Shift+Alt+q, a black root window remains when opening new applications (reproduced with Emacs)
 - [ ] **Chrome Xephyr compatibility** - Investigate why Google Chrome doesn't launch in Xephyr test environment
+
+## 🔧 CI/CD & Infrastructure
+
+### Build & Release Process
+
+- [ ] **CI/CD documentation** - Document current workflows and troubleshooting guide
+- [ ] **Workflow simplification** - Reduce complexity in GitHub Actions workflows
+- [ ] **Security improvements** - Implement least-privilege tokens and better dependency scanning
