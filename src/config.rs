@@ -121,10 +121,20 @@ impl Default for Config {
     fn default() -> Self {
         let mut shortcuts = HashMap::new();
 
-        // Default keyboard shortcuts
-        shortcuts.insert("Super+t".to_string(), "xcalc".to_string());
-        shortcuts.insert("Super+Return".to_string(), "xterm".to_string());
-        shortcuts.insert("Super+d".to_string(), "dmenu_run".to_string());
+        // Default application shortcuts
+        shortcuts.insert("Shift+Alt+1".to_string(), "xterm".to_string());
+        shortcuts.insert("Shift+Alt+2".to_string(), "emacs".to_string());
+        shortcuts.insert("Shift+Alt+3".to_string(), "google-chrome".to_string());
+
+        // Default window management shortcuts
+        shortcuts.insert("Alt+j".to_string(), "focus_next".to_string());
+        shortcuts.insert("Alt+k".to_string(), "focus_prev".to_string());
+        shortcuts.insert("Shift+Alt+j".to_string(), "swap_window_next".to_string());
+        shortcuts.insert("Shift+Alt+k".to_string(), "swap_window_prev".to_string());
+        shortcuts.insert("Shift+Alt+q".to_string(), "destroy_window".to_string());
+        shortcuts.insert("Alt+f".to_string(), "toggle_fullscreen".to_string());
+        shortcuts.insert("Alt+r".to_string(), "rotate_windows".to_string());
+        shortcuts.insert("Alt+d".to_string(), "toggle_zoom".to_string());
 
         Self {
             shortcuts,
@@ -139,8 +149,8 @@ impl Default for LayoutConfig {
             bsp_split_ratio: default_bsp_split_ratio(),
             min_window_width: default_min_window_width(),
             min_window_height: default_min_window_height(),
-            gap: 0,
-            border_width: 2,
+            gap: 10,                          // 10px gap for comfortable spacing
+            border_width: 5,                   // 5px for visible borders
             focused_border_color: 0xFF0000,   // Red
             unfocused_border_color: 0x808080, // Gray
         }
