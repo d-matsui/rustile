@@ -1,3 +1,33 @@
+## [1.0.0](https://github.com/d-matsui/rustile/compare/v0.10.0...v1.0.0) (2025-09-22)
+
+### ⚠ BREAKING CHANGES
+
+* Configuration auto-generation has been removed.
+Rustile now uses in-memory defaults when no config file exists,
+simplifying deployment and testing workflows.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### 🚀 Features
+
+* implement config simplification for v1.0.0 ([42398ac](https://github.com/d-matsui/rustile/commit/42398ac5f665150e1c55ce7d8daaa0581dc7521a))
+* prepare for v1.0.0 stable release ([ae51470](https://github.com/d-matsui/rustile/commit/ae51470f02a770b5cc651cd8bbe88e5212303bb4))
+* update config files and test scripts for v1.0.0 ([475e01a](https://github.com/d-matsui/rustile/commit/475e01a7bf4c861b13f15e639eb110ed714e1da2))
+
+### 🐛 Bug Fixes
+
+* add missing default shortcuts and simplify config files ([2276d2b](https://github.com/d-matsui/rustile/commit/2276d2b5e496a3852a30d2fc0357a4b72e785f4d))
+* change breaking change rule from minor to major ([713836f](https://github.com/d-matsui/rustile/commit/713836f635bb5f51477bccb19116bfdb7262a58a))
+* update test assertions to match new default values ([dd80999](https://github.com/d-matsui/rustile/commit/dd809991db32e499d5e522dce840dadbe6b711ff))
+
+### 📖 Documentation
+
+* add ADR index and known issues to roadmap ([5e7b418](https://github.com/d-matsui/rustile/commit/5e7b418dabe27aa9d34319db025034119b4b118a))
+* expand ADR-012 to include display configuration simplification ([2c10e51](https://github.com/d-matsui/rustile/commit/2c10e51ce055092594455346acf28c116ac09549))
+* update documentation for v1.0.0 config simplification ([30e8d67](https://github.com/d-matsui/rustile/commit/30e8d676ec8f8adf1b94a528395d7bd14cad8f11))
+
 ## [0.10.0](https://github.com/d-matsui/rustile/compare/v0.9.0...v0.10.0) (2025-09-19)
 
 ### 🚀 Features
