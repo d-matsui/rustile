@@ -80,8 +80,6 @@ pub struct Config {
     pub shortcuts: HashMap<String, String>,
     /// Layout configuration
     pub layout: LayoutConfig,
-    /// General settings
-    pub general: GeneralConfig,
 }
 
 /// Layout-related configuration
@@ -118,12 +116,6 @@ fn default_min_window_height() -> u32 {
     50 // Default minimum height - can be customized in config
 }
 
-/// General application configuration
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct GeneralConfig {
-    /// Default display for launching applications
-    pub default_display: String,
-}
 
 impl Default for Config {
     fn default() -> Self {
@@ -137,7 +129,6 @@ impl Default for Config {
         Self {
             shortcuts,
             layout: LayoutConfig::default(),
-            general: GeneralConfig::default(),
         }
     }
 }
@@ -156,13 +147,6 @@ impl Default for LayoutConfig {
     }
 }
 
-impl Default for GeneralConfig {
-    fn default() -> Self {
-        Self {
-            default_display: ":0".to_string(),
-        }
-    }
-}
 
 // === Validation Implementations ===
 
@@ -191,24 +175,11 @@ impl Validate for LayoutConfig {
     }
 }
 
-impl Validate for GeneralConfig {
-    fn validate(&self) -> Result<()> {
-        // Validate display format (simple check for X11 display format)
-        if !self.default_display.starts_with(':') && !self.default_display.contains('.') {
-            return Err(anyhow::anyhow!(
-                "default_display should be in X11 format (e.g., ':0', '192.168.1.1:0.0'), got: '{}'",
-                self.default_display
-            ));
-        }
-        Ok(())
-    }
-}
 
 impl Validate for Config {
     fn validate(&self) -> Result<()> {
         // Validate sub-configurations
         self.layout.validate()?;
-        self.general.validate()?;
 
         // Validate shortcuts
         for (key_combo, command) in &self.shortcuts {
@@ -236,30 +207,11 @@ impl Config {
             config.validate()?;
             Ok(config)
         } else {
-            info!(
-                "Config file not found, creating default config at: {:?}",
-                config_path
-            );
-            let default_config = Self::default();
-            default_config.save()?;
-            Ok(default_config)
+            info!("No config file found, using defaults");
+            Ok(Self::default())
         }
     }
 
-    /// Saves current configuration to file
-    pub fn save(&self) -> Result<()> {
-        let config_path = Self::config_path()?;
-
-        // Create config directory if it doesn't exist
-        if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let content = toml::to_string_pretty(self)?;
-        std::fs::write(&config_path, content)?;
-        info!("Saved config to: {:?}", config_path);
-        Ok(())
-    }
 
     /// Gets the config file path
     fn config_path() -> Result<std::path::PathBuf> {
@@ -274,11 +226,6 @@ impl Config {
         Validate::validate(self)
     }
 
-    /// Gets the master ratio for layout calculations
-    /// Gets the default display for launching applications
-    pub fn default_display(&self) -> &str {
-        &self.general.default_display
-    }
 
     /// Gets all configured shortcuts
     pub fn shortcuts(&self) -> &HashMap<String, String> {
@@ -431,7 +378,6 @@ mod tests {
     #[test]
     fn test_config_accessors() {
         let config = Config::default();
-        assert_eq!(config.default_display(), ":0");
         assert_eq!(config.gap(), 0);
         assert_eq!(config.border_width(), 2);
         assert_eq!(config.focused_border_color(), 0xFF0000);
