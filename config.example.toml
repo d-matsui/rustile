@@ -1,9 +1,6 @@
 # Example configuration file for Rustile window manager
 # Copy this file to ~/.config/rustile/config.toml and customize as needed
-
-[general]
-# Default display for launching applications
-default_display = ":0"
+# Note: Configuration is optional - Rustile works without any config file
 
 [layout]
 # BSP (Binary Space Partitioning) layout settings

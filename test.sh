@@ -5,12 +5,8 @@
 pkill -f "Xephyr :10" 2>/dev/null
 pkill -f "rustile.*:10" 2>/dev/null
 
-# Setup clean config from example
-echo "Setting up config..."
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-# Update display setting for test environment
-sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
+# No config setup needed - Rustile works without config files
+echo "Using default configuration (no config file needed)..."
 
 # Build rustile (debug mode for better logging with cfg(debug_assertions))
 echo "Building rustile..."
