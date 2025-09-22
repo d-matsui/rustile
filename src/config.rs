@@ -116,7 +116,6 @@ fn default_min_window_height() -> u32 {
     50 // Default minimum height - can be customized in config
 }
 
-
 impl Default for Config {
     fn default() -> Self {
         let mut shortcuts = HashMap::new();
@@ -150,13 +149,12 @@ impl Default for LayoutConfig {
             min_window_width: default_min_window_width(),
             min_window_height: default_min_window_height(),
             gap: 10,                          // 10px gap for comfortable spacing
-            border_width: 5,                   // 5px for visible borders
+            border_width: 5,                  // 5px for visible borders
             focused_border_color: 0xFF0000,   // Red
             unfocused_border_color: 0x808080, // Gray
         }
     }
 }
-
 
 // === Validation Implementations ===
 
@@ -184,7 +182,6 @@ impl Validate for LayoutConfig {
         Ok(())
     }
 }
-
 
 impl Validate for Config {
     fn validate(&self) -> Result<()> {
@@ -222,7 +219,6 @@ impl Config {
         }
     }
 
-
     /// Gets the config file path
     fn config_path() -> Result<std::path::PathBuf> {
         let config_dir =
@@ -235,7 +231,6 @@ impl Config {
     fn validate(&self) -> Result<()> {
         Validate::validate(self)
     }
-
 
     /// Gets all configured shortcuts
     pub fn shortcuts(&self) -> &HashMap<String, String> {

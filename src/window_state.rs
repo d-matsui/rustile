@@ -161,7 +161,6 @@ impl WindowState {
         self.config.border_width()
     }
 
-
     /// Gets the screen number
     pub fn screen_num(&self) -> usize {
         self.screen_num

@@ -122,7 +122,6 @@ impl<C: Connection> WindowManager<C> {
                             cmd.args(&parts[1..]);
                         }
 
-
                         match cmd.spawn() {
                             Ok(_) => info!("Successfully launched: {}", command),
                             Err(e) => error!("Failed to launch {}: {}", command, e),
