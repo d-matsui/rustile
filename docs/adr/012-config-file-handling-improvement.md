@@ -1,10 +1,11 @@
 # ADR-012: Configuration Simplification and Auto-Generation Removal
 
 ## Status
-**Current**: Proposed (2024-09-19)
+**Current**: Accepted (2025-09-22)
 
 **History**:
 - Proposed: 2024-09-19
+- Accepted: 2025-09-22
 
 ## Context
 Rustile's current configuration system has two interconnected problems that complicate deployment and testing:

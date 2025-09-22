@@ -39,7 +39,7 @@ This document outlines the planned features and development direction for Rustil
 
 ### Configuration & System
 
-- [ ] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
+- [x] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
 - [x] **Production installation** - Installation guide
 
 ### Workspace Management

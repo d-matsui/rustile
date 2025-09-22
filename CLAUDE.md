@@ -186,5 +186,5 @@ See [docs/adr/](docs/adr/) for detailed decisions:
 ## Future Development
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for v1.0.0 and beyond:
-- **v1.0.0**: Config file handling improvement (no auto-generation)
+- **v1.0.0**: Configuration simplification (completed)
 - **Future**: Directional insertion, floating windows, workspaces, multi-monitor support

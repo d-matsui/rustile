@@ -32,8 +32,8 @@ Download the latest release from [GitHub Releases](https://github.com/d-matsui/r
 
 ```bash
 # Download and install (example for latest release)
-wget https://github.com/d-matsui/rustile/releases/download/v0.9.0/rustile-v0.9.0-x86_64-linux.tar.gz
-tar xzf rustile-v0.9.0-x86_64-linux.tar.gz
+wget https://github.com/d-matsui/rustile/releases/download/v1.0.0/rustile-v1.0.0-x86_64-linux.tar.gz
+tar xzf rustile-v1.0.0-x86_64-linux.tar.gz
 sudo cp rustile /usr/local/bin/
 sudo chmod +x /usr/local/bin/rustile
 ```
@@ -56,8 +56,6 @@ sudo chmod +x /usr/local/bin/rustile
 
 ## Quick Start - Try Rustile Safely
 
-**Important**: Rustile will auto-generate `~/.config/rustile/config.toml` on first run with `default_display = ":0"`. You'll need to adjust this for different display setups.
-
 ### Option 1: Xephyr (Recommended - Keep your desktop running)
 
 The safest way to try Rustile without affecting your current desktop:
@@ -65,11 +63,6 @@ The safest way to try Rustile without affecting your current desktop:
 ```bash
 # Install Xephyr if needed
 sudo apt-get install xserver-xephyr
-
-# Setup config for Xephyr
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
 
 # Create a nested X server window
 Xephyr :10 -screen 1280x720 -resizeable &
@@ -91,11 +84,6 @@ Run Rustile on a different TTY while keeping your desktop session:
 ```bash
 # Switch to TTY3 with Ctrl+Alt+F3 (TTY1/2 are often in use)
 # Login with your username and password
-
-# Setup config for TTY (use :10 to avoid conflicts, same as Xephyr)
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
 
 # Using xinitrc
 echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
@@ -135,9 +123,6 @@ Once you're comfortable with Rustile, choose one of these methods:
 
 ```bash
 # Setup Rustile as default
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-# default_display = ":0" (keep as-is)
 
 # Create xinitrc
 echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
@@ -162,12 +147,8 @@ ExecStart=-/sbin/agetty --autologin USERNAME --noclear %I $TERM
 ```
 Replace `USERNAME` with your actual username.
 
-**Step 2: Setup Rustile config for TTY3**
-```bash
-mkdir -p ~/.config/rustile
-cp config.example.toml ~/.config/rustile/config.toml
-sed -i 's/default_display = ":0"/default_display = ":10"/' ~/.config/rustile/config.toml
-```
+**Step 2: No additional config needed**
+Rustile works out-of-the-box without configuration files.
 
 **Step 3: Setup X auto-start on TTY3**
 ```bash
