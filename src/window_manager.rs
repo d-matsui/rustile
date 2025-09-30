@@ -138,6 +138,15 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Mapping window: {:?}", window);
 
+        // Check if window is already managed (fixes Emacs double MapRequest bug)
+        if self.window_state.has_window(window) {
+            info!(
+                "Window {:?} is already managed, ignoring duplicate MapRequest",
+                window
+            );
+            return Ok(());
+        }
+
         self.conn.map_window(window)?;
         self.window_state.add_window_to_layout(window);
         self.window_state.set_focused_window(Some(window));

@@ -6,47 +6,32 @@ This document outlines the planned features and development direction for Rustil
 
 ### Window Operations
 
-- ✅ **BSP tiling layout** - Binary space partitioning window management
-- ✅ **Window operations** - Focus, destroy, swap, rotate, fullscreen, zoom-to-parent
-- ✅ **Visual focus management** - Red borders for focused, gray for unfocused windows
+- [x] **BSP tiling layout** - Binary space partitioning window management
+- [x] **Window operations** - Focus, destroy, swap, rotate, fullscreen, zoom-to-parent
+- [x] **Visual focus management** - Red borders for focused, gray for unfocused windows
 
 ### Configuration & System
 
-- ✅ **TOML configuration** - Runtime validation, gaps, borders, split ratios
-- ✅ **Comprehensive testing** - 66 unit tests covering core functionality
-- ✅ **CI/CD automation** - Semantic releases, security audits, code quality checks
-- ✅ **Standardized logging** - 3-level logging with tracing framework
-- ✅ **Modular architecture** - Clean separation of concerns (7 focused modules)
-- ✅ **Zero-warning builds** - Strict clippy rules, automated formatting
-- ✅ **Single source of truth** - Eliminated duplicate state management
+- [x] **TOML configuration** - Runtime validation, gaps, borders, split ratios
+- [x] **Comprehensive testing** - 66 unit tests covering core functionality
+- [x] **CI/CD automation** - Semantic releases, security audits, code quality checks
+- [x] **Standardized logging** - 3-level logging with tracing framework
+- [x] **Modular architecture** - Clean separation of concerns (7 focused modules)
+- [x] **Zero-warning builds** - Strict clippy rules, automated formatting
+- [x] **Single source of truth** - Eliminated duplicate state management
 
 ### Workspace Management
 
-- ✅ **Single workspace** - Current implementation supports one workspace
+- [x] **Single workspace** - Current implementation supports one workspace
 
 ### Input & Shortcuts
 
-- ✅ **Keyboard shortcuts** - Comprehensive Alt+key bindings for all operations
+- [x] **Keyboard shortcuts** - Comprehensive Alt+key bindings for all operations
 
 ### Platform & Integration
 
-- ✅ **X11 support** - Full X11 window management integration
-- ✅ **Comprehensive documentation** - ADRs, implementation guides, user documentation
-
-## 🎯 v1.0.0 - Stable Release
-
-### Window Operations
-
-### Configuration & System
-
-- [x] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
-- [x] **Production installation** - Installation guide
-
-### Workspace Management
-
-### Input & Shortcuts
-
-### Platform & Integration
+- [x] **X11 support** - Full X11 window management integration
+- [x] **Comprehensive documentation** - ADRs, implementation guides, user documentation
 
 ## 🚀 Feature Expansion
 
@@ -87,8 +72,8 @@ This document outlines the planned features and development direction for Rustil
 
 ### Window Management Bugs
 
-- [ ] **Black root window issue** - After closing all windows with Shift+Alt+q, a black root window remains when opening new applications (reproduced with Emacs)
-- [ ] **Chrome Xephyr compatibility** - Investigate why Google Chrome doesn't launch in Xephyr test environment
+- [x] **Emacs double MapRequest bug** - Fixed: Emacs sent duplicate MapRequest events causing invisible windows and layout issues (fixed in v1.0.1)
+- [ ] **Chrome Xephyr compatibility** - Google Chrome requires `--disable-gpu --no-sandbox` flags in pure X11 environments
 
 ## 🔧 CI/CD & Infrastructure
 

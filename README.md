@@ -6,7 +6,7 @@ An X11 tiling window manager written in Rust, inspired by [yabai](https://github
 ![X11](https://img.shields.io/badge/X11-Window%20Manager-orange)
 ![License](https://img.shields.io/github/license/d-matsui/rustile)
 
-![Example](<Screenshot from 2025-07-23 15-14-27.png>)
+![Rustile Window Manager](rustile-screenshot.png)
 
 ## Key Features
 
