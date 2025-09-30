@@ -131,6 +131,8 @@ echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
 startx
 ```
 
+**Note**: For input methods (IME), see [ADR-013: IME Setup](docs/adr/013-ime-setup-tty-environment.md) - configuration differs from running alongside desktop environments.
+
 #### Option 2: Dedicated TTY (Alongside Desktop Environment)
 
 **Best for**: Using Rustile alongside GNOME/KDE without conflicts
@@ -166,6 +168,8 @@ EOF
 ```bash
 echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
 ```
+
+**Note**: For Japanese input (or other input methods), you'll need additional configuration in `.xinitrc`. See [ADR-013: IME Setup](docs/adr/013-ime-setup-tty-environment.md) for fcitx5/DBus configuration.
 
 **Usage:**
 - **Ctrl+Alt+F3**: Switch to Rustile environment
