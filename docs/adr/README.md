@@ -18,4 +18,4 @@ Architecture Decision Records for Rustile window manager.
 ## Deprecated
 - **[ADR-003: SRP Refactoring to Three-Module Architecture](003-srp-refactoring-three-module-architecture.md)**
 
-_Generated: 2025-09-22 14:28_
+_Generated: 2025-09-30 13:26_
