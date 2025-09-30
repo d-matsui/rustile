@@ -149,10 +149,7 @@ ExecStart=-/sbin/agetty --autologin USERNAME --noclear %I $TERM
 ```
 Replace `USERNAME` with your actual username.
 
-**Step 2: No additional config needed**
-Rustile works out-of-the-box without configuration files.
-
-**Step 3: Setup X auto-start on TTY3**
+**Step 2: Setup X auto-start on TTY3**
 ```bash
 # Add to ~/.bash_profile (create if it doesn't exist)
 cat >> ~/.bash_profile << 'EOF'
@@ -164,7 +161,7 @@ fi
 EOF
 ```
 
-**Step 4: Setup xinitrc for Rustile**
+**Step 3: Setup xinitrc for Rustile**
 ```bash
 echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
 ```
