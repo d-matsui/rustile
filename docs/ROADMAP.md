@@ -33,21 +33,6 @@ This document outlines the planned features and development direction for Rustil
 - ✅ **X11 support** - Full X11 window management integration
 - ✅ **Comprehensive documentation** - ADRs, implementation guides, user documentation
 
-## 🎯 v1.0.0 - Stable Release
-
-### Window Operations
-
-### Configuration & System
-
-- [x] **Config file handling improvement** - Use in-memory defaults instead of auto-generating files (see [ADR-012](adr/012-config-file-handling-improvement.md))
-- [x] **Production installation** - Installation guide
-
-### Workspace Management
-
-### Input & Shortcuts
-
-### Platform & Integration
-
 ## 🚀 Feature Expansion
 
 ### Window Operations
@@ -87,8 +72,8 @@ This document outlines the planned features and development direction for Rustil
 
 ### Window Management Bugs
 
-- [ ] **Black root window issue** - After closing all windows with Shift+Alt+q, a black root window remains when opening new applications (reproduced with Emacs)
-- [ ] **Chrome Xephyr compatibility** - Investigate why Google Chrome doesn't launch in Xephyr test environment
+- [x] **Emacs double MapRequest bug** - Fixed: Emacs sent duplicate MapRequest events causing invisible windows and layout issues (fixed in v1.0.1)
+- [ ] **Chrome Xephyr compatibility** - Google Chrome requires `--disable-gpu --no-sandbox` flags in pure X11 environments
 
 ## 🔧 CI/CD & Infrastructure
 
