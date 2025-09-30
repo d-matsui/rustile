@@ -37,7 +37,7 @@ This document outlines the planned features and development direction for Rustil
 
 ### Window Operations
 
-- [ ] **Directional insertion** - Insert new windows in specific directions (left/right/up/down)
+- 🔥 [ ] **Directional insertion** - Insert/move window in specific directions (left/right/up/down)
 - [ ] **Float toggle** - Switch windows between tiling and floating modes
 - [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
 
@@ -50,7 +50,7 @@ This document outlines the planned features and development direction for Rustil
 
 ### Workspace Management
 
-- [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
+- 🔥 [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
 - [ ] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
 - [ ] **Window-workspace movement** - Move windows between different workspaces
 
@@ -62,7 +62,7 @@ This document outlines the planned features and development direction for Rustil
 
 ### Platform & Integration
 
-- [ ] **Multi-monitor support** - Automatically detect and configure multiple monitors
+- 🔥 [ ] **Multi-monitor support** - Automatically detect and configure multiple monitors
 - [ ] **Application launcher** - Built-in or integration with dmenu/rofi
 - [ ] **Status bar support** - Integration with external status bars
 - [ ] **Screenshot utility** - Quick screenshot functionality
@@ -73,7 +73,6 @@ This document outlines the planned features and development direction for Rustil
 ### Window Management Bugs
 
 - [x] **Emacs double MapRequest bug** - Fixed: Emacs sent duplicate MapRequest events causing invisible windows and layout issues (fixed in v1.0.1)
-- [ ] **Chrome Xephyr compatibility** - Google Chrome requires `--disable-gpu --no-sandbox` flags in pure X11 environments
 
 ## 🔧 CI/CD & Infrastructure
 
