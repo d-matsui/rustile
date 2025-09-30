@@ -47,6 +47,7 @@ This document outlines the planned features and development direction for Rustil
 - [ ] **Enhanced error messages** - User-friendly configuration validation errors
 - [ ] **Live config reload** - Update settings without restarting rustile
 - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
+- [ ] **Enhanced debug messages** - User-friendly debug logging (human-readable logs)
 
 ### Workspace Management
 
