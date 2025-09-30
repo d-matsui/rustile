@@ -14,8 +14,9 @@ Architecture Decision Records for Rustile window manager.
 - **[ADR-010: Zoom to Parent Feature Implementation](010-zoom-to-parent-feature.md)**
 - **[ADR-011: Separation of BSP Tree Logic from Screen Geometry Calculations](011-bsp-screen-rect-separation.md)**
 - **[ADR-012: Configuration Simplification and Auto-Generation Removal](012-config-file-handling-improvement.md)**
+- **[ADR-013: Input Method (IME) Setup for Rustile in TTY Environment](013-ime-setup-tty-environment.md)**
 
 ## Deprecated
 - **[ADR-003: SRP Refactoring to Three-Module Architecture](003-srp-refactoring-three-module-architecture.md)**
 
-_Generated: 2025-09-30 13:26_
+_Generated: 2025-09-30 16:17_
