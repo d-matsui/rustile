@@ -1,3 +1,16 @@
+## [1.0.1](https://github.com/d-matsui/rustile/compare/v1.0.0...v1.0.1) (2025-09-30)
+
+### 🐛 Bug Fixes
+
+* prevent duplicate MapRequest handling for Emacs ([bdfdf57](https://github.com/d-matsui/rustile/commit/bdfdf57a8f701616e59dacba87528c4dd162bae8))
+
+### 📖 Documentation
+
+* add Chrome X11 compatibility flags to example config ([ce52558](https://github.com/d-matsui/rustile/commit/ce525583109b933ac1ea3b5604c812113437c455))
+* remove redundant ADR INDEX.md in favor of README.md ([532a7ea](https://github.com/d-matsui/rustile/commit/532a7ea0fa25fe8b0ef0aae7d85c14e681c8a788))
+* replace checkmark emojis with [x] in ROADMAP ([83a1b07](https://github.com/d-matsui/rustile/commit/83a1b071928f72046b29f3fb713baf76e2bd68bb))
+* update screenshot with modern applications ([3f54541](https://github.com/d-matsui/rustile/commit/3f54541de9a98256c65de2dfe8220f468e3ec4d1))
+
 ## [1.0.0](https://github.com/d-matsui/rustile/compare/v0.10.0...v1.0.0) (2025-09-22)
 
 ### ⚠ BREAKING CHANGES
