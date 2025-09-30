@@ -6,32 +6,32 @@ This document outlines the planned features and development direction for Rustil
 
 ### Window Operations
 
-- ✅ **BSP tiling layout** - Binary space partitioning window management
-- ✅ **Window operations** - Focus, destroy, swap, rotate, fullscreen, zoom-to-parent
-- ✅ **Visual focus management** - Red borders for focused, gray for unfocused windows
+- [x] **BSP tiling layout** - Binary space partitioning window management
+- [x] **Window operations** - Focus, destroy, swap, rotate, fullscreen, zoom-to-parent
+- [x] **Visual focus management** - Red borders for focused, gray for unfocused windows
 
 ### Configuration & System
 
-- ✅ **TOML configuration** - Runtime validation, gaps, borders, split ratios
-- ✅ **Comprehensive testing** - 66 unit tests covering core functionality
-- ✅ **CI/CD automation** - Semantic releases, security audits, code quality checks
-- ✅ **Standardized logging** - 3-level logging with tracing framework
-- ✅ **Modular architecture** - Clean separation of concerns (7 focused modules)
-- ✅ **Zero-warning builds** - Strict clippy rules, automated formatting
-- ✅ **Single source of truth** - Eliminated duplicate state management
+- [x] **TOML configuration** - Runtime validation, gaps, borders, split ratios
+- [x] **Comprehensive testing** - 66 unit tests covering core functionality
+- [x] **CI/CD automation** - Semantic releases, security audits, code quality checks
+- [x] **Standardized logging** - 3-level logging with tracing framework
+- [x] **Modular architecture** - Clean separation of concerns (7 focused modules)
+- [x] **Zero-warning builds** - Strict clippy rules, automated formatting
+- [x] **Single source of truth** - Eliminated duplicate state management
 
 ### Workspace Management
 
-- ✅ **Single workspace** - Current implementation supports one workspace
+- [x] **Single workspace** - Current implementation supports one workspace
 
 ### Input & Shortcuts
 
-- ✅ **Keyboard shortcuts** - Comprehensive Alt+key bindings for all operations
+- [x] **Keyboard shortcuts** - Comprehensive Alt+key bindings for all operations
 
 ### Platform & Integration
 
-- ✅ **X11 support** - Full X11 window management integration
-- ✅ **Comprehensive documentation** - ADRs, implementation guides, user documentation
+- [x] **X11 support** - Full X11 window management integration
+- [x] **Comprehensive documentation** - ADRs, implementation guides, user documentation
 
 ## 🚀 Feature Expansion
 
