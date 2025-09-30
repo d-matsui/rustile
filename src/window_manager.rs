@@ -140,7 +140,10 @@ impl<C: Connection> WindowManager<C> {
 
         // Check if window is already managed (fixes Emacs double MapRequest bug)
         if self.window_state.has_window(window) {
-            info!("Window {:?} is already managed, ignoring duplicate MapRequest", window);
+            info!(
+                "Window {:?} is already managed, ignoring duplicate MapRequest",
+                window
+            );
             return Ok(());
         }
 
