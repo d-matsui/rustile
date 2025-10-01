@@ -37,7 +37,6 @@ This document outlines the planned features and development direction for Rustil
 
 ### Window Operations
 
-- 🔥 [ ] **Directional insertion** - Insert/move window in specific directions (left/right/up/down)
 - [ ] **Float toggle** - Switch windows between tiling and floating modes
 - [ ] **Float movement** - Keyboard shortcuts for moving/resizing floating windows
 
@@ -57,7 +56,7 @@ This document outlines the planned features and development direction for Rustil
 
 ### Input & Shortcuts
 
-- [ ] **Better modifier handling** - Distinguish between left and right Alt keys
+- 🔥 [ ] **Better modifier handling** - Distinguish between left and right Alt keys
 - [ ] **Shortcut conflicts detection** - Warn about conflicting keybindings
 - [ ] **Mouse support** - Optional mouse interactions for window management
 
