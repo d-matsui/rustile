@@ -1,3 +1,20 @@
+## [1.1.0](https://github.com/d-matsui/rustile/compare/v1.0.1...v1.1.0) (2025-10-02)
+
+### 🚀 Features
+
+* distinguish left and right Alt keys in shortcuts ([a8a7f79](https://github.com/d-matsui/rustile/commit/a8a7f79ae3e2014d0deac374d07f5ba6034871e0))
+
+### 📖 Documentation
+
+* add ADR-013 for IME setup in TTY environment ([bf13fd0](https://github.com/d-matsui/rustile/commit/bf13fd0ab0a88f29f98d1517c5f8681a6048b777))
+* add enhanced debug messages to ROADMAP ([6e158e3](https://github.com/d-matsui/rustile/commit/6e158e399fb206b8cb92c416eb7aa83ca85dc352))
+* add priority markers to ROADMAP features ([cb45a42](https://github.com/d-matsui/rustile/commit/cb45a42418eab0249c0833fab96d7072b9ce135e))
+* add spec-driven development process and template ([7660045](https://github.com/d-matsui/rustile/commit/766004525104ba19afe12e72f7a4de5c9add5d77))
+* remove directional insertion from ROADMAP ([90fbe52](https://github.com/d-matsui/rustile/commit/90fbe52e4ef69d47e9e7354b302dcd2db503419e))
+* remove redundant step in TTY setup instructions ([38d6019](https://github.com/d-matsui/rustile/commit/38d6019aa7fde06ad771f668b9d17882100396c9))
+* simplify spec-driven ADR process to 4 phases ([8609577](https://github.com/d-matsui/rustile/commit/8609577307de243b28bcc246e8f7379f1fc74fba))
+* update config example and add restart shortcut to ROADMAP ([968461b](https://github.com/d-matsui/rustile/commit/968461b981d21950b871bbdfc82a936cc008464e))
+
 ## [1.0.1](https://github.com/d-matsui/rustile/compare/v1.0.0...v1.0.1) (2025-09-30)
 
 ### 🐛 Bug Fixes
