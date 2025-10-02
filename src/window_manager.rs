@@ -5,6 +5,7 @@ use std::process::Command;
 #[cfg(debug_assertions)]
 use tracing::debug;
 use tracing::{error, info};
+use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
@@ -100,35 +101,47 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles key press events
     fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
-        if let Some(command) = self.shortcut_manager.handle_key_press(&self.conn, &event)? {
-            info!("Shortcut pressed, executing: {}", command);
+        let (command_opt, matched) = self.shortcut_manager.handle_key_press(&self.conn, &event)?;
 
-            // Handle window management commands
-            match command {
-                "focus_next" => return self.focus_next(),
-                "focus_prev" => return self.focus_prev(),
-                "swap_window_next" => return self.swap_window_next(),
-                "swap_window_prev" => return self.swap_window_prev(),
-                "destroy_window" => return self.destroy_focused_window(),
-                "toggle_fullscreen" => return self.toggle_fullscreen(),
-                "rotate_windows" => return self.rotate_windows(),
-                "toggle_zoom" => return self.toggle_zoom(),
-                _ => {
-                    let parts: Vec<&str> = command.split_whitespace().collect();
-                    if let Some(program) = parts.first() {
-                        let mut cmd = Command::new(program);
+        if matched {
+            // Shortcut matched - allow event processing to continue (ADR-015)
+            self.conn
+                .allow_events(Allow::ASYNC_KEYBOARD, CURRENT_TIME)?;
 
-                        if parts.len() > 1 {
-                            cmd.args(&parts[1..]);
-                        }
+            if let Some(command) = command_opt {
+                info!("Shortcut pressed, executing: {}", command);
 
-                        match cmd.spawn() {
-                            Ok(_) => info!("Successfully launched: {}", command),
-                            Err(e) => error!("Failed to launch {}: {}", command, e),
+                // Handle window management commands
+                match command {
+                    "focus_next" => return self.focus_next(),
+                    "focus_prev" => return self.focus_prev(),
+                    "swap_window_next" => return self.swap_window_next(),
+                    "swap_window_prev" => return self.swap_window_prev(),
+                    "destroy_window" => return self.destroy_focused_window(),
+                    "toggle_fullscreen" => return self.toggle_fullscreen(),
+                    "rotate_windows" => return self.rotate_windows(),
+                    "toggle_zoom" => return self.toggle_zoom(),
+                    _ => {
+                        let parts: Vec<&str> = command.split_whitespace().collect();
+                        if let Some(program) = parts.first() {
+                            let mut cmd = Command::new(program);
+
+                            if parts.len() > 1 {
+                                cmd.args(&parts[1..]);
+                            }
+
+                            match cmd.spawn() {
+                                Ok(_) => info!("Successfully launched: {}", command),
+                                Err(e) => error!("Failed to launch {}: {}", command, e),
+                            }
                         }
                     }
                 }
             }
+        } else {
+            // No shortcut matched - replay event to focused application (ADR-015)
+            self.conn
+                .allow_events(Allow::REPLAY_KEYBOARD, CURRENT_TIME)?;
         }
         Ok(())
     }
