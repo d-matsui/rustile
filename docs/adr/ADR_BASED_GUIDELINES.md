@@ -1,4 +1,4 @@
-# Spec-Driven ADR Guidelines
+# ADR Based Development Guidelines
 
 Plan features incrementally through ADRs with explicit user approval at each phase.
 
@@ -48,16 +48,16 @@ Each phase requires **explicit user OK** before proceeding.
 
 **Start new feature**:
 ```
-User: "Implement X. Follow SPEC_DRIVEN_GUIDELINES.md"
+User: "Implement X. Follow ADR_BASED_GUIDELINES.md"
 Claude: [Creates ADR, fills Requirements, waits for OK]
 ```
 
 **Resume in-progress**:
 ```
-User: "Continue ADR-XXX. Follow SPEC_DRIVEN_GUIDELINES.md"
+User: "Continue ADR-XXX. Follow ADR_BASED_GUIDELINES.md"
 Claude: [Reads ADR, checks Status, continues from current phase]
 ```
 
 ## Template
 
-Use `000-template-spec-driven.md` for new spec-driven ADRs.
+Use `000-template-adr-based.md` for new ADR based development.
