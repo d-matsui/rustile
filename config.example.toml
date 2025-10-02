@@ -13,6 +13,11 @@ unfocused_border_color = 0x808080  # Gray for unfocused windows
 [shortcuts]
 # Available modifiers: Super, Alt, Ctrl, Shift
 # Can combine: "Ctrl+Alt+t" or "Super+Shift+j"
+#
+# Left/Right modifier support:
+# - Alt_L: Only left Alt key
+# - Alt_R: Only right Alt key
+# - Alt: Either left or right Alt key (default)
 
 # Application shortcuts
 "Shift+Alt+1" = "xterm"

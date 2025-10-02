@@ -29,14 +29,6 @@ DISPLAY=:5 xeyes &
 
 echo ""
 echo "Test environment ready!"
-echo ""
-echo "Keyboard shortcuts:"
-echo "  Alt+j/k         - Focus next/previous"
-echo "  Shift+Alt+j/k   - Swap with next/previous"
-echo "  Shift+Alt+q     - Close window"
-echo "  Alt+f           - Toggle fullscreen"
-echo "  Alt+r           - Rotate windows"
-echo ""
 echo "Close Xephyr window to exit"
 
 trap "kill $XEPHYR_PID $RUSTILE_PID 2>/dev/null" EXIT
