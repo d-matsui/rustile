@@ -1,12 +1,13 @@
 # ADR-015: Key Event Replay for Unmatched Shortcuts
 
 ## Status
-**Current**: In Progress (2025-10-02)
+**Current**: Accepted (2025-10-02)
 
 **History**:
 - Proposed: Requirements (2025-10-02)
 - Proposed: Design (2025-10-02)
 - In Progress (2025-10-02)
+- Accepted (2025-10-02)
 
 ## Context
 After implementing ADR-014 (Alt_L/Alt_R distinction), pressing Alt_L+f no longer triggers fullscreen (correct behavior), but the key event does not reach applications like Emacs. In Emacs, Alt_L+f should trigger forward-word (M-f), but nothing happens.
@@ -64,6 +65,23 @@ Use X11's synchronous grab mechanism to intercept key events, then either consum
 
 **Decision**: Option A because it's the standard X11 protocol mechanism for this exact use case. Most window managers (i3, dwm, xmonad) use this approach.
 
+### Consequences
+
+**Positive**:
+- **Correct X11 behavior**: Applications receive key events they should see
+- **User expectations met**: Emacs shortcuts work even when similar WM shortcuts exist
+- **Standard protocol**: Uses X11 best practices (same as i3, dwm, xmonad)
+- **Fine-grained control**: Alt_L/Alt_R distinction works correctly with application shortcuts
+
+**Negative**:
+- **Complexity**: SYNC grab mode requires careful AllowEvents handling
+- **Error risk**: If AllowEvents is not called, keyboard freezes (mitigated by proper error handling)
+- **Debugging difficulty**: Event replay behavior harder to debug than ASYNC mode
+
+**Neutral**:
+- **Performance**: SYNC mode has negligible overhead (microseconds) compared to ASYNC
+- **Code size**: Adds ~5-10 lines of code for AllowEvents calls
+
 ### Key Changes
 
 **src/keyboard.rs**:
@@ -96,53 +114,25 @@ Use X11's synchronous grab mechanism to intercept key events, then either consum
 ## Verification
 
 ### Code Quality
-- ✅ `cargo fmt` - Formatted
-- ✅ `cargo clippy --all-targets --all-features -- -D warnings` - No warnings
-- ✅ `cargo test` - 66 tests passing
+- `cargo fmt` - Formatted
+- `cargo clippy --all-targets --all-features -- -D warnings` - No warnings
+- `cargo test` - 66 tests passing
 
 ### Integration Testing (TTY3 with debug build)
-Tested with config: `Alt_R+f = "toggle_fullscreen"`, `Alt_R+d = "toggle_zoom"`
+Tested with config: `Alt_R+f = "toggle_fullscreen"`
 
 **Test 1: Alt_L+f pressed (no matching shortcut)**
 - Expected: Key event replayed to Emacs → M-f (forward-word) works
-- Result: ✅ PASS
-- Log: `DEBUG Alt state: L=true, R=false, required=RightOnly` (no shortcut execution log = replayed to app)
-- Emacs correctly received M-f and moved cursor forward by word
+- Result: PASS - Emacs received M-f and moved cursor forward by word
 
 **Test 2: Alt_R+f pressed (matching shortcut)**
 - Expected: Fullscreen toggle executes, Emacs does NOT receive event
-- Result: ✅ PASS
-- Log: `DEBUG Alt state: L=false, R=true, required=RightOnly` → `INFO Shortcut pressed, executing: toggle_fullscreen`
-- Window entered fullscreen mode, Emacs did not see the key event
-
-**Test 3: Alt_R+d pressed (matching shortcut)**
-- Expected: Zoom toggle executes
-- Result: ✅ PASS
-- Log: `DEBUG Alt state: L=false, R=true, required=RightOnly` → `INFO Shortcut pressed, executing: toggle_zoom`
-- Window zoomed to parent successfully
+- Result: PASS - Window entered fullscreen mode successfully
 
 ### Verification Summary
-All tests passed. The SYNC grab + AllowEvents mechanism works correctly:
-- Matched shortcuts → Consumed by WM
-- Unmatched shortcuts → Replayed to focused application
-
-
-## Consequences
-
-### Positive
-- **Correct X11 behavior**: Applications receive key events they should see
-- **User expectations met**: Emacs shortcuts work even when similar WM shortcuts exist
-- **Standard protocol**: Uses X11 best practices (same as i3, dwm, xmonad)
-- **Fine-grained control**: Alt_L/Alt_R distinction works correctly with application shortcuts
-
-### Negative
-- **Complexity**: SYNC grab mode requires careful AllowEvents handling
-- **Error risk**: If AllowEvents is not called, keyboard freezes (mitigated by proper error handling)
-- **Debugging difficulty**: Event replay behavior harder to debug than ASYNC mode
-
-### Neutral
-- **Performance**: SYNC mode has negligible overhead (microseconds) compared to ASYNC
-- **Code size**: Adds ~5-10 lines of code for AllowEvents calls
+Both tests passed. The SYNC grab + AllowEvents mechanism works correctly:
+- Matched shortcuts → Consumed by WM (Alt_R+f triggers fullscreen)
+- Unmatched shortcuts → Replayed to focused application (Alt_L+f reaches Emacs as M-f)
 
 
 ## References
