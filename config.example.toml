@@ -13,9 +13,14 @@ unfocused_border_color = 0x808080  # Gray for unfocused windows
 [shortcuts]
 # Available modifiers: Super, Alt, Ctrl, Shift
 # Can combine: "Ctrl+Alt+t" or "Super+Shift+j"
+#
+# Left/Right modifier support:
+# - Alt_L: Only left Alt key
+# - Alt_R: Only right Alt key
+# - Alt: Either left or right Alt key (default)
 
 # Application shortcuts
-"Shift+Alt+1" = "xterm"
+"Shift+Alt+1" = "alacritty"
 "Shift+Alt+2" = "emacs"
 "Shift+Alt+3" = "google-chrome --disable-gpu"
 
@@ -25,6 +30,6 @@ unfocused_border_color = 0x808080  # Gray for unfocused windows
 "Shift+Alt+j" = "swap_window_next"  # Swap with next window
 "Shift+Alt+k" = "swap_window_prev"  # Swap with previous window
 "Shift+Alt+q" = "destroy_window"    # Close focused window
-"Alt+f" = "toggle_fullscreen"       # Toggle fullscreen
-"Alt+r" = "rotate_windows"          # Rotate split direction
-"Alt+d" = "toggle_zoom"             # Toggle zoom to parent
+"Alt_R+f" = "toggle_fullscreen"       # Toggle fullscreen
+"Alt_R+r" = "rotate_windows"          # Rotate split direction
+"Alt_R+d" = "toggle_zoom"             # Toggle zoom to parent

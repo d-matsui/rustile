@@ -5,91 +5,92 @@
 
 **History**:
 - Proposed: Requirements (YYYY-MM-DD)
-<!-- Progress through phases by updating status:
 - Proposed: Design (YYYY-MM-DD)
-- Proposed: Plan (YYYY-MM-DD)
 - In Progress (YYYY-MM-DD)
 - Accepted (YYYY-MM-DD)
-- Deprecated (YYYY-MM-DD) if applicable
--->
 
 ## Context
-<!-- What is the issue that we're seeing that is motivating this decision or change? -->
+What is the issue or opportunity motivating this change?
 
 
 ## Requirements
-<!-- What must this change accomplish? Define acceptance criteria. -->
 
 ### Functional Requirements
-<!-- User-visible behaviors and capabilities -->
+What must this change accomplish? Define user-visible behaviors and acceptance criteria.
 
 
-### Quality Requirements (rustile specific)
-<!-- Technical constraints and standards -->
-- [ ] Zero-warning requirement maintained
-- [ ] Error handling with `anyhow::Result`
-- [ ] Test strategy defined (unit/integration/edge cases)
-- [ ] ADR-005 comment standard compliance
-- [ ] No `#[allow()]` attributes
+### Non-Functional Requirements
+Quality attributes, performance, security, maintainability constraints.
 
 
 ## Design
-<!-- How will we implement this? Architecture, data structures, algorithms. -->
 
-### Architecture
-<!-- Module structure, component interactions -->
+### Approach
+High-level strategy for solving the problem.
 
+**If multiple options considered**:
+1. **[Option A]** - [Description]
+   - Pros: [advantages]
+   - Cons: [disadvantages]
 
-### rustile Constraints
-<!-- How does this fit within rustile's architecture? -->
-- [ ] Impact on 7-file module structure analyzed
-- [ ] X11 event handling changes documented
-- [ ] Logging strategy (error!/info!/debug!) defined
-- [ ] BSP layout compatibility verified
+2. **[Option B (Selected)]** - [Description]
+   - Pros: [advantages]
+   - Cons: [disadvantages]
 
-
-### Examples
-<!-- Code examples, diagrams, or other illustrations -->
+**Decision**: Option B because [rationale].
 
 
-## Implementation Plan
-<!-- Step-by-step plan for implementing this design -->
+### Key Changes
+Which modules/files will change? What are the primary modifications?
 
-### Steps
-1. **Phase 1**: [Description]
-2. **Phase 2**: [Description]
-3. **Phase 3**: [Description]
 
-### Quality Gates (rustile specific)
-<!-- Mandatory checks before marking as Accepted -->
-- [ ] `cargo fmt` passes
-- [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
-- [ ] `cargo test` all tests pass
-- [ ] `./test.sh` manual verification completed
-- [ ] Documentation updated (if applicable)
+### Testing Strategy
+How will this be tested?
+- Unit tests: [what to test]
+- Integration tests: [what to test]
+- Edge cases: [what to test]
+
+
+## Verification
+
+### Quality Gates
+- [ ] Code builds without errors/warnings
+- [ ] All tests pass
+- [ ] Documentation updated
+
+### Test Results
+Evidence that requirements are met.
+
+**Unit Tests**:
+```bash
+# Paste test output
+```
+
+**Integration Tests**:
+- Scenario 1: [description]
+  - Expected: [behavior]
+  - Actual: [behavior]
+
+**Coverage Analysis**:
+- What is tested: [components/scenarios]
+- What is not tested: [components/scenarios]
+- Why: [rationale]
 
 
 ## Consequences
-<!-- What becomes easier or more difficult to do because of this change? -->
 
 ### Positive
-<!-- Benefits and opportunities -->
+Benefits and opportunities.
 
 
 ### Negative
-<!-- Costs and risks -->
+Costs, risks, and limitations.
 
 
 ### Neutral
-<!-- Things that change but are neither better nor worse -->
+Changes that are neither better nor worse.
 
-
-## Deprecation Reason
-<!-- Only fill this if status becomes Deprecated -->
-<!-- Explain why this ADR is no longer valid and what replaced it -->
-N/A
 
 ## References
-<!-- Related ADRs, issues, PRs, or external resources -->
 - Related: ADR-XXX
 - Issue: #XXX

@@ -45,8 +45,10 @@ This document outlines the planned features and development direction for Rustil
 - [ ] **Auto-balance BSP tree** - Automatically balance BSP tree ratios for optimal space usage
 - [ ] **Enhanced error messages** - User-friendly configuration validation errors
 - [ ] **Live config reload** - Update settings without restarting rustile
+- [ ] **Restart shortcut** - Keyboard shortcut to restart rustile (pkill + startx)
 - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
 - [ ] **Enhanced debug messages** - User-friendly debug logging (human-readable logs)
+- [ ] **Automated integration testing** - Command-line driven tests in Xephyr with log verification (eliminate manual ./test.sh verification)
 
 ### Workspace Management
 

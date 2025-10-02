@@ -100,7 +100,7 @@ impl<C: Connection> WindowManager<C> {
 
     /// Handles key press events
     fn handle_key_press(&mut self, event: KeyPressEvent) -> Result<()> {
-        if let Some(command) = self.shortcut_manager.handle_key_press(&event) {
+        if let Some(command) = self.shortcut_manager.handle_key_press(&self.conn, &event)? {
             info!("Shortcut pressed, executing: {}", command);
 
             // Handle window management commands
