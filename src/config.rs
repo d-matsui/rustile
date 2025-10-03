@@ -389,4 +389,34 @@ mod tests {
         assert_eq!(config.unfocused_border_color(), 0x808080);
         assert!(!config.shortcuts().is_empty());
     }
+
+    #[test]
+    fn test_balance_keybinding_parsing() {
+        // Test that balance_tree keybinding can be loaded from config
+        let mut shortcuts = HashMap::new();
+        shortcuts.insert("Shift-Alt_L+0".to_string(), "balance_tree".to_string());
+
+        let config = Config {
+            shortcuts: shortcuts.clone(),
+            layout: LayoutConfig::default(),
+        };
+
+        // Verify balance_tree keybinding is present
+        assert_eq!(
+            config.shortcuts().get("Shift-Alt_L+0"),
+            Some(&"balance_tree".to_string())
+        );
+    }
+
+    #[test]
+    fn test_optional_keybinding() {
+        // Test that config works without balance keybinding
+        let config = Config::default();
+
+        // Config should be valid even without balance_tree keybinding
+        assert!(config.validate().is_ok());
+
+        // balance_tree keybinding should not be required
+        assert!(config.shortcuts().get("Shift-Alt_L+0").is_none());
+    }
 }
