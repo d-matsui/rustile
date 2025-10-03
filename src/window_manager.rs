@@ -115,7 +115,7 @@ impl<C: Connection> WindowManager<C> {
                 info!("Shortcut pressed, executing: {}", command);
 
                 // Handle window management commands
-                match command.as_ref() {
+                match command {
                     "focus_next" => return self.focus_next(),
                     "focus_prev" => return self.focus_prev(),
                     "swap_window_next" => return self.swap_window_next(),

@@ -47,6 +47,17 @@ Kiroスタイルの仕様駆動開発をClaude Codeのスラッシュコマン�
 6. **Steeringを最新に保つ**: 重要な変更後に `/kiro:steering` を実行
 7. **仕様準拠を確認**: `/kiro:spec-status` で整合性を検証
 
+## コード品質チェック
+
+### コミット前に必須のコマンド
+```bash
+source ~/.cargo/env  # Ensure cargo is in PATH
+cargo fmt           # Format code
+cargo build --all-targets --all-features  # Build all targets to catch warnings
+cargo clippy --all-targets --all-features -- -D warnings  # Check for lints (treat warnings as errors)
+cargo test          # Run all tests
+```
+
 ## Steering設定
 
 ### 現在のSteeringファイル

@@ -577,10 +577,7 @@ impl BspTree {
                 1
             }
             BspNode::Split {
-                ratio,
-                left,
-                right,
-                ..
+                ratio, left, right, ..
             } => {
                 // Recursively balance and count windows in both subtrees
                 let left_count = Self::balance_tree_recursive(left);
@@ -902,11 +899,22 @@ mod tests {
 
         if let Some(BspNode::Split { ratio, right, .. }) = &bsp_tree.root {
             // Root ratio: 1 window on left, 2 on right = 1/3 ≈ 0.33
-            assert!((ratio - 0.33).abs() < 0.01, "Root ratio should be ~0.33, got {}", ratio);
+            assert!(
+                (ratio - 0.33).abs() < 0.01,
+                "Root ratio should be ~0.33, got {}",
+                ratio
+            );
 
             // Right subtree should have equal ratio (1 window each)
-            if let BspNode::Split { ratio: right_ratio, .. } = right.as_ref() {
-                assert!((right_ratio - 0.5).abs() < 0.01, "Right ratio should be ~0.5, got {}", right_ratio);
+            if let BspNode::Split {
+                ratio: right_ratio, ..
+            } = right.as_ref()
+            {
+                assert!(
+                    (right_ratio - 0.5).abs() < 0.01,
+                    "Right ratio should be ~0.5, got {}",
+                    right_ratio
+                );
             }
         } else {
             panic!("Root should be a split node");
@@ -928,7 +936,11 @@ mod tests {
 
         if let Some(BspNode::Split { ratio, .. }) = &bsp_tree.root {
             // Root ratio: 2 windows on left, 1 on right = 2/3 ≈ 0.67
-            assert!((ratio - 0.67).abs() < 0.01, "Root ratio should be ~0.67, got {}", ratio);
+            assert!(
+                (ratio - 0.67).abs() < 0.01,
+                "Root ratio should be ~0.67, got {}",
+                ratio
+            );
         } else {
             panic!("Root should be a split node");
         }
