@@ -28,7 +28,7 @@ Thumbs.db
 # User configs (keep example)
 config.toml
 
-# Claude Code local settings
+# Claude Code local settings (use npx kiro to regenerate commands)
 .claude/
 
 # Keep tracked documentation
