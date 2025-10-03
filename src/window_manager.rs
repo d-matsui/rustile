@@ -105,8 +105,11 @@ impl<C: Connection> WindowManager<C> {
 
         if matched {
             // Shortcut matched - allow event processing to continue (ADR-015)
-            self.conn
-                .allow_events(Allow::ASYNC_KEYBOARD, CURRENT_TIME)?;
+            if let Err(e) = self.conn.allow_events(Allow::ASYNC_KEYBOARD, CURRENT_TIME) {
+                error!("Failed to allow keyboard events: {}", e);
+                // Fallback: try again to prevent keyboard freeze
+                let _ = self.conn.allow_events(Allow::ASYNC_KEYBOARD, CURRENT_TIME);
+            }
 
             if let Some(command) = command_opt {
                 info!("Shortcut pressed, executing: {}", command);
@@ -140,8 +143,11 @@ impl<C: Connection> WindowManager<C> {
             }
         } else {
             // No shortcut matched - replay event to focused application (ADR-015)
-            self.conn
-                .allow_events(Allow::REPLAY_KEYBOARD, CURRENT_TIME)?;
+            if let Err(e) = self.conn.allow_events(Allow::REPLAY_KEYBOARD, CURRENT_TIME) {
+                error!("Failed to replay key event: {}", e);
+                // Fallback: try ASYNC_KEYBOARD to prevent keyboard freeze
+                let _ = self.conn.allow_events(Allow::ASYNC_KEYBOARD, CURRENT_TIME);
+            }
         }
         Ok(())
     }
