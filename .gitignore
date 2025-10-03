@@ -28,5 +28,8 @@ Thumbs.db
 # User configs (keep example)
 config.toml
 
+# Claude Code local settings
+.claude/
+
 # Keep tracked documentation
 # CODE_EXPLANATION.md is valuable and should remain tracked
