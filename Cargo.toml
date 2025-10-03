@@ -1,6 +1,6 @@
 [package]
 name = "rustile"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2024"
 authors = ["d-matsui"]
 description = "A lightweight tiling window manager written in Rust"

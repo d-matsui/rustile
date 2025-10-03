@@ -1,3 +1,18 @@
+## [1.2.0](https://github.com/d-matsui/rustile/compare/v1.1.0...v1.2.0) (2025-10-03)
+
+### 🚀 Features
+
+* replay unmatched key events to applications ([e69c78f](https://github.com/d-matsui/rustile/commit/e69c78fff10177924eb225b11f81f83d15f9636b))
+
+### 🐛 Bug Fixes
+
+* add error resilience for AllowEvents failures ([e594b3d](https://github.com/d-matsui/rustile/commit/e594b3d8cf4fcca0c564442ecaebbd573b9956de))
+
+### 📖 Documentation
+
+* move Consequences to Design section in ADR template ([75e913c](https://github.com/d-matsui/rustile/commit/75e913cc503b67292e645e695019065098ce609a))
+* rename to ADR Based Development ([7cdd607](https://github.com/d-matsui/rustile/commit/7cdd6076c9a2754b0e78ec99c9602b812a8991a1))
+
 ## [1.1.0](https://github.com/d-matsui/rustile/compare/v1.0.1...v1.1.0) (2025-10-02)
 
 ### 🚀 Features
