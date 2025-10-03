@@ -183,13 +183,14 @@ impl ShortcutManager {
         let keycode = self.get_keycode(keysym)?;
 
         // Tell X11 to send us KeyPress events when this combination is pressed
+        // Use SYNC mode to enable event replay for unmatched shortcuts (see ADR-015)
         conn.grab_key(
             true,
             root_window,
             modifiers,
             keycode,
-            GrabMode::ASYNC,
-            GrabMode::ASYNC,
+            GrabMode::SYNC,
+            GrabMode::SYNC,
         )?;
 
         // Store the shortcut for later lookup when we receive key events
@@ -204,11 +205,12 @@ impl ShortcutManager {
     }
 
     /// Handles a key press event and returns the command if a shortcut matches
+    /// Returns (matched_command, did_match) tuple for AllowEvents decision
     pub fn handle_key_press<C: Connection>(
         &self,
         conn: &C,
         event: &KeyPressEvent,
-    ) -> Result<Option<&str>> {
+    ) -> Result<(Option<&str>, bool)> {
         // Filter out lock keys (NumLock, CapsLock, ScrollLock) so they don't break shortcuts
         let relevant_modifiers = ModMask::SHIFT.bits()
             | ModMask::CONTROL.bits()
@@ -232,9 +234,9 @@ impl ShortcutManager {
                 continue;
             }
 
-            return Ok(Some(&shortcut.command));
+            return Ok((Some(&shortcut.command), true));
         }
-        Ok(None)
+        Ok((None, false))
     }
 
     /// Checks if the Alt key side requirement matches current state

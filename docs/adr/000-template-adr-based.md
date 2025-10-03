@@ -40,6 +40,18 @@ High-level strategy for solving the problem.
 **Decision**: Option B because [rationale].
 
 
+### Consequences
+
+**Positive**:
+Benefits and opportunities.
+
+**Negative**:
+Costs, risks, and limitations.
+
+**Neutral**:
+Changes that are neither better nor worse.
+
+
 ### Key Changes
 Which modules/files will change? What are the primary modifications?
 
@@ -75,20 +87,6 @@ Evidence that requirements are met.
 - What is tested: [components/scenarios]
 - What is not tested: [components/scenarios]
 - Why: [rationale]
-
-
-## Consequences
-
-### Positive
-Benefits and opportunities.
-
-
-### Negative
-Costs, risks, and limitations.
-
-
-### Neutral
-Changes that are neither better nor worse.
 
 
 ## References
