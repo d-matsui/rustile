@@ -10,6 +10,7 @@ mod keyboard;
 mod window_manager;
 mod window_renderer;
 mod window_state;
+mod workspace;
 
 use window_manager::WindowManager;
 

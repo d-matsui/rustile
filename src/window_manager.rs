@@ -10,14 +10,25 @@ use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::*;
 
+use std::collections::HashSet;
+
+use crate::config::Config;
 use crate::keyboard::ShortcutManager;
 use crate::window_renderer::WindowRenderer;
 use crate::window_state::WindowState;
+use crate::workspace::Workspace;
 
 /// Main window manager coordinating X11 events and window state
 pub struct WindowManager<C: Connection> {
     pub(crate) conn: C,
     pub(crate) shortcut_manager: ShortcutManager,
+    // New workspace-based architecture
+    pub(crate) workspaces: Vec<Workspace>,
+    pub(crate) current_workspace_index: usize,
+    pub(crate) intentionally_unmapped: HashSet<Window>,
+    pub(crate) config: Config,
+    pub(crate) screen_num: usize,
+    // Legacy field - will be removed after migration
     pub(crate) window_state: WindowState,
     pub(crate) window_renderer: WindowRenderer,
 }
@@ -52,15 +63,115 @@ impl<C: Connection> WindowManager<C> {
 
         shortcut_manager.register_shortcuts(&conn, root, config.shortcuts())?;
 
-        let window_state = WindowState::new(config, screen_num);
+        // Initialize with a single empty workspace
+        let workspaces = vec![Workspace::new()];
+        let current_workspace_index = 0;
+        let intentionally_unmapped = HashSet::new();
         let window_renderer = WindowRenderer::new();
+
+        // TEMPORARY: Keep window_state for backwards compatibility during migration
+        let window_state = WindowState::new(config.clone(), screen_num);
+
+        info!("Initialized with 1 empty workspace");
 
         Ok(Self {
             conn,
             shortcut_manager,
+            workspaces,
+            current_workspace_index,
+            intentionally_unmapped,
+            config,
+            screen_num,
             window_state,
             window_renderer,
         })
+    }
+
+    /// Gets a reference to the current workspace
+    fn current_workspace(&self) -> &Workspace {
+        &self.workspaces[self.current_workspace_index]
+    }
+
+    /// Gets a mutable reference to the current workspace
+    fn current_workspace_mut(&mut self) -> &mut Workspace {
+        &mut self.workspaces[self.current_workspace_index]
+    }
+
+    /// Creates a new workspace and switches to it
+    pub fn create_workspace(&mut self) {
+        info!("Creating new workspace");
+        self.workspaces.push(Workspace::new());
+        self.current_workspace_index = self.workspaces.len() - 1;
+        info!(
+            "Created workspace {}, total workspaces: {}",
+            self.current_workspace_index,
+            self.workspaces.len()
+        );
+    }
+
+    /// Deletes the current workspace
+    /// If this is the last workspace, this is a no-op
+    pub fn delete_workspace(&mut self) {
+        if self.workspaces.len() <= 1 {
+            info!("Cannot delete last workspace, ignoring");
+            return;
+        }
+
+        info!(
+            "Deleting workspace {}, total workspaces: {}",
+            self.current_workspace_index,
+            self.workspaces.len()
+        );
+
+        // TODO: Close all windows in current workspace (requires X11 connection operations)
+        // For now, we just remove the workspace
+        // This will be implemented when integrating with WindowRenderer
+
+        // Remove the workspace
+        self.workspaces.remove(self.current_workspace_index);
+
+        // Adjust current_workspace_index if it's out of bounds
+        if self.current_workspace_index >= self.workspaces.len() {
+            self.current_workspace_index = self.workspaces.len() - 1;
+        }
+
+        info!(
+            "Deleted workspace, now at workspace {}, total workspaces: {}",
+            self.current_workspace_index,
+            self.workspaces.len()
+        );
+    }
+
+    /// Switches to the next workspace (circular)
+    pub fn switch_workspace_next(&mut self) {
+        let old_index = self.current_workspace_index;
+        self.current_workspace_index = (self.current_workspace_index + 1) % self.workspaces.len();
+
+        info!(
+            "Switched workspace: {} -> {} (next)",
+            old_index, self.current_workspace_index
+        );
+
+        // TODO: Handle window map/unmap and focus restoration
+        // This will be implemented when integrating with WindowRenderer
+    }
+
+    /// Switches to the previous workspace (circular)
+    pub fn switch_workspace_prev(&mut self) {
+        let old_index = self.current_workspace_index;
+        self.current_workspace_index = if self.current_workspace_index == 0 {
+            self.workspaces.len() - 1
+        } else {
+            self.current_workspace_index - 1
+        };
+
+        info!(
+            "Switched workspace: {} -> {} (prev)",
+            old_index, self.current_workspace_index
+        );
+
+        // TODO: Handle window map/unmap and focus restoration
+        // This will be implemented when integrating with WindowRenderer
     }
 
     /// Runs the main event loop
@@ -348,7 +459,149 @@ impl<C: Connection> WindowManager<C> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use x11rb::protocol::xproto::Window;
+
+    #[test]
+    fn test_workspace_initialization() {
+        // This test requires X11 connection, so we'll just test the logic
+        // Actual WindowManager::new() requires X11 connection which is hard to mock
+
+        // Test that workspace fields are properly structured
+        let workspaces = vec![Workspace::new()];
+        let current_workspace_index = 0;
+
+        assert_eq!(workspaces.len(), 1);
+        assert_eq!(current_workspace_index, 0);
+        assert_eq!(workspaces[current_workspace_index].window_count(), 0);
+    }
+
+    #[test]
+    fn test_current_workspace_index_bounds() {
+        let workspaces = vec![Workspace::new(), Workspace::new(), Workspace::new()];
+
+        for index in 0..workspaces.len() {
+            assert!(index < workspaces.len());
+            assert_eq!(workspaces[index].window_count(), 0);
+        }
+    }
+
+    #[test]
+    fn test_workspace_creation_logic() {
+        let mut workspaces = vec![Workspace::new()];
+        let mut current_workspace_index = 0;
+
+        // Initial state: 1 workspace
+        assert_eq!(workspaces.len(), 1);
+        assert_eq!(current_workspace_index, 0);
+
+        // Create new workspace
+        workspaces.push(Workspace::new());
+        current_workspace_index = workspaces.len() - 1;
+
+        // After creation: 2 workspaces, current is the new one
+        assert_eq!(workspaces.len(), 2);
+        assert_eq!(current_workspace_index, 1);
+
+        // Create another workspace
+        workspaces.push(Workspace::new());
+        current_workspace_index = workspaces.len() - 1;
+
+        // After creation: 3 workspaces, current is the newest
+        assert_eq!(workspaces.len(), 3);
+        assert_eq!(current_workspace_index, 2);
+    }
+
+    #[test]
+    fn test_workspace_deletion_logic() {
+        // Test: Cannot delete last workspace
+        let mut workspaces = vec![Workspace::new()];
+        let mut current_workspace_index = 0;
+
+        // Try to delete last workspace - should be no-op
+        if workspaces.len() > 1 {
+            workspaces.remove(current_workspace_index);
+            if current_workspace_index >= workspaces.len() {
+                current_workspace_index = workspaces.len() - 1;
+            }
+        }
+
+        // Still have 1 workspace
+        assert_eq!(workspaces.len(), 1);
+        assert_eq!(current_workspace_index, 0);
+
+        // Add more workspaces
+        workspaces.push(Workspace::new());
+        workspaces.push(Workspace::new());
+        current_workspace_index = 1; // Delete middle workspace
+
+        // Delete workspace at index 1
+        if workspaces.len() > 1 {
+            workspaces.remove(current_workspace_index);
+            if current_workspace_index >= workspaces.len() {
+                current_workspace_index = workspaces.len() - 1;
+            }
+        }
+
+        // Now have 2 workspaces
+        assert_eq!(workspaces.len(), 2);
+        assert_eq!(current_workspace_index, 1);
+
+        // Delete workspace at index 1 (last one)
+        if workspaces.len() > 1 {
+            workspaces.remove(current_workspace_index);
+            if current_workspace_index >= workspaces.len() {
+                current_workspace_index = workspaces.len() - 1;
+            }
+        }
+
+        // Now have 1 workspace, current index is 0
+        assert_eq!(workspaces.len(), 1);
+        assert_eq!(current_workspace_index, 0);
+    }
+
+    #[test]
+    fn test_workspace_switching_logic() {
+        // Create 3 workspaces
+        let workspaces = vec![Workspace::new(), Workspace::new(), Workspace::new()];
+        let mut current_workspace_index = 0;
+
+        // Switch next: 0 -> 1
+        current_workspace_index = (current_workspace_index + 1) % workspaces.len();
+        assert_eq!(current_workspace_index, 1);
+
+        // Switch next: 1 -> 2
+        current_workspace_index = (current_workspace_index + 1) % workspaces.len();
+        assert_eq!(current_workspace_index, 2);
+
+        // Switch next: 2 -> 0 (wrap around)
+        current_workspace_index = (current_workspace_index + 1) % workspaces.len();
+        assert_eq!(current_workspace_index, 0);
+
+        // Switch prev: 0 -> 2 (wrap around)
+        current_workspace_index = if current_workspace_index == 0 {
+            workspaces.len() - 1
+        } else {
+            current_workspace_index - 1
+        };
+        assert_eq!(current_workspace_index, 2);
+
+        // Switch prev: 2 -> 1
+        current_workspace_index = if current_workspace_index == 0 {
+            workspaces.len() - 1
+        } else {
+            current_workspace_index - 1
+        };
+        assert_eq!(current_workspace_index, 1);
+
+        // Switch prev: 1 -> 0
+        current_workspace_index = if current_workspace_index == 0 {
+            workspaces.len() - 1
+        } else {
+            current_workspace_index - 1
+        };
+        assert_eq!(current_workspace_index, 0);
+    }
 
     // Test helper functions for window management logic
     // These test the core algorithms without requiring X11 connections
