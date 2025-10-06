@@ -123,9 +123,20 @@ impl<C: Connection> WindowManager<C> {
             self.workspaces.len()
         );
 
-        // TODO: Close all windows in current workspace (requires X11 connection operations)
-        // For now, we just remove the workspace
-        // This will be implemented when integrating with WindowRenderer
+        // Get all windows in the current workspace
+        let windows_to_close = self.current_workspace().get_all_windows();
+
+        // Close all windows (send delete window event to each)
+        for window in &windows_to_close {
+            // Remove from intentionally_unmapped before closing
+            self.intentionally_unmapped.remove(window);
+
+            // Send WM_DELETE_WINDOW message to gracefully close the window
+            // If the application doesn't support it, it will be destroyed anyway
+            if let Err(e) = self.conn.destroy_window(*window) {
+                error!("Failed to destroy window {:?}: {}", window, e);
+            }
+        }
 
         // Remove the workspace
         self.workspaces.remove(self.current_workspace_index);
@@ -135,8 +146,14 @@ impl<C: Connection> WindowManager<C> {
             self.current_workspace_index = self.workspaces.len() - 1;
         }
 
+        // Flush X11 commands
+        if let Err(e) = self.conn.flush() {
+            error!("Failed to flush X11 connection: {}", e);
+        }
+
         info!(
-            "Deleted workspace, now at workspace {}, total workspaces: {}",
+            "Deleted workspace, closed {} windows, now at workspace {}, total workspaces: {}",
+            windows_to_close.len(),
             self.current_workspace_index,
             self.workspaces.len()
         );
@@ -144,6 +161,10 @@ impl<C: Connection> WindowManager<C> {
 
     /// Switches to the next workspace (circular)
     pub fn switch_workspace_next(&mut self) {
+        if self.workspaces.len() <= 1 {
+            return; // Nothing to switch
+        }
+
         let old_index = self.current_workspace_index;
         self.current_workspace_index = (self.current_workspace_index + 1) % self.workspaces.len();
 
@@ -152,12 +173,16 @@ impl<C: Connection> WindowManager<C> {
             old_index, self.current_workspace_index
         );
 
-        // TODO: Handle window map/unmap and focus restoration
-        // This will be implemented when integrating with WindowRenderer
+        // Perform window visibility switch
+        self.perform_workspace_switch(old_index);
     }
 
     /// Switches to the previous workspace (circular)
     pub fn switch_workspace_prev(&mut self) {
+        if self.workspaces.len() <= 1 {
+            return; // Nothing to switch
+        }
+
         let old_index = self.current_workspace_index;
         self.current_workspace_index = if self.current_workspace_index == 0 {
             self.workspaces.len() - 1
@@ -170,8 +195,55 @@ impl<C: Connection> WindowManager<C> {
             old_index, self.current_workspace_index
         );
 
-        // TODO: Handle window map/unmap and focus restoration
-        // This will be implemented when integrating with WindowRenderer
+        // Perform window visibility switch
+        self.perform_workspace_switch(old_index);
+    }
+
+    /// Performs the actual workspace switch: unmaps old windows, maps new windows
+    fn perform_workspace_switch(&mut self, old_workspace_index: usize) {
+        // Get windows from old workspace
+        let old_windows = self.workspaces[old_workspace_index].get_all_windows();
+
+        // Mark old workspace windows as intentionally unmapped and unmap them
+        for window in &old_windows {
+            self.intentionally_unmapped.insert(*window);
+            if let Err(e) = self.conn.unmap_window(*window) {
+                error!("Failed to unmap window {:?}: {}", window, e);
+            }
+        }
+
+        // Get windows from new workspace
+        let new_windows = self.current_workspace().get_all_windows();
+
+        // Remove new workspace windows from intentionally_unmapped and map them
+        for window in &new_windows {
+            self.intentionally_unmapped.remove(window);
+            if let Err(e) = self.conn.map_window(*window) {
+                error!("Failed to map window {:?}: {}", window, e);
+            }
+        }
+
+        // Restore focus to the new workspace's focused window
+        if let Some(focused) = self.current_workspace().focused_window() {
+            if let Err(e) = self.conn.set_input_focus(
+                InputFocus::POINTER_ROOT,
+                focused,
+                CURRENT_TIME,
+            ) {
+                error!("Failed to set focus to window {:?}: {}", focused, e);
+            }
+        }
+
+        // Flush X11 commands
+        if let Err(e) = self.conn.flush() {
+            error!("Failed to flush X11 connection: {}", e);
+        }
+
+        info!(
+            "Workspace switch complete: {} old windows unmapped, {} new windows mapped",
+            old_windows.len(),
+            new_windows.len()
+        );
     }
 
     /// Runs the main event loop
@@ -296,8 +368,14 @@ impl<C: Connection> WindowManager<C> {
         }
 
         self.conn.map_window(window)?;
+
+        // Add to legacy WindowState
         self.window_state.add_window_to_layout(window);
         self.window_state.set_focused_window(Some(window));
+
+        // Add to current workspace
+        self.current_workspace_mut().add_window(window);
+        self.current_workspace_mut().set_focused_window(Some(window));
 
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
@@ -310,7 +388,8 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Unmapping window: {:?}", window);
 
-        if self.window_state.is_intentionally_unmapped(window) {
+        // Check intentionally_unmapped from WindowManager (workspace switches)
+        if self.intentionally_unmapped.contains(&window) {
             info!("Window {:?} was intentionally unmapped, ignoring", window);
             return Ok(());
         }
@@ -319,14 +398,34 @@ impl<C: Connection> WindowManager<C> {
             "Window {:?} closed by user, removing from management",
             window
         );
+
+        // Remove from legacy WindowState
         self.window_state.remove_window_from_layout(window);
 
+        // Remove from all workspaces (window could be in any workspace)
+        for workspace in &mut self.workspaces {
+            if workspace.has_window(window) {
+                workspace.remove_window(window);
+            }
+        }
+
+        // Update focus in legacy WindowState
         if self.window_state.get_focused_window() == Some(window) {
             let next_focus = self.window_state.get_first_window();
             if let Some(next_focus) = next_focus {
                 self.window_state.set_focused_window(Some(next_focus));
             } else {
                 self.window_state.clear_focus();
+            }
+        }
+
+        // Update focus in current workspace
+        if self.current_workspace().focused_window() == Some(window) {
+            let next_focus = self.current_workspace().get_first_window();
+            if let Some(next_focus) = next_focus {
+                self.current_workspace_mut().set_focused_window(Some(next_focus));
+            } else {
+                self.current_workspace_mut().clear_focus();
             }
         }
 
@@ -361,20 +460,49 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Window destroyed: {:?}", window);
 
+        // Remove from legacy WindowState
         self.window_state.remove_window_from_layout(window);
         self.window_state.remove_intentionally_unmapped(window);
 
+        // Remove from intentionally_unmapped (WindowManager)
+        self.intentionally_unmapped.remove(&window);
+
+        // Remove from all workspaces
+        for workspace in &mut self.workspaces {
+            if workspace.has_window(window) {
+                workspace.remove_window(window);
+            }
+        }
+
+        // Clear fullscreen in legacy WindowState
         if self.window_state.get_fullscreen_window() == Some(window) {
             info!("Fullscreen window destroyed, exiting fullscreen mode");
             self.window_state.clear_fullscreen();
         }
 
+        // Clear fullscreen in current workspace
+        if self.current_workspace().fullscreen_window() == Some(window) {
+            info!("Fullscreen window destroyed in workspace, exiting fullscreen mode");
+            self.current_workspace_mut().clear_fullscreen();
+        }
+
+        // Update focus in legacy WindowState
         if self.window_state.get_focused_window() == Some(window) {
             let next_focus = self.window_state.get_first_window();
             if let Some(next_focus) = next_focus {
                 self.window_state.set_focused_window(Some(next_focus));
             } else {
                 self.window_state.clear_focus();
+            }
+        }
+
+        // Update focus in current workspace
+        if self.current_workspace().focused_window() == Some(window) {
+            let next_focus = self.current_workspace().get_first_window();
+            if let Some(next_focus) = next_focus {
+                self.current_workspace_mut().set_focused_window(Some(next_focus));
+            } else {
+                self.current_workspace_mut().clear_focus();
             }
         }
 
@@ -391,7 +519,14 @@ impl<C: Connection> WindowManager<C> {
         debug!("Mouse entered window: {:?}", window);
 
         if self.window_state.has_window(window) {
+            // Update legacy WindowState
             self.window_state.set_focused_window(Some(window));
+
+            // Update current workspace
+            if self.current_workspace().has_window(window) {
+                self.current_workspace_mut().set_focused_window(Some(window));
+            }
+
             self.window_renderer
                 .apply_state(&mut self.conn, &mut self.window_state)?;
         }

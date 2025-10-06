@@ -120,6 +120,26 @@ impl Workspace {
         self.zoomed_window = None;
         self.bsp_tree.rotate_window(window)
     }
+
+    /// Checks if this workspace is in fullscreen mode
+    pub fn is_in_fullscreen_mode(&self) -> bool {
+        self.fullscreen_window.is_some()
+    }
+
+    /// Clears fullscreen state
+    pub fn clear_fullscreen(&mut self) {
+        self.fullscreen_window = None;
+    }
+
+    /// Clears zoom state
+    pub fn clear_zoom(&mut self) {
+        self.zoomed_window = None;
+    }
+
+    /// Clears focused window
+    pub fn clear_focus(&mut self) {
+        self.focused_window = None;
+    }
 }
 
 impl Default for Workspace {
