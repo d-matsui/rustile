@@ -33,3 +33,9 @@ unfocused_border_color = 0x808080  # Gray for unfocused windows
 "Alt_R+f" = "toggle_fullscreen"       # Toggle fullscreen
 "Alt_R+r" = "rotate_windows"          # Rotate split direction
 "Alt_R+d" = "toggle_zoom"             # Toggle zoom to parent
+
+# Workspace management
+"Ctrl+Alt+n" = "create_workspace"        # Create new workspace
+"Ctrl+Alt+q" = "delete_workspace"        # Delete current workspace
+"Ctrl+Alt+j" = "switch_workspace_next"   # Switch to next workspace
+"Ctrl+Alt+k" = "switch_workspace_prev"   # Switch to previous workspace

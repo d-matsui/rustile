@@ -236,6 +236,23 @@ impl<C: Connection> WindowManager<C> {
                     "rotate_windows" => return self.rotate_windows(),
                     "toggle_zoom" => return self.toggle_zoom(),
                     "balance_tree" => return self.balance_tree(),
+                    // Workspace management commands
+                    "create_workspace" => {
+                        self.create_workspace();
+                        return Ok(());
+                    }
+                    "delete_workspace" => {
+                        self.delete_workspace();
+                        return Ok(());
+                    }
+                    "switch_workspace_next" => {
+                        self.switch_workspace_next();
+                        return Ok(());
+                    }
+                    "switch_workspace_prev" => {
+                        self.switch_workspace_prev();
+                        return Ok(());
+                    }
                     _ => {
                         let parts: Vec<&str> = command.split_whitespace().collect();
                         if let Some(program) = parts.first() {

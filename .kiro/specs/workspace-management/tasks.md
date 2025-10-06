@@ -86,8 +86,8 @@
 
 ---
 
-- [ ] 4. キーバインディングとコマンドディスパッチの統合
-- [ ] 4.1 ワークスペースコマンドのディスパッチ実装
+- [x] 4. キーバインディングとコマンドディスパッチの統合
+- [x] 4.1 ワークスペースコマンドのディスパッチ実装
   - handle_key_press()にcreate_workspaceコマンドを追加
   - handle_key_press()にdelete_workspaceコマンドを追加
   - handle_key_press()にswitch_workspace_nextコマンドを追加
@@ -95,12 +95,12 @@
   - 各コマンドで対応するメソッドを呼び出し
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 4.2 デフォルトキーバインディングの設定
+- [x] 4.2 デフォルトキーバインディングの設定
   - config.example.tomlにワークスペースキーバインディングを追加
-  - Ctrl-Alt+n = create_workspace
-  - Ctrl-Alt+q = delete_workspace
-  - Ctrl-Alt+j = switch_workspace_next
-  - Ctrl-Alt+k = switch_workspace_prev
+  - Ctrl+Alt+n = create_workspace
+  - Ctrl+Alt+q = delete_workspace
+  - Ctrl+Alt+j = switch_workspace_next
+  - Ctrl+Alt+k = switch_workspace_prev
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
 ---
