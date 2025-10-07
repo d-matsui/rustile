@@ -10,11 +10,9 @@ use x11rb::protocol::xproto::*;
 
 use std::collections::HashSet;
 
-use crate::config::Config;
 use crate::keyboard::ShortcutManager;
-use crate::window_renderer::WindowRenderer;
-use crate::window_state::WindowState;
 use crate::workspace::Workspace;
+use crate::workspace_renderer::WorkspaceRenderer;
 
 /// Main window manager coordinating X11 events and window state
 pub struct WindowManager<C: Connection> {
@@ -23,11 +21,8 @@ pub struct WindowManager<C: Connection> {
     pub(crate) workspaces: Vec<Workspace>,
     pub(crate) current_workspace_index: usize,
     pub(crate) intentionally_unmapped: HashSet<Window>,
-    pub(crate) config: Config,
     pub(crate) screen_num: usize,
-    // Temporary rendering state - synced with current workspace before rendering
-    pub(crate) window_state: WindowState,
-    pub(crate) window_renderer: WindowRenderer,
+    pub(crate) workspace_renderer: WorkspaceRenderer,
 }
 
 impl<C: Connection> WindowManager<C> {
@@ -64,10 +59,7 @@ impl<C: Connection> WindowManager<C> {
         let workspaces = vec![Workspace::new()];
         let current_workspace_index = 0;
         let intentionally_unmapped = HashSet::new();
-        let window_renderer = WindowRenderer::new();
-
-        // TEMPORARY: Keep window_state for backwards compatibility during migration
-        let window_state = WindowState::new(config.clone(), screen_num);
+        let workspace_renderer = WorkspaceRenderer::new(config.clone(), screen_num);
 
         info!("Initialized with 1 empty workspace");
 
@@ -77,10 +69,8 @@ impl<C: Connection> WindowManager<C> {
             workspaces,
             current_workspace_index,
             intentionally_unmapped,
-            config,
             screen_num,
-            window_state,
-            window_renderer,
+            workspace_renderer,
         })
     }
 
@@ -92,62 +82,6 @@ impl<C: Connection> WindowManager<C> {
     /// Gets a mutable reference to the current workspace
     fn current_workspace_mut(&mut self) -> &mut Workspace {
         &mut self.workspaces[self.current_workspace_index]
-    }
-
-    /// Syncs WindowState with the current workspace
-    /// This ensures that rendering only affects the current workspace
-    fn sync_window_state_with_current_workspace(&mut self) {
-        // Clear WindowState and rebuild from current workspace
-        self.window_state = WindowState::new(self.config.clone(), self.screen_num);
-
-        let windows = self.current_workspace().get_all_windows();
-        debug!(
-            "Syncing {} windows from workspace to WindowState",
-            windows.len()
-        );
-
-        // Copy BSP tree directly from workspace to preserve structure
-        // (This is important for operations like rotate that modify tree structure)
-        let bsp_tree_clone = self.current_workspace().bsp_tree().clone();
-        *self.window_state.bsp_tree_mut() = bsp_tree_clone;
-
-        // Sync focused window from workspace
-        if let Some(focused) = self.current_workspace().focused_window() {
-            self.window_state.set_focused_window(Some(focused));
-        }
-
-        // Sync fullscreen window
-        if let Some(fullscreen) = self.current_workspace().fullscreen_window() {
-            self.window_state.set_fullscreen_window(Some(fullscreen));
-        }
-
-        // Sync zoom window
-        if let Some(zoomed) = self.current_workspace().zoomed_window() {
-            self.window_state.set_zoomed_window(Some(zoomed));
-        }
-    }
-
-    /// Syncs changes from WindowState back to the current workspace
-    /// This is needed after operations that modify WindowState's BSP tree or focus
-    fn sync_workspace_from_window_state(&mut self) {
-        // Sync focused window
-        let focused = self.window_state.get_focused_window();
-        self.current_workspace_mut().set_focused_window(focused);
-
-        // Sync fullscreen window
-        let fullscreen = self.window_state.get_fullscreen_window();
-        self.current_workspace_mut()
-            .set_fullscreen_window(fullscreen);
-
-        // Sync zoom window
-        let zoomed = self.window_state.get_zoomed_window();
-        self.current_workspace_mut().set_zoomed_window(zoomed);
-    }
-
-    /// Syncs BSP tree from WindowState to Workspace
-    /// This is needed after operations that modify BSP tree structure (swap, rotate)
-    fn sync_bsp_tree_to_workspace(&mut self) {
-        *self.current_workspace_mut().bsp_tree_mut() = self.window_state.bsp_tree().clone();
     }
 
     /// Creates a new workspace and switches to it
@@ -446,10 +380,12 @@ impl<C: Connection> WindowManager<C> {
         self.current_workspace_mut()
             .set_focused_window(Some(window));
 
-        // Sync WindowState with current workspace and render
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .apply_state(&mut self.conn, &mut self.window_state)?;
+        // Render the workspace
+        {
+            let workspace = &self.workspaces[self.current_workspace_index];
+            self.workspace_renderer
+                .apply_workspace(&mut self.conn, workspace)?;
+        }
 
         Ok(())
     }
@@ -488,10 +424,12 @@ impl<C: Connection> WindowManager<C> {
             }
         }
 
-        // Sync and render
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .apply_state(&mut self.conn, &mut self.window_state)?;
+        // Render the workspace
+        {
+            let workspace = &self.workspaces[self.current_workspace_index];
+            self.workspace_renderer
+                .apply_workspace(&mut self.conn, workspace)?;
+        }
 
         Ok(())
     }
@@ -548,10 +486,12 @@ impl<C: Connection> WindowManager<C> {
             }
         }
 
-        // Sync and render
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .apply_state(&mut self.conn, &mut self.window_state)?;
+        // Render the workspace
+        {
+            let workspace = &self.workspaces[self.current_workspace_index];
+            self.workspace_renderer
+                .apply_workspace(&mut self.conn, workspace)?;
+        }
 
         Ok(())
     }
@@ -567,10 +507,12 @@ impl<C: Connection> WindowManager<C> {
             self.current_workspace_mut()
                 .set_focused_window(Some(window));
 
-            // Sync and render
-            self.sync_window_state_with_current_workspace();
-            self.window_renderer
-                .apply_state(&mut self.conn, &mut self.window_state)?;
+            // Render the workspace
+            {
+                let workspace = &self.workspaces[self.current_workspace_index];
+                self.workspace_renderer
+                    .apply_workspace(&mut self.conn, workspace)?;
+            }
         }
         Ok(())
     }
@@ -583,59 +525,39 @@ impl<C: Connection> WindowManager<C> {
 impl<C: Connection> WindowManager<C> {
     /// Focuses next window in BSP tree order
     pub fn focus_next(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .focus_next(&mut self.conn, &mut self.window_state)?;
-
-        // Update workspace's focused window to match WindowState
-        let new_focused = self.window_state.get_focused_window();
-        self.current_workspace_mut().set_focused_window(new_focused);
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .focus_next(&mut self.conn, workspace)
     }
 
     /// Focuses previous window in BSP tree order
     pub fn focus_prev(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .focus_prev(&mut self.conn, &mut self.window_state)?;
-
-        // Update workspace's focused window to match WindowState
-        let new_focused = self.window_state.get_focused_window();
-        self.current_workspace_mut().set_focused_window(new_focused);
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .focus_prev(&mut self.conn, workspace)
     }
 }
 
 impl<C: Connection> WindowManager<C> {
     /// Destroys the currently focused window
     pub fn destroy_focused_window(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .destroy_focused_window(&mut self.conn, &mut self.window_state)
+        let workspace = &self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .destroy_focused_window(&mut self.conn, workspace)
     }
 
     /// Swaps focused window with next window in BSP order
     pub fn swap_window_next(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .swap_window_next(&mut self.conn, &mut self.window_state)?;
-
-        // Sync changes back to workspace
-        self.sync_workspace_from_window_state();
-        self.sync_bsp_tree_to_workspace();
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .swap_window_next(&mut self.conn, workspace)
     }
 
     /// Swaps focused window with previous window in BSP order
     pub fn swap_window_prev(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .swap_window_prev(&mut self.conn, &mut self.window_state)?;
-
-        // Sync changes back to workspace
-        self.sync_workspace_from_window_state();
-        self.sync_bsp_tree_to_workspace();
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .swap_window_prev(&mut self.conn, workspace)
     }
 
     /// Toggles fullscreen mode for focused window
@@ -664,9 +586,11 @@ impl<C: Connection> WindowManager<C> {
                 }
 
                 // Render normal layout
-                self.sync_window_state_with_current_workspace();
-                self.window_renderer
-                    .apply_state(&mut self.conn, &mut self.window_state)?;
+                {
+                    let workspace = &self.workspaces[self.current_workspace_index];
+                    self.workspace_renderer
+                        .apply_workspace(&mut self.conn, workspace)?;
+                }
             } else {
                 // Different window wants fullscreen, switch to it
                 info!(
@@ -723,24 +647,16 @@ impl<C: Connection> WindowManager<C> {
 
     /// Rotates focused window by flipping parent split direction
     pub fn rotate_windows(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .rotate_windows(&mut self.conn, &mut self.window_state)?;
-
-        // Sync BSP tree changes back to workspace
-        self.sync_bsp_tree_to_workspace();
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .rotate_windows(&mut self.conn, workspace)
     }
 
     /// Toggles zoom for the focused window
     pub fn toggle_zoom(&mut self) -> Result<()> {
-        self.sync_window_state_with_current_workspace();
-        self.window_renderer
-            .toggle_zoom(&mut self.conn, &mut self.window_state)?;
-
-        // Sync zoom state back to workspace
-        self.sync_workspace_from_window_state();
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .toggle_zoom(&mut self.conn, workspace)
     }
 
     /// Balances the BSP tree by calculating optimal split ratios based on window count
@@ -749,18 +665,9 @@ impl<C: Connection> WindowManager<C> {
     /// to be proportional to the number of windows in its left and right subtrees,
     /// ensuring all windows receive equal screen area.
     pub fn balance_tree(&mut self) -> Result<()> {
-        info!("Balancing BSP tree");
-
-        // Sync and balance the tree
-        self.sync_window_state_with_current_workspace();
-        self.window_state.balance_tree();
-
-        // Apply the balanced layout
-        self.window_renderer
-            .apply_state(&mut self.conn, &mut self.window_state)?;
-
-        info!("Successfully balanced tree");
-        Ok(())
+        let workspace = &mut self.workspaces[self.current_workspace_index];
+        self.workspace_renderer
+            .balance_tree(&mut self.conn, workspace)
     }
 }
 

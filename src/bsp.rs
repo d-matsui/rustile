@@ -101,24 +101,6 @@ impl BspTree {
         }
     }
 
-    /// Returns the total number of windows in the tree
-    pub fn window_count(&self) -> usize {
-        match &self.root {
-            Some(root) => Self::count_windows(root),
-            None => 0,
-        }
-    }
-
-    /// Helper to count windows recursively
-    fn count_windows(node: &BspNode) -> usize {
-        match node {
-            BspNode::Leaf(_) => 1,
-            BspNode::Split { left, right, .. } => {
-                Self::count_windows(left) + Self::count_windows(right)
-            }
-        }
-    }
-
     /// Checks if the tree contains a specific window
     pub fn has_window(&self, target_window: Window) -> bool {
         match &self.root {
@@ -385,8 +367,8 @@ impl BspTree {
     pub fn find_parent_bounds(
         &self,
         target_window: Window,
-        screen_rect: crate::window_renderer::BspRect,
-    ) -> Option<crate::window_renderer::BspRect> {
+        screen_rect: crate::workspace_renderer::BspRect,
+    ) -> Option<crate::workspace_renderer::BspRect> {
         if let Some(ref root) = self.root {
             Self::find_parent_bounds_recursive(root, target_window, screen_rect)
         } else {
@@ -398,8 +380,8 @@ impl BspTree {
     fn find_parent_bounds_recursive(
         node: &BspNode,
         target_window: Window,
-        rect: crate::window_renderer::BspRect,
-    ) -> Option<crate::window_renderer::BspRect> {
+        rect: crate::workspace_renderer::BspRect,
+    ) -> Option<crate::workspace_renderer::BspRect> {
         match node {
             BspNode::Leaf(window) => {
                 if *window == target_window {
@@ -429,13 +411,13 @@ impl BspTree {
                     SplitDirection::Horizontal => {
                         let split_x = rect.x + (rect.width as f32 * ratio) as i32;
                         (
-                            crate::window_renderer::BspRect {
+                            crate::workspace_renderer::BspRect {
                                 x: rect.x,
                                 y: rect.y,
                                 width: split_x - rect.x,
                                 height: rect.height,
                             },
-                            crate::window_renderer::BspRect {
+                            crate::workspace_renderer::BspRect {
                                 x: split_x,
                                 y: rect.y,
                                 width: rect.x + rect.width - split_x,
@@ -446,13 +428,13 @@ impl BspTree {
                     SplitDirection::Vertical => {
                         let split_y = rect.y + (rect.height as f32 * ratio) as i32;
                         (
-                            crate::window_renderer::BspRect {
+                            crate::workspace_renderer::BspRect {
                                 x: rect.x,
                                 y: rect.y,
                                 width: rect.width,
                                 height: split_y - rect.y,
                             },
-                            crate::window_renderer::BspRect {
+                            crate::workspace_renderer::BspRect {
                                 x: rect.x,
                                 y: split_y,
                                 width: rect.width,
@@ -734,7 +716,7 @@ mod tests {
         let mut bsp_tree = BspTree::new();
 
         // Test empty tree
-        assert_eq!(bsp_tree.window_count(), 0);
+        assert_eq!(bsp_tree.all_windows().len(), 0);
         assert_eq!(bsp_tree.all_windows(), Vec::<Window>::new());
         assert!(!bsp_tree.has_window(1));
         assert_eq!(bsp_tree.next_window(1), None);
@@ -742,7 +724,7 @@ mod tests {
 
         // Add first window
         bsp_tree.add_window(10, None, 0.5);
-        assert_eq!(bsp_tree.window_count(), 1);
+        assert_eq!(bsp_tree.all_windows().len(), 1);
         assert_eq!(bsp_tree.all_windows(), vec![10]);
         assert!(bsp_tree.has_window(10));
         assert!(!bsp_tree.has_window(20));
@@ -753,7 +735,7 @@ mod tests {
 
         // Add second window
         bsp_tree.add_window(20, Some(10), 0.5);
-        assert_eq!(bsp_tree.window_count(), 2);
+        assert_eq!(bsp_tree.all_windows().len(), 2);
         assert_eq!(bsp_tree.all_windows(), vec![10, 20]);
         assert!(bsp_tree.has_window(10));
         assert!(bsp_tree.has_window(20));
@@ -766,7 +748,7 @@ mod tests {
 
         // Add third window
         bsp_tree.add_window(30, Some(20), 0.5);
-        assert_eq!(bsp_tree.window_count(), 3);
+        assert_eq!(bsp_tree.all_windows().len(), 3);
         assert_eq!(bsp_tree.all_windows(), vec![10, 20, 30]);
 
         // Three window navigation
@@ -785,7 +767,7 @@ mod tests {
 
     #[test]
     fn test_find_parent_bounds() {
-        use crate::window_renderer::BspRect;
+        use crate::workspace_renderer::BspRect;
 
         let mut bsp_tree = BspTree::new();
         let screen_rect = BspRect {
@@ -954,12 +936,12 @@ mod tests {
         bsp_tree.add_window(3, Some(2), 0.5);
 
         let windows_before = bsp_tree.all_windows();
-        let count_before = bsp_tree.window_count();
+        let count_before = bsp_tree.all_windows().len();
 
         bsp_tree.balance_tree();
 
         let windows_after = bsp_tree.all_windows();
-        let count_after = bsp_tree.window_count();
+        let count_after = bsp_tree.all_windows().len();
 
         // Window count and order should be preserved
         assert_eq!(count_before, count_after);

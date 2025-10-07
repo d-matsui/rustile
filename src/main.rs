@@ -8,9 +8,8 @@ mod bsp;
 mod config;
 mod keyboard;
 mod window_manager;
-mod window_renderer;
-mod window_state;
 mod workspace;
+mod workspace_renderer;
 
 use window_manager::WindowManager;
 
