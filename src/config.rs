@@ -267,11 +267,6 @@ impl Config {
     pub fn min_window_height(&self) -> u32 {
         self.layout.min_window_height
     }
-
-    /// Gets the BSP split ratio
-    pub fn bsp_split_ratio(&self) -> f32 {
-        self.layout.bsp_split_ratio
-    }
 }
 
 #[cfg(test)]

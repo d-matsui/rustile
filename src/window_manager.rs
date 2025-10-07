@@ -2,9 +2,7 @@
 
 use anyhow::Result;
 use std::process::Command;
-#[cfg(debug_assertions)]
-use tracing::debug;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
@@ -22,13 +20,12 @@ use crate::workspace::Workspace;
 pub struct WindowManager<C: Connection> {
     pub(crate) conn: C,
     pub(crate) shortcut_manager: ShortcutManager,
-    // New workspace-based architecture
     pub(crate) workspaces: Vec<Workspace>,
     pub(crate) current_workspace_index: usize,
     pub(crate) intentionally_unmapped: HashSet<Window>,
     pub(crate) config: Config,
     pub(crate) screen_num: usize,
-    // Legacy field - will be removed after migration
+    // Temporary rendering state - synced with current workspace before rendering
     pub(crate) window_state: WindowState,
     pub(crate) window_renderer: WindowRenderer,
 }
@@ -97,9 +94,66 @@ impl<C: Connection> WindowManager<C> {
         &mut self.workspaces[self.current_workspace_index]
     }
 
+    /// Syncs WindowState with the current workspace
+    /// This ensures that rendering only affects the current workspace
+    fn sync_window_state_with_current_workspace(&mut self) {
+        // Clear WindowState and rebuild from current workspace
+        self.window_state = WindowState::new(self.config.clone(), self.screen_num);
+
+        let windows = self.current_workspace().get_all_windows();
+        debug!(
+            "Syncing {} windows from workspace to WindowState",
+            windows.len()
+        );
+
+        // Copy BSP tree directly from workspace to preserve structure
+        // (This is important for operations like rotate that modify tree structure)
+        let bsp_tree_clone = self.current_workspace().bsp_tree().clone();
+        *self.window_state.bsp_tree_mut() = bsp_tree_clone;
+
+        // Sync focused window from workspace
+        if let Some(focused) = self.current_workspace().focused_window() {
+            self.window_state.set_focused_window(Some(focused));
+        }
+
+        // Sync fullscreen window
+        if let Some(fullscreen) = self.current_workspace().fullscreen_window() {
+            self.window_state.set_fullscreen_window(Some(fullscreen));
+        }
+
+        // Sync zoom window
+        if let Some(zoomed) = self.current_workspace().zoomed_window() {
+            self.window_state.set_zoomed_window(Some(zoomed));
+        }
+    }
+
+    /// Syncs changes from WindowState back to the current workspace
+    /// This is needed after operations that modify WindowState's BSP tree or focus
+    fn sync_workspace_from_window_state(&mut self) {
+        // Sync focused window
+        let focused = self.window_state.get_focused_window();
+        self.current_workspace_mut().set_focused_window(focused);
+
+        // Sync fullscreen window
+        let fullscreen = self.window_state.get_fullscreen_window();
+        self.current_workspace_mut()
+            .set_fullscreen_window(fullscreen);
+
+        // Sync zoom window
+        let zoomed = self.window_state.get_zoomed_window();
+        self.current_workspace_mut().set_zoomed_window(zoomed);
+    }
+
+    /// Syncs BSP tree from WindowState to Workspace
+    /// This is needed after operations that modify BSP tree structure (swap, rotate)
+    fn sync_bsp_tree_to_workspace(&mut self) {
+        *self.current_workspace_mut().bsp_tree_mut() = self.window_state.bsp_tree().clone();
+    }
+
     /// Creates a new workspace and switches to it
     pub fn create_workspace(&mut self) {
         info!("Creating new workspace");
+        let old_workspace_index = self.current_workspace_index;
         self.workspaces.push(Workspace::new());
         self.current_workspace_index = self.workspaces.len() - 1;
         info!(
@@ -107,6 +161,8 @@ impl<C: Connection> WindowManager<C> {
             self.current_workspace_index,
             self.workspaces.len()
         );
+        // Switch to the newly created workspace
+        self.perform_workspace_switch(old_workspace_index);
     }
 
     /// Deletes the current workspace
@@ -144,6 +200,24 @@ impl<C: Connection> WindowManager<C> {
         // Adjust current_workspace_index if it's out of bounds
         if self.current_workspace_index >= self.workspaces.len() {
             self.current_workspace_index = self.workspaces.len() - 1;
+        }
+
+        // Show windows from the new current workspace
+        let new_windows = self.current_workspace().get_all_windows();
+        for window in &new_windows {
+            self.intentionally_unmapped.remove(window);
+            if let Err(e) = self.conn.map_window(*window) {
+                error!("Failed to map window {:?}: {}", window, e);
+            }
+        }
+
+        // Restore focus to the new workspace's focused window
+        if let Some(focused) = self.current_workspace().focused_window()
+            && let Err(e) =
+                self.conn
+                    .set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)
+        {
+            error!("Failed to set focus to window {:?}: {}", focused, e);
         }
 
         // Flush X11 commands
@@ -224,14 +298,12 @@ impl<C: Connection> WindowManager<C> {
         }
 
         // Restore focus to the new workspace's focused window
-        if let Some(focused) = self.current_workspace().focused_window() {
-            if let Err(e) = self.conn.set_input_focus(
-                InputFocus::POINTER_ROOT,
-                focused,
-                CURRENT_TIME,
-            ) {
-                error!("Failed to set focus to window {:?}: {}", focused, e);
-            }
+        if let Some(focused) = self.current_workspace().focused_window()
+            && let Err(e) =
+                self.conn
+                    .set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)
+        {
+            error!("Failed to set focus to window {:?}: {}", focused, e);
         }
 
         // Flush X11 commands
@@ -358,8 +430,8 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Mapping window: {:?}", window);
 
-        // Check if window is already managed (fixes Emacs double MapRequest bug)
-        if self.window_state.has_window(window) {
+        // Check if window is already managed in current workspace
+        if self.current_workspace().has_window(window) {
             info!(
                 "Window {:?} is already managed, ignoring duplicate MapRequest",
                 window
@@ -369,14 +441,13 @@ impl<C: Connection> WindowManager<C> {
 
         self.conn.map_window(window)?;
 
-        // Add to legacy WindowState
-        self.window_state.add_window_to_layout(window);
-        self.window_state.set_focused_window(Some(window));
-
         // Add to current workspace
         self.current_workspace_mut().add_window(window);
-        self.current_workspace_mut().set_focused_window(Some(window));
+        self.current_workspace_mut()
+            .set_focused_window(Some(window));
 
+        // Sync WindowState with current workspace and render
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
 
@@ -399,9 +470,6 @@ impl<C: Connection> WindowManager<C> {
             window
         );
 
-        // Remove from legacy WindowState
-        self.window_state.remove_window_from_layout(window);
-
         // Remove from all workspaces (window could be in any workspace)
         for workspace in &mut self.workspaces {
             if workspace.has_window(window) {
@@ -409,26 +477,19 @@ impl<C: Connection> WindowManager<C> {
             }
         }
 
-        // Update focus in legacy WindowState
-        if self.window_state.get_focused_window() == Some(window) {
-            let next_focus = self.window_state.get_first_window();
-            if let Some(next_focus) = next_focus {
-                self.window_state.set_focused_window(Some(next_focus));
-            } else {
-                self.window_state.clear_focus();
-            }
-        }
-
         // Update focus in current workspace
         if self.current_workspace().focused_window() == Some(window) {
             let next_focus = self.current_workspace().get_first_window();
             if let Some(next_focus) = next_focus {
-                self.current_workspace_mut().set_focused_window(Some(next_focus));
+                self.current_workspace_mut()
+                    .set_focused_window(Some(next_focus));
             } else {
                 self.current_workspace_mut().clear_focus();
             }
         }
 
+        // Sync and render
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
 
@@ -460,10 +521,6 @@ impl<C: Connection> WindowManager<C> {
         let window = event.window;
         info!("Window destroyed: {:?}", window);
 
-        // Remove from legacy WindowState
-        self.window_state.remove_window_from_layout(window);
-        self.window_state.remove_intentionally_unmapped(window);
-
         // Remove from intentionally_unmapped (WindowManager)
         self.intentionally_unmapped.remove(&window);
 
@@ -474,38 +531,25 @@ impl<C: Connection> WindowManager<C> {
             }
         }
 
-        // Clear fullscreen in legacy WindowState
-        if self.window_state.get_fullscreen_window() == Some(window) {
-            info!("Fullscreen window destroyed, exiting fullscreen mode");
-            self.window_state.clear_fullscreen();
-        }
-
         // Clear fullscreen in current workspace
         if self.current_workspace().fullscreen_window() == Some(window) {
             info!("Fullscreen window destroyed in workspace, exiting fullscreen mode");
             self.current_workspace_mut().clear_fullscreen();
         }
 
-        // Update focus in legacy WindowState
-        if self.window_state.get_focused_window() == Some(window) {
-            let next_focus = self.window_state.get_first_window();
-            if let Some(next_focus) = next_focus {
-                self.window_state.set_focused_window(Some(next_focus));
-            } else {
-                self.window_state.clear_focus();
-            }
-        }
-
         // Update focus in current workspace
         if self.current_workspace().focused_window() == Some(window) {
             let next_focus = self.current_workspace().get_first_window();
             if let Some(next_focus) = next_focus {
-                self.current_workspace_mut().set_focused_window(Some(next_focus));
+                self.current_workspace_mut()
+                    .set_focused_window(Some(next_focus));
             } else {
                 self.current_workspace_mut().clear_focus();
             }
         }
 
+        // Sync and render
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
             .apply_state(&mut self.conn, &mut self.window_state)?;
 
@@ -518,15 +562,13 @@ impl<C: Connection> WindowManager<C> {
         #[cfg(debug_assertions)]
         debug!("Mouse entered window: {:?}", window);
 
-        if self.window_state.has_window(window) {
-            // Update legacy WindowState
-            self.window_state.set_focused_window(Some(window));
+        // Update current workspace
+        if self.current_workspace().has_window(window) {
+            self.current_workspace_mut()
+                .set_focused_window(Some(window));
 
-            // Update current workspace
-            if self.current_workspace().has_window(window) {
-                self.current_workspace_mut().set_focused_window(Some(window));
-            }
-
+            // Sync and render
+            self.sync_window_state_with_current_workspace();
             self.window_renderer
                 .apply_state(&mut self.conn, &mut self.window_state)?;
         }
@@ -541,52 +583,164 @@ impl<C: Connection> WindowManager<C> {
 impl<C: Connection> WindowManager<C> {
     /// Focuses next window in BSP tree order
     pub fn focus_next(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
-            .focus_next(&mut self.conn, &mut self.window_state)
+            .focus_next(&mut self.conn, &mut self.window_state)?;
+
+        // Update workspace's focused window to match WindowState
+        let new_focused = self.window_state.get_focused_window();
+        self.current_workspace_mut().set_focused_window(new_focused);
+        Ok(())
     }
 
     /// Focuses previous window in BSP tree order
     pub fn focus_prev(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
-            .focus_prev(&mut self.conn, &mut self.window_state)
+            .focus_prev(&mut self.conn, &mut self.window_state)?;
+
+        // Update workspace's focused window to match WindowState
+        let new_focused = self.window_state.get_focused_window();
+        self.current_workspace_mut().set_focused_window(new_focused);
+        Ok(())
     }
 }
 
 impl<C: Connection> WindowManager<C> {
     /// Destroys the currently focused window
     pub fn destroy_focused_window(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
             .destroy_focused_window(&mut self.conn, &mut self.window_state)
     }
 
     /// Swaps focused window with next window in BSP order
     pub fn swap_window_next(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
-            .swap_window_next(&mut self.conn, &mut self.window_state)
+            .swap_window_next(&mut self.conn, &mut self.window_state)?;
+
+        // Sync changes back to workspace
+        self.sync_workspace_from_window_state();
+        self.sync_bsp_tree_to_workspace();
+        Ok(())
     }
 
     /// Swaps focused window with previous window in BSP order
     pub fn swap_window_prev(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
-            .swap_window_prev(&mut self.conn, &mut self.window_state)
+            .swap_window_prev(&mut self.conn, &mut self.window_state)?;
+
+        // Sync changes back to workspace
+        self.sync_workspace_from_window_state();
+        self.sync_bsp_tree_to_workspace();
+        Ok(())
     }
 
     /// Toggles fullscreen mode for focused window
     pub fn toggle_fullscreen(&mut self) -> Result<()> {
-        self.window_renderer
-            .toggle_fullscreen(&mut self.conn, &mut self.window_state)
+        let focused = match self.current_workspace().focused_window() {
+            Some(window) => window,
+            None => {
+                info!("No window focused for fullscreen toggle");
+                return Ok(());
+            }
+        };
+
+        // Check if we're currently in fullscreen mode
+        if let Some(fullscreen) = self.current_workspace().fullscreen_window() {
+            if fullscreen == focused {
+                // Exit fullscreen mode
+                info!("Exiting fullscreen mode for window {:?}", focused);
+                self.current_workspace_mut().set_fullscreen_window(None);
+
+                // Map all windows in the current workspace
+                for window in self.current_workspace().get_all_windows() {
+                    self.intentionally_unmapped.remove(&window);
+                    if let Err(e) = self.conn.map_window(window) {
+                        error!("Failed to map window {:?}: {}", window, e);
+                    }
+                }
+
+                // Render normal layout
+                self.sync_window_state_with_current_workspace();
+                self.window_renderer
+                    .apply_state(&mut self.conn, &mut self.window_state)?;
+            } else {
+                // Different window wants fullscreen, switch to it
+                info!(
+                    "Switching fullscreen from {:?} to {:?}",
+                    fullscreen, focused
+                );
+                self.current_workspace_mut()
+                    .set_fullscreen_window(Some(focused));
+                self.apply_fullscreen_layout(focused)?;
+            }
+        } else {
+            // Enter fullscreen mode
+            info!("Entering fullscreen mode for window {:?}", focused);
+            self.current_workspace_mut()
+                .set_fullscreen_window(Some(focused));
+            self.apply_fullscreen_layout(focused)?;
+        }
+
+        Ok(())
+    }
+
+    /// Applies fullscreen layout for a window
+    fn apply_fullscreen_layout(&mut self, fullscreen: Window) -> Result<()> {
+        let setup = self.conn.setup();
+        let screen = &setup.roots[self.screen_num];
+
+        self.conn.map_window(fullscreen)?;
+
+        let config = ConfigureWindowAux::new()
+            .x(0)
+            .y(0)
+            .width(u32::from(screen.width_in_pixels))
+            .height(u32::from(screen.height_in_pixels))
+            .border_width(0);
+
+        self.conn.configure_window(fullscreen, &config)?;
+
+        // Unmap all other windows
+        for window in self.current_workspace().get_all_windows() {
+            if window != fullscreen {
+                self.intentionally_unmapped.insert(window);
+                self.conn.unmap_window(window)?;
+            }
+        }
+
+        self.conn.configure_window(
+            fullscreen,
+            &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
+        )?;
+
+        self.conn.flush()?;
+        Ok(())
     }
 
     /// Rotates focused window by flipping parent split direction
     pub fn rotate_windows(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
-            .rotate_windows(&mut self.conn, &mut self.window_state)
+            .rotate_windows(&mut self.conn, &mut self.window_state)?;
+
+        // Sync BSP tree changes back to workspace
+        self.sync_bsp_tree_to_workspace();
+        Ok(())
     }
 
     /// Toggles zoom for the focused window
     pub fn toggle_zoom(&mut self) -> Result<()> {
+        self.sync_window_state_with_current_workspace();
         self.window_renderer
-            .toggle_zoom(&mut self.conn, &mut self.window_state)
+            .toggle_zoom(&mut self.conn, &mut self.window_state)?;
+
+        // Sync zoom state back to workspace
+        self.sync_workspace_from_window_state();
+        Ok(())
     }
 
     /// Balances the BSP tree by calculating optimal split ratios based on window count
@@ -597,7 +751,8 @@ impl<C: Connection> WindowManager<C> {
     pub fn balance_tree(&mut self) -> Result<()> {
         info!("Balancing BSP tree");
 
-        // Balance the tree
+        // Sync and balance the tree
+        self.sync_window_state_with_current_workspace();
         self.window_state.balance_tree();
 
         // Apply the balanced layout
@@ -620,21 +775,24 @@ mod tests {
         // Actual WindowManager::new() requires X11 connection which is hard to mock
 
         // Test that workspace fields are properly structured
-        let workspaces = vec![Workspace::new()];
+        let workspaces = [Workspace::new()];
         let current_workspace_index = 0;
 
         assert_eq!(workspaces.len(), 1);
         assert_eq!(current_workspace_index, 0);
-        assert_eq!(workspaces[current_workspace_index].window_count(), 0);
+        assert_eq!(
+            workspaces[current_workspace_index].get_all_windows().len(),
+            0
+        );
     }
 
     #[test]
     fn test_current_workspace_index_bounds() {
-        let workspaces = vec![Workspace::new(), Workspace::new(), Workspace::new()];
+        let workspaces = [Workspace::new(), Workspace::new(), Workspace::new()];
 
         for index in 0..workspaces.len() {
             assert!(index < workspaces.len());
-            assert_eq!(workspaces[index].window_count(), 0);
+            assert_eq!(workspaces[index].get_all_windows().len(), 0);
         }
     }
 
@@ -715,7 +873,7 @@ mod tests {
     #[test]
     fn test_workspace_switching_logic() {
         // Create 3 workspaces
-        let workspaces = vec![Workspace::new(), Workspace::new(), Workspace::new()];
+        let workspaces = [Workspace::new(), Workspace::new(), Workspace::new()];
         let mut current_workspace_index = 0;
 
         // Switch next: 0 -> 1

@@ -118,11 +118,8 @@ impl WindowRenderer {
             return Ok(());
         }
 
-        if state.is_in_fullscreen_mode() {
-            self.apply_fullscreen_layout(conn, state)?;
-        } else {
-            self.apply_normal_layout(conn, state)?;
-        }
+        // Apply normal layout (fullscreen is now handled by WindowManager)
+        self.apply_normal_layout(conn, state)?;
 
         if let Some(focused) = state.get_focused_window() {
             conn.set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)?;
@@ -155,7 +152,6 @@ impl WindowRenderer {
         let border_width = state.border_width();
         for &window in &state.get_all_windows() {
             conn.map_window(window)?;
-            state.remove_intentionally_unmapped(window);
             conn.configure_window(
                 window,
                 &ConfigureWindowAux::new().border_width(border_width),
@@ -215,45 +211,6 @@ impl WindowRenderer {
             }
 
             conn.configure_window(geometry.window, &config)?;
-        }
-
-        Ok(())
-    }
-
-    /// Applies fullscreen layout
-    fn apply_fullscreen_layout<C: Connection>(
-        &mut self,
-        conn: &mut C,
-        state: &mut WindowState,
-    ) -> Result<()> {
-        if let Some(fullscreen) = state.get_fullscreen_window() {
-            let setup = conn.setup();
-            let screen = &setup.roots[state.screen_num()];
-
-            conn.map_window(fullscreen)?;
-
-            let config = ConfigureWindowAux::new()
-                .x(0)
-                .y(0)
-                .width(u32::from(screen.width_in_pixels))
-                .height(u32::from(screen.height_in_pixels))
-                .border_width(0);
-
-            conn.configure_window(fullscreen, &config)?;
-
-            for &window in &state.get_all_windows() {
-                if window != fullscreen {
-                    state.mark_intentionally_unmapped(window);
-                    conn.unmap_window(window)?;
-                }
-            }
-
-            conn.configure_window(
-                fullscreen,
-                &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
-            )?;
-
-            conn.flush()?;
         }
 
         Ok(())
@@ -436,46 +393,6 @@ impl WindowRenderer {
                 self.apply_state(conn, state)?;
             }
         }
-        Ok(())
-    }
-
-    /// Toggles fullscreen mode for the focused window
-    pub fn toggle_fullscreen<C: Connection>(
-        &mut self,
-        conn: &mut C,
-        state: &mut WindowState,
-    ) -> Result<()> {
-        let focused = match state.get_focused_window() {
-            Some(window) => window,
-            None => {
-                info!("No window focused for fullscreen toggle");
-                return Ok(());
-            }
-        };
-
-        // Check if we're currently in fullscreen mode
-        if let Some(fullscreen) = state.get_fullscreen_window() {
-            if fullscreen == focused {
-                // Exit fullscreen mode
-                info!("Exiting fullscreen mode for window {:?}", focused);
-                state.clear_fullscreen();
-                self.apply_state(conn, state)?;
-            } else {
-                // Different window wants fullscreen, switch to it
-                info!(
-                    "Switching fullscreen from {:?} to {:?}",
-                    fullscreen, focused
-                );
-                state.set_fullscreen_window(Some(focused));
-                self.apply_fullscreen_layout(conn, state)?;
-            }
-        } else {
-            // Enter fullscreen mode
-            info!("Entering fullscreen mode for window {:?}", focused);
-            state.set_fullscreen_window(Some(focused));
-            self.apply_fullscreen_layout(conn, state)?;
-        }
-
         Ok(())
     }
 
