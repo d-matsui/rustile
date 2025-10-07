@@ -2,7 +2,9 @@
 
 use anyhow::Result;
 use std::process::Command;
-use tracing::{debug, error, info};
+use tracing::{error, info};
+#[cfg(debug_assertions)]
+use tracing::debug;
 use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
