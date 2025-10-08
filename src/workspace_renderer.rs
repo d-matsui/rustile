@@ -127,7 +127,20 @@ impl WorkspaceRenderer {
             return Ok(());
         }
 
-        // Apply normal layout (fullscreen is handled by WindowManager)
+        // Don't apply normal layout if in fullscreen mode
+        // Fullscreen layout is managed by WindowManager
+        if workspace.fullscreen_window().is_some() {
+            #[cfg(debug_assertions)]
+            debug!("Skipping layout application (in fullscreen mode)");
+            // Still set focus if needed
+            if let Some(focused) = workspace.focused_window() {
+                conn.set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)?;
+            }
+            conn.flush()?;
+            return Ok(());
+        }
+
+        // Apply normal layout
         self.apply_normal_layout(conn, workspace)?;
 
         if let Some(focused) = workspace.focused_window() {
