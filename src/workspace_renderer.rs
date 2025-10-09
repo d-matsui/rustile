@@ -1,4 +1,4 @@
-//! Window rendering and X11 operations
+//! Workspace rendering and X11 operations
 
 use anyhow::Result;
 #[cfg(debug_assertions)]
@@ -8,9 +8,11 @@ use x11rb::CURRENT_TIME;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 
-use crate::window_state::WindowState;
+use crate::bsp::{BspNode, BspTree, SplitDirection, dimensions};
+use crate::config::Config;
+use crate::workspace::Workspace;
 
-// === Geometry Types (moved from bsp.rs) ===
+// === Geometry Types ===
 
 /// Rectangle for BSP layout calculations
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -39,41 +41,46 @@ pub struct LayoutParams {
     pub gap: u32,
 }
 
-/// Handles X11 rendering operations
-pub struct WindowRenderer {}
+/// Handles X11 rendering operations for workspaces
+pub struct WorkspaceRenderer {
+    config: Config,
+    screen_num: usize,
+}
 
-impl WindowRenderer {
-    /// Creates a new window renderer
-    pub fn new() -> Self {
-        Self {}
+impl WorkspaceRenderer {
+    /// Creates a new workspace renderer
+    pub fn new(config: Config, screen_num: usize) -> Self {
+        Self { config, screen_num }
     }
 
     /// Focuses next window in BSP order
     pub fn focus_next<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
     ) -> Result<()> {
-        if state.window_count() == 0 {
+        if workspace.get_all_windows().is_empty() {
             return Ok(());
         }
 
-        let next_window = if let Some(current) = state.get_focused_window() {
-            state.next_window(current).unwrap_or(current)
+        let next_window = if let Some(current) = workspace.focused_window() {
+            workspace.bsp_tree().next_window(current).unwrap_or(current)
         } else {
-            match state.get_first_window() {
+            match workspace.get_first_window() {
                 Some(window) => window,
                 None => return Ok(()),
             }
         };
 
-        if state.is_in_fullscreen_mode() && state.get_fullscreen_window() != Some(next_window) {
+        if workspace.fullscreen_window().is_some()
+            && workspace.fullscreen_window() != Some(next_window)
+        {
             info!("Exiting fullscreen mode to focus different window");
-            state.clear_fullscreen();
+            workspace.clear_fullscreen();
         }
 
-        state.set_focused_window(Some(next_window));
-        self.apply_state(conn, state)?;
+        workspace.set_focused_window(Some(next_window));
+        self.apply_workspace(conn, workspace)?;
         info!("Focused next window: {:?}", next_window);
         Ok(())
     }
@@ -82,49 +89,61 @@ impl WindowRenderer {
     pub fn focus_prev<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
     ) -> Result<()> {
-        if state.window_count() == 0 {
+        if workspace.get_all_windows().is_empty() {
             return Ok(());
         }
 
-        let prev_window = if let Some(current) = state.get_focused_window() {
-            state.prev_window(current).unwrap_or(current)
+        let prev_window = if let Some(current) = workspace.focused_window() {
+            workspace.bsp_tree().prev_window(current).unwrap_or(current)
         } else {
-            match state.get_first_window() {
+            match workspace.get_first_window() {
                 Some(window) => window,
                 None => return Ok(()),
             }
         };
 
-        if state.is_in_fullscreen_mode() && state.get_fullscreen_window() != Some(prev_window) {
+        if workspace.fullscreen_window().is_some()
+            && workspace.fullscreen_window() != Some(prev_window)
+        {
             info!("Exiting fullscreen mode to focus different window");
-            state.clear_fullscreen();
+            workspace.clear_fullscreen();
         }
 
-        state.set_focused_window(Some(prev_window));
-        self.apply_state(conn, state)?;
+        workspace.set_focused_window(Some(prev_window));
+        self.apply_workspace(conn, workspace)?;
         info!("Focused previous window: {:?}", prev_window);
         Ok(())
     }
 
-    /// Applies current window state to screen (unified rendering method)
-    pub fn apply_state<C: Connection>(
+    /// Applies current workspace state to screen (unified rendering method)
+    pub fn apply_workspace<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &Workspace,
     ) -> Result<()> {
-        if state.window_count() == 0 {
+        if workspace.get_all_windows().is_empty() {
             return Ok(());
         }
 
-        if state.is_in_fullscreen_mode() {
-            self.apply_fullscreen_layout(conn, state)?;
-        } else {
-            self.apply_normal_layout(conn, state)?;
+        // Don't apply normal layout if in fullscreen mode
+        // Fullscreen layout is managed by WindowManager
+        if workspace.fullscreen_window().is_some() {
+            #[cfg(debug_assertions)]
+            debug!("Skipping layout application (in fullscreen mode)");
+            // Still set focus if needed
+            if let Some(focused) = workspace.focused_window() {
+                conn.set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)?;
+            }
+            conn.flush()?;
+            return Ok(());
         }
 
-        if let Some(focused) = state.get_focused_window() {
+        // Apply normal layout
+        self.apply_normal_layout(conn, workspace)?;
+
+        if let Some(focused) = workspace.focused_window() {
             conn.set_input_focus(InputFocus::POINTER_ROOT, focused, CURRENT_TIME)?;
             conn.configure_window(
                 focused,
@@ -136,8 +155,8 @@ impl WindowRenderer {
 
         #[cfg(debug_assertions)]
         debug!(
-            "Applied complete state to screen: {} windows",
-            state.window_count()
+            "Applied complete workspace state to screen: {} windows",
+            workspace.get_all_windows().len()
         );
 
         Ok(())
@@ -147,31 +166,33 @@ impl WindowRenderer {
     fn apply_normal_layout<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &Workspace,
     ) -> Result<()> {
         let setup = conn.setup();
-        let screen = &setup.roots[state.screen_num()];
+        let screen = &setup.roots[self.screen_num];
 
-        let border_width = state.border_width();
-        for &window in &state.get_all_windows() {
+        let border_width = self.config.border_width();
+        for &window in &workspace.get_all_windows() {
             conn.map_window(window)?;
-            state.remove_intentionally_unmapped(window);
             conn.configure_window(
                 window,
                 &ConfigureWindowAux::new().border_width(border_width),
             )?;
         }
 
-        let mut geometries =
-            state.calculate_window_geometries(screen.width_in_pixels, screen.height_in_pixels);
+        let mut geometries = self.calculate_window_geometries(
+            workspace,
+            screen.width_in_pixels,
+            screen.height_in_pixels,
+        );
 
         // Apply zoom if a window is zoomed
-        if let Some(zoomed_window) = state.get_zoomed_window() {
+        if let Some(zoomed_window) = workspace.zoomed_window() {
             let screen_rect =
-                state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
+                self.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
 
             // Find parent bounds for the zoomed window
-            if let Some(parent_bounds) = state
+            if let Some(parent_bounds) = workspace
                 .bsp_tree()
                 .find_parent_bounds(zoomed_window, screen_rect)
             {
@@ -182,11 +203,11 @@ impl WindowRenderer {
                         geometry.y = parent_bounds.y;
                         geometry.width = parent_bounds
                             .width
-                            .max(state.layout_params().min_window_width as i32)
+                            .max(self.layout_params().min_window_width as i32)
                             as u32;
                         geometry.height = parent_bounds
                             .height
-                            .max(state.layout_params().min_window_height as i32)
+                            .max(self.layout_params().min_window_height as i32)
                             as u32;
                         break;
                     }
@@ -195,7 +216,7 @@ impl WindowRenderer {
         }
 
         for geometry in &geometries {
-            let border_color = state.border_color_for_window(geometry.window);
+            let border_color = self.border_color_for_window(workspace, geometry.window);
 
             conn.change_window_attributes(
                 geometry.window,
@@ -210,7 +231,7 @@ impl WindowRenderer {
                 .border_width(border_width);
 
             // If this is the zoomed window, ensure it's on top
-            if Some(geometry.window) == state.get_zoomed_window() {
+            if Some(geometry.window) == workspace.zoomed_window() {
                 config = config.stack_mode(StackMode::ABOVE);
             }
 
@@ -220,52 +241,13 @@ impl WindowRenderer {
         Ok(())
     }
 
-    /// Applies fullscreen layout
-    fn apply_fullscreen_layout<C: Connection>(
-        &mut self,
-        conn: &mut C,
-        state: &mut WindowState,
-    ) -> Result<()> {
-        if let Some(fullscreen) = state.get_fullscreen_window() {
-            let setup = conn.setup();
-            let screen = &setup.roots[state.screen_num()];
-
-            conn.map_window(fullscreen)?;
-
-            let config = ConfigureWindowAux::new()
-                .x(0)
-                .y(0)
-                .width(u32::from(screen.width_in_pixels))
-                .height(u32::from(screen.height_in_pixels))
-                .border_width(0);
-
-            conn.configure_window(fullscreen, &config)?;
-
-            for &window in &state.get_all_windows() {
-                if window != fullscreen {
-                    state.mark_intentionally_unmapped(window);
-                    conn.unmap_window(window)?;
-                }
-            }
-
-            conn.configure_window(
-                fullscreen,
-                &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
-            )?;
-
-            conn.flush()?;
-        }
-
-        Ok(())
-    }
-
     /// Destroys the currently focused window
     pub fn destroy_focused_window<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &Workspace,
     ) -> Result<()> {
-        if let Some(focused) = state.get_focused_window() {
+        if let Some(focused) = workspace.focused_window() {
             info!("Destroying focused window: {:?}", focused);
             self.close_window_gracefully(conn, focused)
                 .or_else(|_| self.kill_window_forcefully(conn, focused))?;
@@ -327,16 +309,16 @@ impl WindowRenderer {
     pub fn toggle_zoom<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
     ) -> Result<()> {
         // Don't allow zoom in fullscreen mode
-        if state.is_in_fullscreen_mode() {
+        if workspace.fullscreen_window().is_some() {
             info!("Cannot zoom while in fullscreen mode");
             return Ok(());
         }
 
         // Get the focused window
-        let focused = match state.get_focused_window() {
+        let focused = match workspace.focused_window() {
             Some(window) => window,
             None => {
                 info!("No focused window to zoom");
@@ -346,18 +328,18 @@ impl WindowRenderer {
 
         // Get screen dimensions for parent bounds calculation
         let setup = conn.setup();
-        let screen = &setup.roots[state.screen_num()];
+        let screen = &setup.roots[self.screen_num];
         let screen_rect =
-            state.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
+            self.calculate_screen_rect(screen.width_in_pixels, screen.height_in_pixels);
 
         // Toggle zoom state
-        if state.get_zoomed_window() == Some(focused) {
+        if workspace.zoomed_window() == Some(focused) {
             // Already zoomed - unzoom
-            state.clear_zoom();
+            workspace.set_zoomed_window(None);
             info!("Unzoomed window: {:?}", focused);
         } else {
             // Check if this window can be zoomed (has a parent)
-            if state
+            if workspace
                 .bsp_tree()
                 .find_parent_bounds(focused, screen_rect)
                 .is_none()
@@ -368,12 +350,12 @@ impl WindowRenderer {
             }
 
             // Zoom the focused window
-            state.set_zoomed_window(Some(focused));
+            workspace.set_zoomed_window(Some(focused));
             info!("Zoomed window: {:?}", focused);
         }
 
         // Apply the new state
-        self.apply_state(conn, state)?;
+        self.apply_workspace(conn, workspace)?;
         Ok(())
     }
 
@@ -381,46 +363,48 @@ impl WindowRenderer {
     pub fn swap_window_next<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
     ) -> Result<()> {
-        self.swap_window_direction(conn, state, SwapDirection::Next)
+        self.swap_window_direction(conn, workspace, SwapDirection::Next)
     }
 
     /// Swaps the currently focused window with the previous window in the layout
     pub fn swap_window_prev<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
     ) -> Result<()> {
-        self.swap_window_direction(conn, state, SwapDirection::Previous)
+        self.swap_window_direction(conn, workspace, SwapDirection::Previous)
     }
 
     /// Helper method to swap windows in a given direction
     fn swap_window_direction<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
         direction: SwapDirection,
     ) -> Result<()> {
-        if state.window_count() < 2 {
+        if workspace.get_all_windows().len() < 2 {
             return Ok(());
         }
 
         // Exit fullscreen if active, then perform swap
-        if state.is_in_fullscreen_mode() {
+        if workspace.fullscreen_window().is_some() {
             info!("Exiting fullscreen for window swap");
-            state.clear_fullscreen();
+            workspace.clear_fullscreen();
         }
 
-        if let Some(focused) = state.get_focused_window() {
+        if let Some(focused) = workspace.focused_window() {
             let target_window = match direction {
-                SwapDirection::Next => state.next_window(focused),
-                SwapDirection::Previous => state.prev_window(focused),
+                SwapDirection::Next => workspace.bsp_tree().next_window(focused),
+                SwapDirection::Previous => workspace.bsp_tree().prev_window(focused),
             };
 
             if let Some(target_window) = target_window {
                 // Swap windows in the BSP tree
-                state.swap_windows(focused, target_window);
+                workspace
+                    .bsp_tree_mut()
+                    .swap_windows(focused, target_window);
 
                 let direction_str = match direction {
                     SwapDirection::Next => "next",
@@ -433,49 +417,9 @@ impl WindowRenderer {
                 );
 
                 // Apply complete state to screen
-                self.apply_state(conn, state)?;
+                self.apply_workspace(conn, workspace)?;
             }
         }
-        Ok(())
-    }
-
-    /// Toggles fullscreen mode for the focused window
-    pub fn toggle_fullscreen<C: Connection>(
-        &mut self,
-        conn: &mut C,
-        state: &mut WindowState,
-    ) -> Result<()> {
-        let focused = match state.get_focused_window() {
-            Some(window) => window,
-            None => {
-                info!("No window focused for fullscreen toggle");
-                return Ok(());
-            }
-        };
-
-        // Check if we're currently in fullscreen mode
-        if let Some(fullscreen) = state.get_fullscreen_window() {
-            if fullscreen == focused {
-                // Exit fullscreen mode
-                info!("Exiting fullscreen mode for window {:?}", focused);
-                state.clear_fullscreen();
-                self.apply_state(conn, state)?;
-            } else {
-                // Different window wants fullscreen, switch to it
-                info!(
-                    "Switching fullscreen from {:?} to {:?}",
-                    fullscreen, focused
-                );
-                state.set_fullscreen_window(Some(focused));
-                self.apply_fullscreen_layout(conn, state)?;
-            }
-        } else {
-            // Enter fullscreen mode
-            info!("Entering fullscreen mode for window {:?}", focused);
-            state.set_fullscreen_window(Some(focused));
-            self.apply_fullscreen_layout(conn, state)?;
-        }
-
         Ok(())
     }
 
@@ -483,9 +427,9 @@ impl WindowRenderer {
     pub fn rotate_windows<C: Connection>(
         &mut self,
         conn: &mut C,
-        state: &mut WindowState,
+        workspace: &mut Workspace,
     ) -> Result<()> {
-        let focused = match state.get_focused_window() {
+        let focused = match workspace.focused_window() {
             Some(window) => window,
             None => {
                 info!("No window focused for rotation");
@@ -494,13 +438,13 @@ impl WindowRenderer {
         };
 
         // Cannot rotate in fullscreen mode
-        if state.is_in_fullscreen_mode() {
+        if workspace.fullscreen_window().is_some() {
             info!("Cannot rotate in fullscreen mode");
             return Ok(());
         }
 
         // Need at least 2 windows to rotate
-        if state.window_count() < 2 {
+        if workspace.get_all_windows().len() < 2 {
             info!("Not enough windows to rotate (need at least 2)");
             return Ok(());
         }
@@ -511,11 +455,11 @@ impl WindowRenderer {
         );
 
         // Rotate the focused window in the BSP tree
-        let rotated = state.rotate_window(focused);
+        let rotated = workspace.bsp_tree_mut().rotate_window(focused);
 
         if rotated {
             // Apply complete state to screen
-            self.apply_state(conn, state)?;
+            self.apply_workspace(conn, workspace)?;
             info!("Window rotation completed for window {:?}", focused);
         } else {
             info!(
@@ -526,6 +470,68 @@ impl WindowRenderer {
 
         Ok(())
     }
+
+    /// Balances the BSP tree by calculating optimal split ratios based on window count
+    pub fn balance_tree<C: Connection>(
+        &mut self,
+        conn: &mut C,
+        workspace: &mut Workspace,
+    ) -> Result<()> {
+        info!("Balancing BSP tree");
+
+        // Balance the tree
+        workspace.bsp_tree_mut().balance_tree();
+
+        // Apply the balanced layout
+        self.apply_workspace(conn, workspace)?;
+
+        info!("BSP tree balanced and applied");
+        Ok(())
+    }
+
+    // === Helper methods ===
+
+    /// Calculates window geometries from the BSP tree (pure calculation - no X11 calls)
+    fn calculate_window_geometries(
+        &self,
+        workspace: &Workspace,
+        screen_width: u16,
+        screen_height: u16,
+    ) -> Vec<WindowGeometry> {
+        let params = self.layout_params();
+        calculate_bsp_geometries(workspace.bsp_tree(), screen_width, screen_height, params)
+    }
+
+    /// Calculates the screen rectangle with gap and minimum size constraints
+    fn calculate_screen_rect(&self, screen_width: u16, screen_height: u16) -> BspRect {
+        let params = self.layout_params();
+        BspRect {
+            x: params.gap as i32,
+            y: params.gap as i32,
+            width: (screen_width as i32 - 2 * params.gap as i32)
+                .max(params.min_window_width as i32),
+            height: (screen_height as i32 - 2 * params.gap as i32)
+                .max(params.min_window_height as i32),
+        }
+    }
+
+    /// Creates layout parameters bundle from config - helper to reduce parameter duplication
+    fn layout_params(&self) -> LayoutParams {
+        LayoutParams {
+            min_window_width: self.config.min_window_width(),
+            min_window_height: self.config.min_window_height(),
+            gap: self.config.gap(),
+        }
+    }
+
+    /// Returns appropriate border color based on window focus state - helper to reduce duplication
+    fn border_color_for_window(&self, workspace: &Workspace, window: Window) -> u32 {
+        if Some(window) == workspace.focused_window() {
+            self.config.focused_border_color()
+        } else {
+            self.config.unfocused_border_color()
+        }
+    }
 }
 
 /// Direction for window swapping operations
@@ -535,9 +541,7 @@ enum SwapDirection {
     Previous,
 }
 
-// === BSP Geometry Calculation Functions (moved from bsp.rs) ===
-
-use crate::bsp::{BspNode, BspTree, SplitDirection, dimensions};
+// === BSP Geometry Calculation Functions ===
 
 /// Calculate window geometries without applying them (pure calculation)
 pub fn calculate_bsp_geometries(
@@ -662,10 +666,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_window_renderer_creation() {
-        let renderer = WindowRenderer::new();
-        // WindowRenderer has no fields, so just test it can be created
-        let _ = renderer;
+    fn test_workspace_renderer_creation() {
+        let config = Config::default();
+        let renderer = WorkspaceRenderer::new(config, 0);
+        assert_eq!(renderer.screen_num, 0);
     }
 
     #[test]
@@ -678,6 +682,6 @@ mod tests {
         assert!(matches!(prev, SwapDirection::Previous));
     }
 
-    // Note: Most WindowRenderer methods require X11 connection and are tested
+    // Note: Most WorkspaceRenderer methods require X11 connection and are tested
     // through integration tests rather than unit tests
 }

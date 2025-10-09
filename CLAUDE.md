@@ -16,6 +16,7 @@ Kiroスタイルの仕様駆動開発をClaude Codeのスラッシュコマン�
 
 ### アクティブな仕様
 - **bsp-balance**: ウィンドウ数に基づいてBSPツリーの比率を手動でバランスするコマンド
+- **workspace-management**: ワークスペースの作成・削除・切り替え機能（仮想画面として各ワークスペースが独立したBSPツリーを保持）
 - 進捗確認: `/kiro:spec-status [feature-name]`
 
 ## 開発ガイドライン
