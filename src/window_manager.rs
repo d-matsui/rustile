@@ -124,6 +124,7 @@ impl<C: Connection> WindowManager<C> {
                     "toggle_fullscreen" => return self.toggle_fullscreen(),
                     "rotate_windows" => return self.rotate_windows(),
                     "toggle_zoom" => return self.toggle_zoom(),
+                    "balance_tree" => return self.balance_tree(),
                     _ => {
                         let parts: Vec<&str> = command.split_whitespace().collect();
                         if let Some(program) = parts.first() {
@@ -323,6 +324,25 @@ impl<C: Connection> WindowManager<C> {
     pub fn toggle_zoom(&mut self) -> Result<()> {
         self.window_renderer
             .toggle_zoom(&mut self.conn, &mut self.window_state)
+    }
+
+    /// Balances the BSP tree by calculating optimal split ratios based on window count
+    ///
+    /// This command traverses the entire BSP tree and updates each split node's ratio
+    /// to be proportional to the number of windows in its left and right subtrees,
+    /// ensuring all windows receive equal screen area.
+    pub fn balance_tree(&mut self) -> Result<()> {
+        info!("Balancing BSP tree");
+
+        // Balance the tree
+        self.window_state.balance_tree();
+
+        // Apply the balanced layout
+        self.window_renderer
+            .apply_state(&mut self.conn, &mut self.window_state)?;
+
+        info!("Successfully balanced tree");
+        Ok(())
     }
 }
 

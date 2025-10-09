@@ -216,6 +216,11 @@ impl WindowState {
                 .max(params.min_window_height as i32),
         }
     }
+
+    /// Balances the BSP tree by calculating optimal split ratios
+    pub fn balance_tree(&mut self) {
+        self.bsp_tree.balance_tree();
+    }
 }
 
 #[cfg(test)]

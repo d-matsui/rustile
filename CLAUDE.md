@@ -1,14 +1,55 @@
-# CLAUDE.md
+# Claude Code 仕様駆動開発
 
-This file provides guidance to Claude Code (claude.ai/code) when working with this tiling window manager codebase.
+Kiroスタイルの仕様駆動開発をClaude Codeのスラッシュコマンド、フック、エージェントで実装
 
-## Project Overview
+## プロジェクトコンテキスト
 
-Rustile is a tiling window manager written in Rust using x11rb for X11 window management. It implements BSP (Binary Space Partitioning) layout with configurable gaps, focus management, and keyboard shortcuts.
+### パス
+- Steering: `.kiro/steering/`
+- Specs: `.kiro/specs/`
+- Commands: `.claude/commands/`
 
-## Quick Reference
+### Steering vs Specification
 
-### Mandatory Pre-Commit Commands
+**Steering** (`.kiro/steering/`) - プロジェクト全体のルールとコンテキストでAIをガイド
+**Specs** (`.kiro/specs/`) - 個別機能の開発プロセスを形式化
+
+### アクティブな仕様
+- **bsp-balance**: ウィンドウ数に基づいてBSPツリーの比率を手動でバランスするコマンド
+- 進捗確認: `/kiro:spec-status [feature-name]`
+
+## 開発ガイドライン
+- 日本語で思考し、日本語で応答を生成する
+
+## ワークフロー
+
+### フェーズ0: Steering（オプション）
+`/kiro:steering` - steeringドキュメントの作成/更新
+`/kiro:steering-custom` - 専門的なコンテキスト用のカスタムsteeringを作成
+
+注意: 新機能や小規模な追加では省略可能。spec-initから直接開始できます。
+
+### フェーズ1: 仕様作成
+1. `/kiro:spec-init [詳細な説明]` - 詳細なプロジェクト説明で仕様を初期化
+2. `/kiro:spec-requirements [feature]` - 要件定義書を生成
+3. `/kiro:spec-design [feature]` - インタラクティブ: "requirements.mdを確認しましたか？ [y/N]"
+4. `/kiro:spec-tasks [feature]` - インタラクティブ: 要件と設計の両方の確認を求める
+
+### フェーズ2: 進捗トラッキング
+`/kiro:spec-status [feature]` - 現在の進捗とフェーズを確認
+
+## 開発ルール
+1. **Steeringを考慮**: 大規模な開発の前に `/kiro:steering` を実行（新機能では省略可）
+2. **3フェーズ承認ワークフローに従う**: 要件 → 設計 → タスク → 実装
+3. **承認が必要**: 各フェーズは人間のレビューが必要（インタラクティブプロンプトまたは手動）
+4. **フェーズをスキップしない**: 設計は承認済み要件が必要、タスクは承認済み設計が必要
+5. **タスクステータスを更新**: 作業中のタスクを完了としてマーク
+6. **Steeringを最新に保つ**: 重要な変更後に `/kiro:steering` を実行
+7. **仕様準拠を確認**: `/kiro:spec-status` で整合性を検証
+
+## コード品質チェック
+
+### コミット前に必須のコマンド
 ```bash
 source ~/.cargo/env  # Ensure cargo is in PATH
 cargo fmt           # Format code
@@ -17,174 +58,25 @@ cargo clippy --all-targets --all-features -- -D warnings  # Check for lints (tre
 cargo test          # Run all tests
 ```
 
-### Development Scripts
-```bash
-./test.sh    # Interactive testing with Xephyr
-./check.sh   # Code quality checks (formatting, clippy, tests, docs)
-```
+## Steering設定
 
-### Rust Version Management
-- **Current Version**: Pinned to Rust 1.89 for CI reproducibility and 2024 edition support
-- **Update Schedule**: Review quarterly or as needed for new features
-- **Rationale**: Prevents unexpected CI failures from Rust version changes while maintaining modern toolchain
+### 現在のSteeringファイル
+`/kiro:steering` コマンドで管理。ここの更新はコマンドの変更を反映。
 
-## Development Standards
+### アクティブなSteeringファイル
+- `product.md`: 常に含まれる - プロダクトコンテキストとビジネス目標
+- `tech.md`: 常に含まれる - 技術スタックとアーキテクチャ決定
+- `structure.md`: 常に含まれる - ファイル構成とコードパターン
 
-### Code Quality Requirements
-- **Zero Warnings**: Builds MUST produce no warnings
-- **Formatting**: Use `cargo fmt` before commits
-- **Linting**: All clippy warnings MUST be resolved with `--all-targets --all-features -- -D warnings` flags
-- **Testing**: All tests MUST pass before commits
-- **Error Handling**: Use `anyhow::Result`, never `unwrap()` in production
-- **Documentation**: Use `///` for public APIs, `//!` for module-level docs
-- **Code Comments**: Follow ADR-005 concise standard - document "what", not "how"
+### カスタムSteeringファイル
+<!-- /kiro:steering-custom コマンドで追加 -->
+<!-- フォーマット:
+- `filename.md`: モード - パターン - 説明
+  モード: Always|Conditional|Manual
+  パターン: Conditionalモード用のファイルパターン
+-->
 
-### Forbidden Rust Attributes
-**NEVER use warning suppression attributes:**
-- `#[allow(dead_code)]` - Remove unused code instead
-- `#[allow(unused_variables)]` - Use `_` prefix for intentionally unused vars
-- `#[allow(clippy::all)]` - Fix clippy warnings instead
-- `#[allow(missing_docs)]` - Document all public items
-
-### Logging Standards
-Use simplified 3-level approach with tracing crate:
-```rust
-use tracing::{info, error, debug};
-
-error!("Failed to become window manager: {:?}", e);  // Critical failures
-info!("Mapping window: {:?}", window);               // User-visible operations
-#[cfg(debug_assertions)]
-debug!("Configure request for window: {:?}", event.window);  // Developer info
-```
-
-## Project Structure
-
-```
-rustile/
-├── src/
-│   ├── main.rs              # Entry point and CLI
-│   ├── window_manager.rs    # Core window management logic
-│   ├── window_renderer.rs   # Window rendering and visual state
-│   ├── window_state.rs      # Window state management
-│   ├── bsp.rs               # BSP layout algorithm
-│   ├── config.rs            # Configuration system with validation
-│   └── keyboard.rs          # Keyboard shortcut handling
-├── docs/                    # Documentation and ADRs
-│   ├── HOW_RUSTILE_WORKS.md # X11 concepts and architecture
-│   ├── ROADMAP.md           # Development roadmap
-│   └── adr/                 # Architecture Decision Records
-├── test.sh                  # Interactive testing script
-├── check.sh                 # Code quality checker
-└── config.example.toml      # Example configuration
-```
-
-## Git Workflow
-
-### Commit Format
-Follow [Conventional Commits](https://conventionalcommits.org/):
-```
-<type>: <description>
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-
-### Branch Strategy
-- `main` - Production branch with automated releases
-- `feature/*` - Feature branches for development
-- `fix/*` - Bug fixes
-- `docs/*` - Documentation updates
-- `refactor/*` - Code refactoring
-
-### Automated Releases
-**Fully automated - no manual intervention required:**
-- `feat:` commits → MINOR version bump
-- `fix:`, `style:`, `refactor:`, `test:` → PATCH version bump
-- Automatic `Cargo.toml` version updates, changelog generation, GitHub releases
-
-## Testing
-
-### Test Environment
-```bash
-./test.sh  # Opens 4 test applications: xterm, xlogo, xcalc, xeyes
-```
-
-### Test Categories
-- **Unit Tests**: 49 tests covering all major components
-- **Integration Tests**: Full window manager behavior in Xephyr
-- **Edge Case Tests**: Boundary conditions and error handling
-- **Configuration Tests**: Validation and parsing
-
-## Dependencies
-
-### Core Dependencies
-- `x11rb` - X11 protocol bindings
-- `anyhow` - Error handling
-- `tracing` - Logging framework
-- `serde` + `toml` - Configuration
-- `dirs` - System directory detection
-
-### Development Tools
-- Standard Rust toolchain (rustc, cargo, clippy, rustfmt)
-- `Xephyr` - Nested X server for testing
-
-## Troubleshooting
-
-### Common Issues
-- **Cargo not found**: Run `source ~/.cargo/env`
-- **X11 connection failed**: Check DISPLAY variable
-- **CI/Local mismatch**: Use `--all-targets --all-features` flags for clippy
-
-### Debug Commands
-```bash
-RUST_LOG=debug cargo run     # Enable debug logging
-RUST_BACKTRACE=1 cargo run   # Show backtraces on panic
-```
-
-### Release Issues
-- **No release triggered**: Check conventional commit format
-- **Build fails**: Verify X11 dependencies and Rust toolchain
-- **Permission denied**: Check `GITHUB_TOKEN` has `contents: write`
-
-## Architecture History
-
-### Recent Architectural Evolution
-- **Phase 6 (Latest)**: Flattened module structure for simplicity (7 focused files in src/)
-- **Phase 5**: Removed master-stack layout, eliminated LayoutManager abstraction (~740 lines removed)
-- **Phase 4**: Enhanced documentation with HOW_RUSTILE_WORKS.md
-- **Phase 3**: Configuration validation system improvements
-- **Phase 2**: Window manager modularization experiment (later simplified)
-- **Phase 1**: Layout module refactoring (trait system)
-
-### Architecture Decision Records (ADRs)
-See [docs/adr/](docs/adr/) for detailed decisions:
-- **ADR-012**: Configuration file handling improvement
-- **ADR-011**: BSP screen rect separation
-- **ADR-010**: Zoom to parent feature
-- **ADR-009**: Unify keyboard modules
-- **ADR-008**: X11 modifier system understanding
-- **ADR-007**: X11 keyboard mapping understanding
-- **ADR-006**: Configure request timeout handling
-- **ADR-005**: Code comment standard implementation
-- **ADR-004**: X11 event registration strategy
-- **ADR-003**: SRP refactoring and three-module architecture
-- **ADR-002**: Single source of truth architecture
-- **ADR-001**: Rotate window implementation approach
-
-### Current Features
-- BSP layout with configurable gaps and borders
-- Visual focus management (red=focused, gray=unfocused)
-- Keyboard navigation and window operations
-- TOML configuration with runtime validation
-- Comprehensive test coverage
-- Zoom-to-parent functionality for focused windows
-- Production-ready TTY setup alongside desktop environments
-
-## Future Development
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for v1.0.0 and beyond:
-- **v1.0.0**: Configuration simplification (completed)
-- **Future**: Directional insertion, floating windows, workspaces, multi-monitor support
+### 包含モード
+- **Always**: 全てのインタラクションで読み込み（デフォルト）
+- **Conditional**: 特定のファイルパターンで読み込み（例: "*.test.js"）
+- **Manual**: `@filename.md` 構文で参照

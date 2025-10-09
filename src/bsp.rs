@@ -540,6 +540,58 @@ impl BspTree {
             }
         }
     }
+
+    /// Balance the BSP tree by calculating optimal split ratios based on window count
+    ///
+    /// This method traverses the tree and updates each split node's ratio to be proportional
+    /// to the number of windows in the left and right subtrees, ensuring all windows receive
+    /// equal screen area.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let mut tree = BspTree::new();
+    /// tree.add_window(1, None, 0.5);
+    /// tree.add_window(2, Some(1), 0.3); // Unbalanced
+    /// tree.balance_tree(); // Now balanced with ratio ~0.5
+    /// ```
+    pub fn balance_tree(&mut self) {
+        if let Some(root) = &mut self.root {
+            // Only balance if we have more than one window (i.e., at least one split)
+            if !matches!(root, BspNode::Leaf(_)) {
+                Self::balance_tree_recursive(root);
+            }
+        }
+    }
+
+    /// Recursively balance a subtree and return the number of windows it contains
+    ///
+    /// This performs a bottom-up traversal, calculating window counts and updating
+    /// split ratios in a single pass.
+    ///
+    /// # Returns
+    /// The number of windows in this subtree
+    fn balance_tree_recursive(node: &mut BspNode) -> usize {
+        match node {
+            BspNode::Leaf(_) => {
+                // Leaf nodes contain exactly one window
+                1
+            }
+            BspNode::Split {
+                ratio, left, right, ..
+            } => {
+                // Recursively balance and count windows in both subtrees
+                let left_count = Self::balance_tree_recursive(left);
+                let right_count = Self::balance_tree_recursive(right);
+                let total_count = left_count + right_count;
+
+                // Calculate optimal ratio: left_count / total_count
+                // This ensures windows get area proportional to their count
+                *ratio = left_count as f32 / total_count as f32;
+
+                total_count
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -791,5 +843,126 @@ mod tests {
 
         // Non-existent window should return None
         assert_eq!(bsp_tree.find_parent_bounds(999, screen_rect), None);
+    }
+
+    // === Balance Tests ===
+
+    #[test]
+    fn test_balance_empty_tree() {
+        let mut bsp_tree = BspTree::new();
+
+        // Balance on empty tree should be no-op
+        bsp_tree.balance_tree();
+
+        assert!(bsp_tree.root.is_none());
+    }
+
+    #[test]
+    fn test_balance_single_window() {
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None, 0.5);
+
+        // Balance on single window should be no-op
+        bsp_tree.balance_tree();
+
+        // Should still be a single leaf
+        assert!(matches!(bsp_tree.root, Some(BspNode::Leaf(1))));
+    }
+
+    #[test]
+    fn test_balance_two_windows() {
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None, 0.5);
+        bsp_tree.add_window(2, Some(1), 0.3); // Unbalanced ratio
+
+        bsp_tree.balance_tree();
+
+        // Should have ratio = 0.5 (1 window on left, 1 on right)
+        if let Some(BspNode::Split { ratio, .. }) = &bsp_tree.root {
+            assert!((ratio - 0.5).abs() < 0.01);
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_balance_three_windows_vertical() {
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None, 0.5);
+        bsp_tree.add_window(2, Some(1), 0.5);
+        bsp_tree.add_window(3, Some(2), 0.5);
+
+        // Tree: Split(H) { left: Leaf(1), right: Split(V) { left: Leaf(2), right: Leaf(3) } }
+        // After balance: root ratio should be 1/(1+2) = 0.33, right ratio should be 1/(1+1) = 0.5
+
+        bsp_tree.balance_tree();
+
+        if let Some(BspNode::Split { ratio, right, .. }) = &bsp_tree.root {
+            // Root ratio: 1 window on left, 2 on right = 1/3 ≈ 0.33
+            assert!(
+                (ratio - 0.33).abs() < 0.01,
+                "Root ratio should be ~0.33, got {}",
+                ratio
+            );
+
+            // Right subtree should have equal ratio (1 window each)
+            if let BspNode::Split {
+                ratio: right_ratio, ..
+            } = right.as_ref()
+            {
+                assert!(
+                    (right_ratio - 0.5).abs() < 0.01,
+                    "Right ratio should be ~0.5, got {}",
+                    right_ratio
+                );
+            }
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_balance_three_windows_horizontal() {
+        let mut bsp_tree = BspTree::new();
+        // Create horizontal split at root by adding windows in specific order
+        bsp_tree.add_window(1, None, 0.5);
+        bsp_tree.add_window(2, Some(1), 0.5); // Creates horizontal split (split_count=0)
+        bsp_tree.add_window(3, Some(1), 0.5); // Splits left side vertically (split_count=1)
+
+        // Tree: Split(H) { left: Split(V) { left: Leaf(3), right: Leaf(1) }, right: Leaf(2) }
+        // After balance: root ratio should be 2/(2+1) = 0.67, left ratio should be 0.5
+
+        bsp_tree.balance_tree();
+
+        if let Some(BspNode::Split { ratio, .. }) = &bsp_tree.root {
+            // Root ratio: 2 windows on left, 1 on right = 2/3 ≈ 0.67
+            assert!(
+                (ratio - 0.67).abs() < 0.01,
+                "Root ratio should be ~0.67, got {}",
+                ratio
+            );
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_balance_preserves_structure() {
+        let mut bsp_tree = BspTree::new();
+        bsp_tree.add_window(1, None, 0.5);
+        bsp_tree.add_window(2, Some(1), 0.5);
+        bsp_tree.add_window(3, Some(2), 0.5);
+
+        let windows_before = bsp_tree.all_windows();
+        let count_before = bsp_tree.window_count();
+
+        bsp_tree.balance_tree();
+
+        let windows_after = bsp_tree.all_windows();
+        let count_after = bsp_tree.window_count();
+
+        // Window count and order should be preserved
+        assert_eq!(count_before, count_after);
+        assert_eq!(windows_before, windows_after);
     }
 }
