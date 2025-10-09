@@ -39,3 +39,6 @@ unfocused_border_color = 0x808080  # Gray for unfocused windows
 "Super+q" = "delete_workspace"        # Delete current workspace
 "Super+j" = "switch_workspace_next"   # Switch to next workspace
 "Super+k" = "switch_workspace_prev"   # Switch to previous workspace
+
+# Rustile management
+"Super+Shift+q" = "shutdown"  # Shutdown Rustile WM
