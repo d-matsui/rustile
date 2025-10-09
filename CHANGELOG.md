@@ -1,3 +1,27 @@
+## [1.3.0](https://github.com/d-matsui/rustile/compare/v1.2.0...v1.3.0) (2025-10-09)
+
+### 🚀 Features
+
+* add manual BSP tree balance command ([a2736e3](https://github.com/d-matsui/rustile/commit/a2736e32240088b0456c756355cc79939db1c5cf))
+* add shutdown command with Super+Shift+q keybinding ([673fbff](https://github.com/d-matsui/rustile/commit/673fbffbeeb25736914f66bdf485383c944da805))
+* add workspace keybindings and command dispatch (task 4) ([9654068](https://github.com/d-matsui/rustile/commit/9654068eaee54022e4279b393fe6de0ef8f7babe))
+* implement workspace management core (tasks 1-2) ([740b814](https://github.com/d-matsui/rustile/commit/740b8144cc086c574e16e23ebb0423ae4469a981))
+* implement workspace switching with X11 integration (tasks 3,5) ([9f6643c](https://github.com/d-matsui/rustile/commit/9f6643c0e56e21274d37b06820be843e025611cc))
+
+### 🐛 Bug Fixes
+
+* conditional import of debug macro for release builds ([23c49e3](https://github.com/d-matsui/rustile/commit/23c49e3758c0de56d4ea7f5c823a14f8f2aca4f7))
+* preserve fullscreen layout during X11 events ([9f3ebf7](https://github.com/d-matsui/rustile/commit/9f3ebf73a370e42d92804dc45dc9d5b6433c7cd1))
+* resolve workspace rendering and state sync issues ([623775d](https://github.com/d-matsui/rustile/commit/623775dcdbd50ebad05fa1eb020a98a828fc7d0d))
+
+### 📖 Documentation
+
+* add code quality check section to CLAUDE.md ([59df127](https://github.com/d-matsui/rustile/commit/59df1274276bd9abd6e98296f27249228bb74e1a))
+
+### ♻️ Refactor
+
+* replace WindowState and WindowRenderer with WorkspaceRenderer ([697096a](https://github.com/d-matsui/rustile/commit/697096a312898e77b8fe40a8ecc1b8886ac527b7))
+
 ## [1.2.0](https://github.com/d-matsui/rustile/compare/v1.1.0...v1.2.0) (2025-10-03)
 
 ### 🚀 Features
