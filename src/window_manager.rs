@@ -333,6 +333,10 @@ impl<C: Connection> WindowManager<C> {
                         self.switch_workspace_prev();
                         return Ok(());
                     }
+                    "shutdown" => {
+                        info!("Shutting down Rustile by user request");
+                        std::process::exit(0);
+                    }
                     _ => {
                         let parts: Vec<&str> = command.split_whitespace().collect();
                         if let Some(program) = parts.first() {
