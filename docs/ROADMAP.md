@@ -32,6 +32,7 @@ This document outlines the planned features and development direction for Rustil
 
 - [x] **X11 support** - Full X11 window management integration
 - [x] **Comprehensive documentation** - ADRs, implementation guides, user documentation
+- [x] **Clipboard setup guide** - Documentation for X11 clipboard manager setup (xclip) and middle-button paste configuration
 
 ## 🚀 Feature Expansion
 
@@ -45,16 +46,16 @@ This document outlines the planned features and development direction for Rustil
 - [x] **Manual balance BSP tree** - Manual command to balance BSP tree ratios for optimal space usage (Shift+Alt+0)
 - [ ] **Enhanced error messages** - User-friendly configuration validation errors
 - [ ] **Live config reload** - Update settings without restarting rustile
-- 🔥 [ ] **Restart shortcut** - Keyboard shortcut to restart rustile (pkill + startx)
+- [x] **Restart shortcut** - Keyboard shortcut to restart rustile (pkill + startx)
 - [ ] **Application rules** - Automatically float specific applications (dialogs, popups)
 - [ ] **Enhanced debug messages** - User-friendly debug logging (human-readable logs)
 - [ ] **Automated integration testing** - Command-line driven tests in Xephyr with log verification (eliminate manual ./test.sh verification)
 
 ### Workspace Management
 
-- 🔥 [ ] **Workspace creation/deletion** - Create and manage multiple workspaces
-- [ ] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
-- [ ] **Window-workspace movement** - Move windows between different workspaces
+- [x] **Workspace creation/deletion** - Create and manage multiple workspaces
+- [x] **Workspace switching** - Navigate between workspaces with keyboard shortcuts
+- 🔥 [ ] **Window-workspace movement** - Move windows between different workspaces
 
 ### Input & Shortcuts
 
@@ -65,9 +66,9 @@ This document outlines the planned features and development direction for Rustil
 ### Platform & Integration
 
 - 🔥 [ ] **Multi-monitor support** - Automatically detect and configure multiple monitors
+- 🔥 [ ] **Status bar support** - Integration with external status bars
+- 🔥 [ ] **Screenshot utility** - Quick screenshot functionality
 - [ ] **Application launcher** - Built-in or integration with dmenu/rofi
-- [ ] **Status bar support** - Integration with external status bars
-- [ ] **Screenshot utility** - Quick screenshot functionality
 - [ ] **Wayland compatibility** - Research wlroots integration, maintain X11 compatibility
 
 ## 🐛 Known Issues & Bug Fixes
@@ -82,4 +83,3 @@ This document outlines the planned features and development direction for Rustil
 
 - [ ] **CI/CD documentation** - Document current workflows and troubleshooting guide
 - [ ] **Workflow simplification** - Reduce complexity in GitHub Actions workflows
-- [ ] **Security improvements** - Implement least-privilege tokens and better dependency scanning
