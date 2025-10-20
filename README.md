@@ -173,6 +173,72 @@ echo 'exec rustile > ~/.rustile.log 2>&1' > ~/.xinitrc
 - **Ctrl+Alt+F1/F2**: Return to your main desktop (GNOME/KDE)
 - Auto-login and X startup on TTY3
 
+## Optional Setup
+
+### Clipboard Manager
+
+For proper copy-paste functionality in X11 applications (especially terminal emulators like Alacritty), you need a clipboard manager. Without it, clipboard content disappears when the source application closes.
+
+**Setup**: Add the following to your `~/.xinitrc` **before** the `exec rustile` line:
+
+```bash
+# Install xclip
+sudo apt-get install xclip
+
+# Add to ~/.xinitrc (before exec rustile)
+# Clipboard manager for clipboard persistence (keeps clipboard after app closes)
+xclip -selection clipboard -loops 0 &
+
+# Your existing configuration
+exec rustile > ~/.rustile.log 2>&1
+```
+
+**What this enables:**
+- **Ctrl+Shift+C/V** → Copy/paste via CLIPBOARD selection (in terminals like Alacritty)
+- **Ctrl+C/V** → Copy/paste in browsers and other GUI applications
+- **Clipboard persistence** → Content survives after closing the source application
+- **Cross-application** → Copy from Alacritty, paste to browser (and vice versa)
+
+**Note about `-loops 0`**: This keeps xclip running permanently to handle unlimited clipboard requests. Do not use `-loops 1` as it will exit after the first paste operation.
+
+### Disable Middle-Button Paste (Optional)
+
+If you use a TrackPoint or other pointing device and accidentally trigger paste during scrolling, you can disable middle-button paste system-wide.
+
+**Setup**: Add to your `~/.xinitrc` (after the xclip line, before exec rustile):
+
+```bash
+# Find your device name first:
+xinput list
+
+# For ThinkPad TrackPoint (example):
+xinput set-button-map "TPPS/2 Elan TrackPoint" 1 0 3 4 5 6 7
+
+# The "0" in position 2 disables middle-button paste while keeping scrolling functional
+```
+
+**To find your device name**, run `xinput list` and look for your mouse/trackpoint device. Replace `"TPPS/2 Elan TrackPoint"` with your actual device name.
+
+### Verify Setup
+
+After restarting Rustile, verify the configuration:
+
+```bash
+# Check if xclip is running:
+ps aux | grep xclip
+
+# Test clipboard persistence:
+# 1. Open Alacritty, select text, press Ctrl+Shift+C
+# 2. Close that Alacritty window
+# 3. Open browser or another app, press Ctrl+V
+# → Should paste the text (clipboard persisted after app closed)
+
+# Test middle-button paste disabled:
+# 1. Select some text with mouse
+# 2. Middle-click or scroll with middle-button
+# → Should NOT paste (scrolling still works)
+```
+
 ## Debugging & Troubleshooting
 
 ### Enable Logging
