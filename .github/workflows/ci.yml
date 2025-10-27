@@ -108,7 +108,7 @@ jobs:
       run: cargo build --release --verbose
       
     - name: Upload release artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: rustile-${{ github.sha }}
         path: target/release/rustile
