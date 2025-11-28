@@ -1,3 +1,9 @@
+## [1.3.3](https://github.com/d-matsui/rustile/compare/v1.3.2...v1.3.3) (2025-11-28)
+
+### 🔧 CI/CD
+
+* **deps:** bump actions/checkout from 5 to 6 ([#67](https://github.com/d-matsui/rustile/issues/67)) ([d7bf2d7](https://github.com/d-matsui/rustile/commit/d7bf2d75e78b6cd08d2df6d0d48da0365bd01a6f))
+
 ## [1.3.2](https://github.com/d-matsui/rustile/compare/v1.3.1...v1.3.2) (2025-10-29)
 
 ### 🔧 CI/CD
