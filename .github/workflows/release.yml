@@ -45,7 +45,7 @@ jobs:
         sudo apt-get install -y libx11-dev libxcb1-dev pkg-config musl-tools
         
     - name: Cache cargo registry
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.cargo/registry
