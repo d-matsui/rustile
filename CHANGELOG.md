@@ -1,3 +1,9 @@
+## [1.3.4](https://github.com/d-matsui/rustile/compare/v1.3.3...v1.3.4) (2026-02-25)
+
+### 🔧 CI/CD
+
+* **deps:** bump actions/upload-artifact from 5 to 6 ([#70](https://github.com/d-matsui/rustile/issues/70)) ([bc0d97d](https://github.com/d-matsui/rustile/commit/bc0d97d04bee5a2756d0e9ffe402ffd9227b360e))
+
 ## [1.3.3](https://github.com/d-matsui/rustile/compare/v1.3.2...v1.3.3) (2025-11-28)
 
 ### 🔧 CI/CD
